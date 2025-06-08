@@ -1,0 +1,34 @@
+.collapsible {
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.collapsible.collapsed {
+    height: 0;
+}
+
+.workspace {
+    display: flex;
+    height: 100vh;
+}
+
+.section {
+    padding: 1rem;
+}
+
+.is-flex-direction-column {
+    flex-direction: column;
+}
+
+.file-view,
+.settings-view {
+    width: 250px;
+}
+
+.main-workspace {
+    flex-grow: 1;
+}
+
+.table-view {
+    height: 200px;
+}
