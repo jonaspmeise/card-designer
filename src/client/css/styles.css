@@ -1,6 +1,5 @@
 .collapsible {
     overflow: hidden;
-    transition: all 0.3s ease;
 }
 
 .collapsible.collapsed {
@@ -9,10 +8,13 @@
 
 .workspace {
     display: flex;
+    flex-direction: row;
     height: 100vh;
 }
 
 .section {
+    flex-grow: 1;
+    flex-basis: 4;
     padding: 1rem;
 }
 
@@ -20,12 +22,14 @@
     flex-direction: column;
 }
 
-.file-view,
-.settings-view {
+.file-view, .settings-view {
     width: 250px;
 }
 
 .main-workspace {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     flex-grow: 1;
 }
 

@@ -1,3 +1,1 @@
-export type AppState = {
-  counter: number
-};
+export type AppState = {};

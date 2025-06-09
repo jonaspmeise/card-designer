@@ -1,93 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Card Designer</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Designer</title>
 
-        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
 
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
-        <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="./styles.css">
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-        <script defer src="./bundle.js"></script>
-    </head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script defer src="./bundle.js"></script>
+</head>
 
-    <body>
-        <div class="workspace">
-            <!-- Left Section: File/Tree Directory View -->
-            <div class="file-view collapsible">
-            <button class="button is-fullwidth" onclick="toggleSection('file-view')">Upload Folder</button>
+<body>
+    <div class="workspace">
+        <!-- Left Section: File/Tree Directory View -->
+        <div class="file-view" i-style="`border: ${$.value}px solid red`">
+            <button class="button is-fullwidth" @click="animation.play">Upload Folder</button>
             <div class="section">
                 <!-- File/tree directory content goes here -->
                 <ul>
-                <li>File 1</li>
-                <li>File 2</li>
-                <li>File 3</li>
+                    <li>File 1</li>
+                    <li>File 2</li>
+                    <li>File 3</li>
                 </ul>
             </div>
-            </div>
+        </div>
 
-            <!-- Middle Section: Main Workspace Canvas -->
-            <div class="main-workspace">
+        <!-- Middle Section: Main Workspace Canvas -->
+        <div class="main-workspace">
             <div class="section">
                 <!-- Canvas content goes here -->
-                <div style="background-color: #f0f0f0; height: 100%; display: flex; justify-content: center; align-items: center;">
-                Canvas Render
+                <div
+                    style="background-color: #f0f0f0; height: 100%; display: flex; justify-content: center; align-items: center;">
+                    Canvas Render
                 </div>
             </div>
-            </div>
 
-            <!-- Right Section: Key-Value Pair Settings -->
-            <div class="settings-view collapsible">
-            <button class="button is-fullwidth" onclick="toggleSection('settings-view')">Toggle Settings</button>
+            <!-- Bottom Section: Tabular Format -->
+            <div class="table-view" :class="{ 'collapsible': views.tables.collapsed }" x-ref="table-view">
+                <button class="button is-fullwidth" @click="toggle($el)">Toggle Table</button>
+                <div class="section">
+                    <!-- Tabular data content goes here -->
+                    <table class="table is-fullwidth">
+                        <thead>
+                            <tr>
+                                <th>Column 1</th>
+                                <th>Column 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Data 1</td>
+                                <td>Data 2</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section: Key-Value Pair Settings -->
+        <div class="settings-view" :class="{ 'collapsible': views.settings.collapsed }" x-ref="settings-view">
+            <button class="button is-fullwidth" @click="toggle($el)">Toggle Settings</button>
             <div class="section">
                 <!-- Key-value pair settings content goes here -->
                 <table class="table is-fullwidth">
-                <thead>
-                    <tr>
-                    <th>Key</th>
-                    <th>Value</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                    <td>Setting 1</td>
-                    <td>Value 1</td>
-                    </tr>
-                    <tr>
-                    <td>Setting 2</td>
-                    <td>Value 2</td>
-                    </tr>
-                </tbody>
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Setting 1</td>
+                            <td>Value 1</td>
+                        </tr>
+                        <tr>
+                            <td>Setting 2</td>
+                            <td>Value 2</td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
-            </div>
         </div>
+    </div>
+</body>
 
-        <!-- TODO: https://gsap.com/community/forums/topic/25324-alpinejs/#:~:text=My-,turn.%20I%20like,-it.%20One%20little -->
-        <!-- Bottom Section: Tabular Format -->
-        <div class="table-view collapsible">
-            <button class="button is-fullwidth" onclick="toggleSection('table-view')">Toggle Table</button>
-            <div class="section">
-            <!-- Tabular data content goes here -->
-            <table class="table is-fullwidth">
-                <thead>
-                <tr>
-                    <th>Column 1</th>
-                    <th>Column 2</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Data 1</td>
-                    <td>Data 2</td>
-                </tr>
-                </tbody>
-            </table>
-            </div>
-        </div>
-    </body>
 </html>

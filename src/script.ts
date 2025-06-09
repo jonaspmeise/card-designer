@@ -1,38 +1,23 @@
 import Alpine from "alpinejs";
 import { AppState } from "./types/types.js";
 import gsap from "gsap";
+import { Interaction } from "./client/interaction/interaction.js";
+
+let model: AppState = {};
 
 document.addEventListener('DOMContentLoaded', () => {
-  init();
-  Alpine.start();
-});
+  const interaction = new Interaction();
 
-export const init = () => {
-  Alpine.store('state', {
+  model = interaction.register({
+    value: 3,
     hello: 'world',
-    
-    increment() {
-      console.log('A', this.counter);
-        this.counter++;
-    },
-    decrement() {
-      console.log('B', this.counter);
-        this.counter--;
-    },
-    counter: 0
-  } as AppState);
-};
+    visible: true,
+    nested: {
+      property: 123
+    }
+  });
 
-export const toggleSection = (sectionId: string) => {
-  const section = document.querySelector(`.${sectionId}`);
-  if(section === null) {
-    return;
-  }
-
-  if (section.classList.contains('collapsed')) {
-    gsap.to(section, { height: 'auto', duration: 0.5 });
-    section.classList.remove('collapsed');
-  } else {
-    gsap.to(section, { height: 0, duration: 0.5, onComplete: () => section.classList.add('collapsed') });
-  }
-}
+  window['interaction'] = interaction;
+  window['model'] = model;
+  interaction.start();
+});
