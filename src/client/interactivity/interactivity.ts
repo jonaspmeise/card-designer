@@ -8,15 +8,17 @@ type Binding<T, MODEL> = {
   cache?: T
 };
 type PropertyPath = string;
+type ChangeHandler = (value: any, prop: string) => void;
 
 const IS_PROXY = Symbol("is-proxy");
 
 export const Interactivity = (function() {
   let model: any = undefined;
   const bindings: Binding<any, any>[] = [];
-  const tag = /^\[[^\]]+\]$/;
+  const consumingTag = /^\[[^\]]+\]$/;
+  const generatingTag = /^@/;
   let currentlyEvaluatedBinding: Binding<any, any> | undefined;
-  const interestMatrix: Map<PropertyPath, Binding<any, any>[]> = new Map();
+  const interestMatrix: Map<PropertyPath, (ChangeHandler | Binding<any, any>)[]> = new Map();
 
   const update = (binding: Binding<any, any>) => {
     if(model === undefined) {
@@ -46,6 +48,14 @@ export const Interactivity = (function() {
     binding.cache = value;
   };
 
+  const registerHandler = (handler: (ChangeHandler | Binding<any, any>), property: string) => {
+    if(!interestMatrix.has(property)) {
+      interestMatrix.set(property, [handler]);
+    } else {
+      interestMatrix.get(property)!.push(handler);
+    }
+  };
+
   const createReactive = <T extends Record<(string | symbol), unknown>>(obj: T, parents: string[] = []): T => {
     console.debug(`Registering proxy ${parents.length == 0 ? '' : `with parents "${parents.join('.')}"`} for `, obj);
 
@@ -71,8 +81,13 @@ export const Interactivity = (function() {
 
         // Inform all Bindings that are interested in this change to update.
         (interestMatrix.get(propertyPath) ?? []).forEach(binding => {
-          console.debug(`Updated binding for attribute "${binding.target}" on Element`, binding.element);
-          update(binding);
+          // The Binding can either update a function (handler) or otherwise updates some "binding" attribute.
+          if(typeof binding === 'function') {
+            (binding as ChangeHandler)(value, propertyPath);
+          } else {
+            console.debug(`Updated binding for attribute "${binding.target}" on Element`, binding.element);
+            update(binding);
+          }
         });
 
         return result;
@@ -97,11 +112,7 @@ export const Interactivity = (function() {
           // Record this dependency for our current binding!
           const propertyPath = [...parents, p].join('.');
 
-          if(!interestMatrix.has(propertyPath)) {
-            interestMatrix.set(propertyPath, [currentlyEvaluatedBinding]);
-          } else {
-            interestMatrix.get(propertyPath)!.push(currentlyEvaluatedBinding);
-          }
+          registerHandler(currentlyEvaluatedBinding, propertyPath);
 
           console.log(`Property "${propertyPath}" is interesting for Binding`, currentlyEvaluatedBinding);
         }
@@ -131,7 +142,7 @@ export const Interactivity = (function() {
           }
 
           return Array.from(e.attributes)
-            .filter(a => tag.test(a.name))
+            .filter(a => consumingTag.test(a.name))
             .map(a => {
               // This name is always lowercase!
               const target = a.name.substring(1, a.name.length - 1);
@@ -170,11 +181,29 @@ export const Interactivity = (function() {
         // Reset binding.
         currentlyEvaluatedBinding = undefined;
       });
+
+      // Register event listeners!
+      Array.from(document.querySelectorAll('*'))
+        .flatMap(e => {
+          Array.from(e.attributes)
+            .filter(a => generatingTag.test(a.name))
+            .forEach(a => {
+              const eventType = a.name.substring(1);
+              const func = new Function('$', 'e', a.value);
+
+              e.addEventListener(eventType, (event: Event) => {
+                console.error('EVENT YAY', event);
+                func(model, event);
+              });
+            });
+        });
     },
     register: <T extends Record<string, unknown>> (data: T): T => {
+      // TODO: Issue Warning if data is not undefined, since it will be overwritten!
       model = createReactive(data);
 
       return model;
-    }
+    },
+    registerHandler: registerHandler as (handler: ChangeHandler, property: string) => void
   };
 })();

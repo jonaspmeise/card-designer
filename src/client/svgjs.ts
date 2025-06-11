@@ -20,15 +20,12 @@ export const svgjsLanguage = LRLanguage.define({
         return null;
       }
 
-      console.log('VALUE', value);
       const match = svgjs.exec(value);
 
       if(match === null || match.length === 0) {
         return null;
       }
 
-      console.log('FOUND MATCH', match);
-      
       return {
         parser: jsParser,
         overlay: [

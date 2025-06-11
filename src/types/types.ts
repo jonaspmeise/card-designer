@@ -1,3 +1,5 @@
 export type AppState = {
-  code: string
+  code: string,
+  compiled: string,
+  files: FileList | undefined
 };

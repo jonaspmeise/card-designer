@@ -62,14 +62,13 @@
                     <i class="fas fa-cog"></i>
                 </button>
             </div>
-            <div id="svg-preview"
-                class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center">
+            <div
+                id="svg-preview"
+                class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center"
+            >
                 <div id="preview" [innerHTML]="$.code">
                     Preview
                 </div>
-                <canvas id="preview">
-
-                </canvas>
             </div>
         </div>
     </div>
@@ -80,12 +79,20 @@
             <h5 class="offcanvas-title" id="fileViewLabel">Files</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
-        <div class="offcanvas-body">
-            <ul class="list-unstyled">
-                <li>File 1</li>
-                <li>File 2</li>
-                <li>File 3</li>
-            </ul>
+        <div class="offcanvas-body container mt-5">
+            <div class="mb-3">
+                <label for="formFileMultiple" class="form-label">Choose files</label>
+                <input class="form-control" type="file" id="formFileMultiple" multiple @change="$.files = e.target.files">
+            </div>
+            <div>
+                <ul
+                    id="fileList"
+                    class="list-group"
+                    [innerHTML]="Array.from($.files ?? [])
+                        .map(file => `<li>${file.name}</li>`)"
+                >
+                </ul>
+            </div>
         </div>
     </div>
 

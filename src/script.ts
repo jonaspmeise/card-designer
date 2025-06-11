@@ -1,7 +1,7 @@
 import { AppState } from "./types/types.js";
 import { Interactivity } from "./client/interactivity/interactivity.js";
 import { EditorView, basicSetup } from "codemirror";
-import { debounce, highlightMustache } from "./client/utility.js";
+import { compile, debounce } from "./client/utility.js";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { svgjsLanguage } from "./client/svgjs.js";
 
@@ -11,7 +11,9 @@ const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.o
 `;
 
 let model: AppState = {
-  code: initialSvg
+  code: initialSvg,
+  compiled: initialSvg,
+  files: undefined
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,10 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window['interactivity'] = Interactivity;
   window['model'] = model;
+  Interactivity.registerHandler((code: string) => model.compiled = compile(code), 'code');
   Interactivity.start();
 
-  const update = debounce((code: string) => {
-    model.code = code;
+  const update = debounce((code: string, prop: string = 'code') => {
+    model[prop] = code;
   }, 100);
 
   // SOURCE EDITOR
@@ -47,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         
-        update(e.state.doc.toString());
+        update(e.state.doc.toString(), 'code');
       })
     ]
   });
@@ -74,10 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         
-        update(e.state.doc.toString());
+        update(e.state.doc.toString(), 'compiler');
       })
     ]
   });
+  Interactivity.registerHandler((code: string) => compilerEditor.dispatch({
+    changes: {
+      from: 0,
+      to: compilerEditor.state.doc.length,
+      insert: code
+    }
+  }), 'compiled');
 
 });
 
