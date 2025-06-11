@@ -1,6 +1,9 @@
+type BindingType = 'attribute' | 'property';
+
 type Binding<T, MODEL> = {
   target: string,
   element: Element,
+  type: BindingType,
   query: (model: MODEL) => T,
   cache?: T
 };
@@ -8,31 +11,46 @@ type PropertyPath = string;
 
 const IS_PROXY = Symbol("is-proxy");
 
-
-export const Interaction = (function() {
-  let data: any = undefined;
-  let bindings: Binding<any, any>[] = [];
-  let prefix = 'i-';
+export const Interactivity = (function() {
+  let model: any = undefined;
+  const bindings: Binding<any, any>[] = [];
+  const tag = /^\[[^\]]+\]$/;
   let currentlyEvaluatedBinding: Binding<any, any> | undefined;
-  let interestMatrix: Map<PropertyPath, Binding<any, any>[]> = new Map();
+  const interestMatrix: Map<PropertyPath, Binding<any, any>[]> = new Map();
 
   const update = (binding: Binding<any, any>) => {
-    const value = binding.query(data);
+    if(model === undefined) {
+      throw Error('No Data has been registered so far. Did you call register() before start()?');
+    }
+
+    const value = binding.query(model);
 
     if(value === binding.cache) {
       return;
     }
 
-    binding.element.setAttribute(
-      binding.target,
-      value      
-    );
+    // If the target is an HTML 5 attribute, we set it.
+    // Otherwise, it is a property of the element, only available in the browser.
+    // We register it by accessing the element directly.
+    if(binding.type === 'property') {
+      console.debug(`Setting "${binding.target}" as a property to "${value}" on`, binding.element);
+      binding.element[binding.target] = value;
+    } else {
+      console.debug(`Setting "${binding.target}" as an attribute to "${value}" on`, binding.element);
+      binding.element.setAttribute(
+        binding.target,
+        value      
+      );
+    }
+
     binding.cache = value;
   };
 
   const createReactive = <T extends Record<(string | symbol), unknown>>(obj: T, parents: string[] = []): T => {
+    console.debug(`Registering proxy ${parents.length == 0 ? '' : `with parents "${parents.join('.')}"`} for `, obj);
+
     // If the object is already reactive, return it as-is
-    if(obj[IS_PROXY]) {
+    if(obj.IS_PROXY) {
       return obj;
     }
 
@@ -41,7 +59,7 @@ export const Interaction = (function() {
         const propertyPath = [...parents, prop.toString()].join('.');
 
         // If the value is an object and not already reactive, recursively make it reactive
-        if(typeof value === 'object' && value !== null && !value[IS_PROXY]) {
+        if(typeof target[prop] === 'object' && value !== null && !value.IS_PROXY) {
           value = createReactive(value, [...parents, prop.toString()]);
         }
 
@@ -67,7 +85,7 @@ export const Interaction = (function() {
         let value: any = Reflect.get(target, prop, receiver);
         const p: string = prop.toString();
 
-        if(typeof value === 'object' && value !== null && !value[IS_PROXY]) {
+        if(typeof value === 'object' && value !== null && !value.IS_PROXY) {
           // Overwrite child value with proxy!
           value = createReactive(value as Record<string, unknown>, [...parents, p]);
 
@@ -105,19 +123,40 @@ export const Interaction = (function() {
     start: () => {
       // Find all bindings in the document.
       bindings.push(...Array.from(document.querySelectorAll('*'))
-        .flatMap(e => Array.from(e.attributes)
-          .filter(a => a.name.startsWith(prefix))
-          .map(a => {
-            const target = a.name.substring(2);
+        .flatMap(e => {
+          // Mapping "lower-case attributes" to the normal attributes...
+          const elementProperties: Map<string, string> = new Map();
+          for(let prop in e) {
+            elementProperties.set(prop.toLowerCase(), prop);
+          }
 
-            return {
-              element: e,
-              target: target,
-              // https://github.com/microsoft/TypeScript/issues/34540
-              query: new Function('$', `return ${a.value};`) as ((model: Exclude<typeof data, undefined>) => any),
-              interestedIn: new Set<string>()
-            };
-          })
+          return Array.from(e.attributes)
+            .filter(a => tag.test(a.name))
+            .map(a => {
+              // This name is always lowercase!
+              const target = a.name.substring(1, a.name.length - 1);
+
+                // This binding targets a property and not an attribute, if:
+                // - there exists a property on the element (JS) with that attribute, ignoring lower/upper-case logic
+              const bindingType: BindingType = (elementProperties.has(target.toLowerCase())
+              ? 'property'
+              : 'attribute') as BindingType;
+
+              const resolvedTarget = bindingType === 'attribute' ? target : elementProperties.get(target)!;
+              console.debug(`Registering binding of type "${bindingType}" for "${resolvedTarget}" on Element`, e);
+
+              return {
+                element: e,
+                // If the binding is a property, we only know about it in lower-case.
+                // It has to be resolved back to the correct way (e.g. "innerhtml" -> "innerHTML")
+                target: resolvedTarget,
+                type: bindingType,
+                // https://github.com/microsoft/TypeScript/issues/34540
+                query: new Function('$', `return ${a.value};`) as ((m: Exclude<typeof model, undefined>) => any),
+                interestedIn: new Set<string>()
+              };
+            });
+          }
         ));
 
       // Evaluate all bindings.
@@ -133,9 +172,9 @@ export const Interaction = (function() {
       });
     },
     register: <T extends Record<string, unknown>> (data: T): T => {
-      data = createReactive(data);
+      model = createReactive(data);
 
-      return data;
+      return model;
     }
   };
 })();

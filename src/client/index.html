@@ -22,27 +22,60 @@
 </head>
 
 <body>
-    <div class="d-flex container-fluid vh-100">
-        <div class="code col-md-6" id="code"></div>
+    <div class="d-flex container-fluid vh-100 p-0">
+        <!-- Left Column: Editors -->
+        <div class="code-editor col-md-6 d-flex flex-column">
+            <!-- Bootstrap Tabs -->
+            <ul class="nav nav-tabs" id="editorTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="source-tab" data-bs-toggle="tab" data-bs-target="#source"
+                        type="button" role="tab">
+                        <i class="fas fa-code me-2"></i>Source
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="compile-tab" data-bs-toggle="tab" data-bs-target="#compile"
+                        type="button" role="tab">
+                        <i class="fas fa-cogs me-2"></i>Compile
+                    </button>
+                </li>
+            </ul>
 
-        <div class="col-md-6">
-            <div class="buttons">
+            <!-- Tab Content -->
+            <div class="tab-content flex-grow-1">
+                <div class="tab-pane show active h-100" id="source" role="tabpanel">
+                    <div id="source-editor" class="h-100"></div>
+                </div>
+                <div class="tab-pane h-100" id="compile" role="tabpanel">
+                    <div id="compile-editor" class="h-100"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Preview -->
+        <div class="col-md-6 d-flex flex-column">
+            <div class="buttons mt-3">
                 <button class="btn btn-primary m-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#files">
                     <i class="fas fa-folder-open"></i>
                 </button>
-
                 <button class="btn btn-primary m-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#settings">
                     <i class="fas fa-cog"></i>
                 </button>
             </div>
-            <div id="preview" class="w-100 h-100 d-flex justify-content-center align-items-center">
-                Preview
+            <div id="svg-preview"
+                class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center">
+                <div id="preview" [innerHTML]="$.code">
+                    Preview
+                </div>
+                <canvas id="preview">
+
+                </canvas>
             </div>
         </div>
     </div>
 
-    <!-- Offcanvas for Files and Settings -->
-    <div class="offcanvas offcanvas-end text-bg-dark" tabindex="-1" id="files">
+    <div class="offcanvas offcanvas-end text-bg-dark" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1"
+        id="files">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="fileViewLabel">Files</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
@@ -56,7 +89,8 @@
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end text-bg-dark" tabindex="-1" id="settings">
+    <div class="offcanvas offcanvas-end text-bg-dark" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1"
+        id="settings">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="settingsViewLabel">Settings</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>

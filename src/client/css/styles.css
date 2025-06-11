@@ -43,3 +43,7 @@ button {
     width: 0;
     overflow: hidden;
 }
+
+.preview {
+    background-color: white;
+}

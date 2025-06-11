@@ -1,1 +1,3 @@
-export type AppState = {};
+export type AppState = {
+  code: string
+};

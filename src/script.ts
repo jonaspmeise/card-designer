@@ -1,37 +1,84 @@
 import { AppState } from "./types/types.js";
-import { Interaction } from "./client/interaction/interaction.js";
+import { Interactivity } from "./client/interactivity/interactivity.js";
 import { EditorView, basicSetup } from "codemirror";
-import { xml } from "@codemirror/lang-xml";
+import { debounce, highlightMustache } from "./client/utility.js";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { svgjsLanguage } from "./client/svgjs.js";
 
-let model: AppState = {};
-const initialSvg: string = `
-  <svg height="40" width="250">
-    <text x="5" y="30" fill="red" font-size="35" rotate="30">I love SVG!</text>
-  </svg>
+const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
+</svg>
 `;
 
+let model: AppState = {
+  code: initialSvg
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-  model = Interaction.register({
-    value: 3,
-    hello: 'world',
-    visible: true,
-    nested: {
-      property: 123
-    }
-  });
+  model = Interactivity.register(model);
 
-  window['interaction'] = Interaction;
+  window['interactivity'] = Interactivity;
   window['model'] = model;
-  Interaction.start();
+  Interactivity.start();
 
-  const view = new EditorView({
-    parent: document.getElementById('code')!,
+  const update = debounce((code: string) => {
+    model.code = code;
+  }, 100);
+
+  // SOURCE EDITOR
+  const sourceEditor = new EditorView({
+    parent: document.getElementById('source-editor')!,
     doc: initialSvg,
     extensions: [
       basicSetup,
-      xml()
+      svgjsLanguage,
+      oneDark,
+      EditorView.theme({
+        "&": {
+          height: "100%"
+        },
+        ".cm-scroller": {
+          overflow: "auto",
+          fontFamily: "monospace"
+        }
+      }),
+      EditorView.updateListener.of((e) => {
+        if(!e.docChanged) {
+          return;
+        }
+        
+        update(e.state.doc.toString());
+      })
     ]
   });
+
+  // COMPILE EDITOR
+  const compilerEditor = new EditorView({
+    parent: document.getElementById('compile-editor')!,
+    doc: initialSvg,
+    extensions: [
+      basicSetup,
+      svgjsLanguage,
+      oneDark,
+      EditorView.theme({
+        "&": {
+          height: "100%"
+        },
+        ".cm-scroller": {
+          overflow: "auto",
+          fontFamily: "monospace"
+        }
+      }),
+      EditorView.updateListener.of((e) => {
+        if(!e.docChanged) {
+          return;
+        }
+        
+        update(e.state.doc.toString());
+      })
+    ]
+  });
+
 });
 
 window['toggleSection'] = (button: Element) => {
