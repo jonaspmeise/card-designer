@@ -22,7 +22,7 @@
 </head>
 
 <body>
-    <div class="d-flex container-fluid vh-100 p-0">
+    <div id="app" class="d-flex container-fluid vh-100 p-0">
         <!-- Left Column: Editors -->
         <div class="code-editor col-md-6 d-flex flex-column">
             <!-- Bootstrap Tabs -->
@@ -82,15 +82,20 @@
         <div class="offcanvas-body container mt-5">
             <div class="mb-3">
                 <label for="formFileMultiple" class="form-label">Choose files</label>
-                <input class="form-control" type="file" id="formFileMultiple" multiple @change="$.files = e.target.files">
+                <input class="form-control" type="file" id="formFileMultiple" multiple onchange="model._files = e.target.files">
             </div>
             <div>
                 <ul
-                    id="fileList"
-                    class="list-group"
-                    [innerHTML]="Array.from($.files ?? [])
-                        .map(file => `<li>${file.name}</li>`)"
+                    id="file-list"
+                    class="scrollable-list"
+                    v-for="(item, index)"
                 >
+                    <li
+                        $="model\.files\.(?<id>\d+)"
+                        @click="model._selectedFile = model._files[$.id]"
+                        [class]="Array.from($.files ?? []).indexOf($.selectedFile) === $.id ? 'selected' : ''"
+                        [innerHTML]="$.name"
+                    ></li>
                 </ul>
             </div>
         </div>

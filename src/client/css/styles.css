@@ -21,7 +21,7 @@ html {
     transition: width 0.5s ease;
 }
 
-.main-workspace > .section > * {
+.main-workspace>.section>* {
     background-color: #f0f0f0;
     height: 100%;
     display: flex;
@@ -46,4 +46,34 @@ button {
 
 .preview {
     background-color: white;
+}
+
+.scrollable-list {
+    max-height: 300px;
+    /* Set a max height for the list */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    border: 1px solid #dee2e6;
+    /* Add a border for better visual */
+    border-radius: 0.25rem;
+    /* Round the corners */
+}
+
+/* Style for list items */
+.list-group-item {
+    cursor: pointer;
+    /* Change cursor to pointer on hover */
+    transition: background-color 0.2s;
+    /* Smooth transition for background color */
+}
+
+/* Highlight selected item */
+.list-group-item.selected {
+    background-color: #0d6efd;
+    color: white;
+}
+
+/* Hover effect for list items */
+.list-group-item:hover {
+    background-color: orange;
 }
