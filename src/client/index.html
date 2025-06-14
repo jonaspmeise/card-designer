@@ -66,8 +66,8 @@
                 id="svg-preview"
                 class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center"
             >
-                <div id="preview" [innerHTML]="$.code">
-                    Preview
+                <div interactive id="preview">
+                    {{ model._target }}
                 </div>
             </div>
         </div>
@@ -82,20 +82,24 @@
         <div class="offcanvas-body container mt-5">
             <div class="mb-3">
                 <label for="formFileMultiple" class="form-label">Choose files</label>
-                <input class="form-control" type="file" id="formFileMultiple" multiple onchange="model._files = e.target.files">
+                <input class="form-control" type="file" id="formFileMultiple" multiple @change="model._files = e.target.files">
             </div>
             <div>
                 <ul
                     id="file-list"
                     class="scrollable-list"
-                    v-for="(item, index)"
+                    interactive
                 >
-                    <li
-                        $="model\.files\.(?<id>\d+)"
-                        @click="model._selectedFile = model._files[$.id]"
-                        [class]="Array.from($.files ?? []).indexOf($.selectedFile) === $.id ? 'selected' : ''"
-                        [innerHTML]="$.name"
-                    ></li>
+                    {{
+                        model.files.map((file, i) => `
+                        <li
+                            id="file-item-${i}"
+                            onclick="model._selectedFile = model._files[${i}]"
+                            class="Array.from(model._files ?? []).indexOf(model.selectedFile) === ${i} ? 'selected' : ''"
+                            [innerHTML]="$.name"
+                        ></li>
+                        `)
+                    }}
                 </ul>
             </div>
         </div>

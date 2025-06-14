@@ -13,11 +13,10 @@ const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.o
 let model: AppState = {
   code: initialSvg,
   _compiled: initialSvg,
+  _target: initialSvg,
   _files: undefined,
   _selectedFile: undefined
 };
-
-
 
 document.addEventListener('DOMContentLoaded', () => {
   model = Interactivity.register(model);
@@ -25,9 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window['interactivity'] = Interactivity;
   window['model'] = model;
   Interactivity.registerHandler((code: string) => model._compiled = compile(code), 'code');
-  Interactivity.start();
 
   const update = debounce((code: string, prop: string = 'code') => {
+    console.log('Updating', prop, code);
     model[prop] = code;
   }, 100);
 
@@ -80,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         
-        update(e.state.doc.toString(), 'compiler');
+        update(e.state.doc.toString(), '_target');
       })
     ]
   });
@@ -90,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       to: compilerEditor.state.doc.length,
       insert: compiled
     }
-  }), 'compiled');
+  }), '_compiled');
 
+  Interactivity.start();
 });
