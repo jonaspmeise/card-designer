@@ -149,15 +149,20 @@ export const Interactivity = (function() {
 
   // Tracks a single element.
   const track = (element: Element) => {
-    const snippets = Array.from(element.innerHTML.matchAll(/{{(.+?)}}/g));
+    const snippets = Array.from(element.innerHTML.matchAll(/{{(.+?)}}/gs));
 
     if(snippets === null) {
       return [];
     }
     
+    console.log(snippets);
     const parsedBindings: Binding[] = snippets.map(snippet => ({
       source: snippet[0],
-      query: new Function('model', `return ${snippet[1].trim()}`) as (model: any) => string,
+      query: new Function('model', `return ${
+        snippet[1]
+          .trim()
+          .replaceAll(/&(?:amp;)?gt;/gi, '>')
+      }`) as (model: any) => string,
       value: '',
       element: (element as BindableElement)
     }));

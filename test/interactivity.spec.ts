@@ -27,7 +27,6 @@ describe('Interactivity.', () => {
   });
   
   test('Alternative implementation for Interactivity.', () => {
-    // document.body.classList = 
     document.body.innerHTML=`<div interactive><div class="{{ model.value }}"></div></div>`
 
     Interactivity.register(model);
@@ -73,5 +72,31 @@ describe('Interactivity.', () => {
     model.value = 999;
 
     expect(document.body.innerHTML).toEqual(`<div interactive="">999</div>`);
+  });
+
+  test('Multi-line bindings are registered correctly.', () => {
+    document.body.innerHTML=`<div interactive><div class="{{
+      model.value
+    }}"></div></div>`
+
+    Interactivity.register(model);
+    Interactivity.start();
+
+    expect(document.body.innerHTML).toEqual('<div interactive=""><div class="abc"></div></div>');
+  });
+
+  
+  test('The symbol ">" is correctly interpreted.', () => {
+    model = {
+      values: [1, 2, 3]
+    }
+    document.body.innerHTML=`<div interactive><div class="{{
+      model.values.map(i =&gt; i + 1).join('-')
+    }}"></div></div>`
+
+    Interactivity.register(model);
+    Interactivity.start();
+
+    expect(document.body.innerHTML).toEqual('<div interactive=""><div class="2-3-4"></div></div>');
   });
 });

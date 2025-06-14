@@ -91,13 +91,14 @@
                     interactive
                 >
                     {{
-                        model.files.map((file, i) => `
-                        <li
-                            id="file-item-${i}"
-                            onclick="model._selectedFile = model._files[${i}]"
-                            class="Array.from(model._files ?? []).indexOf(model.selectedFile) === ${i} ? 'selected' : ''"
-                            [innerHTML]="$.name"
-                        ></li>
+                        Array.from(model._files ?? []).map((file, i) => `
+                            <li
+                                id="file-item-${i}"
+                                onclick="model._selectedFile = model._files[${i}]"
+                                class="${Array.from(model._files ?? []).indexOf(model.selectedFile) === i ? 'selected' : ''}"
+                            >
+                                ${file.name}
+                            </li>
                         `)
                     }}
                 </ul>
