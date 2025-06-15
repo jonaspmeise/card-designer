@@ -22,10 +22,10 @@
 </head>
 
 <body>
-    <div id="app" class="d-flex container-fluid vh-100 p-0">
-        <div class="d-flex container-fluid">
+    <div id="app" class="d-flex container-fluid flex-column vh-100 p-0">
+        <div id="upper" class="d-flex container-fluid flex-column">
             <!-- Left Column: Editors -->
-            <div class="code-editor col-md-6 d-flex flex-column">
+            <div id="code-editor" class="code-editor vh-60 col-md-6 d-flex flex-column">
                 <!-- Bootstrap Tabs -->
                 <ul class="nav nav-tabs" id="editorTabs" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -54,7 +54,7 @@
             </div>
 
             <!-- Right Column: Preview -->
-            <div class="col-md-6 d-flex flex-column">
+            <div id="svg-preview" class="col-md-6 vh-40 d-flex flex-column">
                 <div class="buttons mt-3">
                     <button class="btn btn-primary m-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#files">
                         <i class="fas fa-folder-open"></i>
@@ -93,7 +93,7 @@
         <div class="offcanvas-body container mt-5">
             <div class="mb-3">
                 <label for="formFileMultiple" class="form-label">Choose files</label>
-                <input class="form-control" type="file" id="formFileMultiple" multiple webkitdirectory onchange="model._files = event.target.files">
+                <input class="form-control" type="file" id="formFileMultiple" multiple webkitdirectory onchange="model._files = Array.from(event.target.files)">
             </div>
             <div>
                 <ul
@@ -102,18 +102,18 @@
                     interactive
                 >
                     {{
-                        Array.from(model._files ?? []).length === 0
+                        model._files.length === 0
                         ? 'No files uploaded.'
                         : ''
                     }}
                     <!-- TODO: This is broken!-->
                     {{
-                        Array.from(model._files ?? []).map((file, i) => `
+                        model._files.map((file, i) => `
                             <li
                                 interactive
                                 id="file-item-${i}"
                                 @click="model._selectedFile = model._files[${i}]"
-                                class="${Array.from(model._files ?? []).indexOf(model._selectedFile) === i ? 'selected' : ''}"
+                                class="${model._files.indexOf(model._selectedFile) === i ? 'selected' : ''}"
                             >
                                 ${file.name}
                             </li>

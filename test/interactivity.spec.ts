@@ -212,5 +212,22 @@ describe('Interactivity.', () => {
     expect(document.getElementById('main')!.innerHTML).toEqual('test (something else)');
   });
 
+  test('Bindings that are dependent on other bindings before they are evaluated the first time eventually work.', () => {
+    document.body.innerHTML = '<div id="main" interactive>{{model.values.map(v => `${v} (${model.other ?? \'nothing\'})`)}}</div>';
+    model = Interactivity.register({
+      values: [],
+      other: undefined
+    });
+
+    Interactivity.start();
+    expect(document.getElementById('main')!.innerHTML).toEqual('');
+
+    model.values = ['test'];
+    expect(document.getElementById('main')!.innerHTML).toEqual('test (nothing)');
+
+    model.other = 'something';
+    expect(document.getElementById('main')!.innerHTML).toEqual('test (something)');
+  });
+
   test.todo('Handlers can be created and revoked.');
 });

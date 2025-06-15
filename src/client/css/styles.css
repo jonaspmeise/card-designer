@@ -77,3 +77,16 @@ button {
 .list-group-item:hover {
     background-color: orange;
 }
+
+.selected {
+    background-color: orange;
+    color: black;
+}
+
+#code-editor {
+    overflow: auto;
+}
+
+#svg-preview {
+    overflow: auto;
+}

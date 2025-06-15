@@ -4,7 +4,7 @@ export type AppState = {
   url: string | undefined,
   _compiled: string,
   _target: string,
-  _files: FileList | undefined,
+  _files: File[],
   _selectedFile: File | undefined,
   _cards: []
 };

@@ -45,13 +45,12 @@ export const Interactivity = (function() {
   };
   const bindings: Binding[] = [];
   let currentlyEvaluatedBinding: (Binding | ChangeHandler) | undefined;
-  const interestMatrix: Map<PropertyPath, (ChangeHandler | Binding)[]> = new Map();
+  const interestMatrix: Map<PropertyPath, Set<(ChangeHandler | Binding)>> = new Map();
   const utilityFunctions: Record<string, Function> = {};
 
   const update = (binding: Binding) => {
     logger.debug(`Updating binding "${binding.source}"...`);
 
-    logger.debug('Executing', binding.query.toString());
     const value = binding.query(model, utilityFunctions);
 
     if(value === binding.value) {
@@ -75,9 +74,9 @@ export const Interactivity = (function() {
 
   const registerHandler = (handler: (ChangeHandler | Binding), property: string) => {
     if(!interestMatrix.has(property)) {
-      interestMatrix.set(property, [handler]);
+      interestMatrix.set(property, new Set([handler]));
     } else {
-      interestMatrix.get(property)!.push(handler);
+      interestMatrix.get(property)!.add(handler);
     }
   };
 
@@ -126,20 +125,26 @@ export const Interactivity = (function() {
           return true;
         }
 
+        // Early return: This value is already tracked by our current binding.
+
         let value: any = target[prop];
         const p: string = prop.toString();
 
-        if(typeof value === 'object' && value !== null && !value.IS_PROXY) {
+        if(typeof value === 'object' && value !== null && !value[IS_PROXY]) {
           // Overwrite child value with proxy!
           value = createReactive(value as Record<string, unknown>, [...parents, p]);
 
-          logger.log(`Initialized reflection for property "${prop.toString()}".`);
+          logger.log(`Initialized proxy for property "${prop.toString()}".`);
           Reflect.set(target, prop, value, receiver);
         }
 
         if(currentlyEvaluatedBinding !== undefined) {
           // Record this dependency for our current binding!
           const propertyPath = [...parents, p].join('.');
+
+          if(interestMatrix.get(propertyPath)?.has(currentlyEvaluatedBinding)) {
+            return value;
+          }
 
           registerHandler(currentlyEvaluatedBinding, propertyPath);
 
@@ -218,11 +223,8 @@ export const Interactivity = (function() {
     const subnodes = Array.from(element.querySelectorAll('*'));
     
     // "This" element might not even exist anymore, because our DOM was overwritten by the above operations.
-    console.log('DEBUG', document.body.innerHTML);
-
     if(element.parentElement !== null) {
       subnodes.push(element);
-      console.log('DEBUG #2', element.outerHTML);
     }
 
     logger.debug(`${element.outerHTML} -> Checking a total of ${subnodes.length} sub-nodes for attributes...`);
@@ -246,6 +248,7 @@ export const Interactivity = (function() {
   return { 
     start: () => {
       // Track changes to dom!
+      // TODO: Evaluating a {{ }} creates many new elements each iteration. Find a smart way to only update the old nodes!
       const observer = new MutationObserver(mutations => {
         mutations.forEach(record => {
           const newElements: Element[] = Array.from(record.addedNodes)
@@ -294,6 +297,7 @@ export const Interactivity = (function() {
     registerFunction: (name: string, func: Function) => {
       // TODO: Log Warning if value would be overwritten!
       utilityFunctions[name] = func;
-    }
+    },
+    interestMatrix: interestMatrix
   };
 })();

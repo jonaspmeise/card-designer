@@ -10,7 +10,7 @@ let model: AppState = {
   loadedFiles: [],
   _compiled: initialSvg,
   _target: initialSvg,
-  _files: undefined,
+  _files: [],
   _selectedFile: undefined,
   _cards: []
 };
