@@ -1,4 +1,4 @@
-import { simpleHash } from "../utility.js";
+import { simpleHash } from "../utility/utility.js";
 
 type BindingType = 'attribute' | 'property';
 

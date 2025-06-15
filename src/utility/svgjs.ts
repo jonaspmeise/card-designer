@@ -1,9 +1,7 @@
 import { parser as xmlParser } from "@lezer/xml";
 import { parser as jsParser } from "@lezer/javascript";
-import { ExternalTokenizer } from "@lezer/lr";
 import { LRLanguage } from "@codemirror/language";
-import { NodePropSource, parseMixed } from '@lezer/common';
-import { InputStream } from "@lezer/lr";
+import { parseMixed } from '@lezer/common';
 
 const svgjs: RegExp = /{{([\s\S]+?)}}/;
 

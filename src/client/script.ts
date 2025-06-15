@@ -1,9 +1,10 @@
-import { AppState } from "./types/types.js";
+import { AppState } from "../types/types.js";
 import { EditorView, basicSetup } from "codemirror";
-import { compile, debounce } from "./client/utility.js";
+import { compile, debounce } from "../utility/utility.js";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { svgjsLanguage } from "./client/svgjs.js";
-import { Interactivity } from "./client/interactivity/interactivity.js";
+import { svgjsLanguage } from "../utility/svgjs.js";
+import { Interactivity } from "./interactivity/interactivity.js";
+import * as XLSX from 'xlsx';
 
 const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
   <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
@@ -12,10 +13,12 @@ const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.o
 
 let model: AppState = {
   code: initialSvg,
+  loadedFiles: [],
   _compiled: initialSvg,
   _target: initialSvg,
   _files: undefined,
-  _selectedFile: undefined
+  _selectedFile: undefined,
+  _cards: []
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,7 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window['interactivity'] = Interactivity;
   window['model'] = model;
+
   Interactivity.registerHandler((code: string) => model._compiled = compile(code), 'code');
+  Interactivity.registerHandler((files: FileList) => model.loadedFiles = Array.from(files).map(f => f.name), '_files');
 
   const update = debounce((code: string, prop: string = 'code') => {
     console.log('Updating', prop, code);
