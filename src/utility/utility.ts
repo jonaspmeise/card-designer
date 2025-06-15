@@ -21,3 +21,8 @@ export const simpleHash = (str: string) => {
   }
   return new Uint32Array([hash])[0].toString(36);
 }
+
+export const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
+</svg>
+`;

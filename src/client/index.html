@@ -23,7 +23,7 @@
 
 <body>
     <div id="app" class="d-flex container-fluid vh-100 p-0">
-        <div>
+        <div class="d-flex container-fluid">
             <!-- Left Column: Editors -->
             <div class="code-editor col-md-6 d-flex flex-column">
                 <!-- Bootstrap Tabs -->
@@ -93,7 +93,7 @@
         <div class="offcanvas-body container mt-5">
             <div class="mb-3">
                 <label for="formFileMultiple" class="form-label">Choose files</label>
-                <input class="form-control" type="file" id="formFileMultiple" multiple onchange="model._files = event.target.files">
+                <input class="form-control" type="file" id="formFileMultiple" multiple webkitdirectory onchange="model._files = event.target.files">
             </div>
             <div>
                 <ul
@@ -102,11 +102,18 @@
                     interactive
                 >
                     {{
+                        Array.from(model._files ?? []).length === 0
+                        ? 'No files uploaded.'
+                        : ''
+                    }}
+                    <!-- TODO: This is broken!-->
+                    {{
                         Array.from(model._files ?? []).map((file, i) => `
                             <li
+                                interactive
                                 id="file-item-${i}"
-                                onclick="model._selectedFile = model._files[${i}]"
-                                class="${Array.from(model._files ?? []).indexOf(model.selectedFile) === i ? 'selected' : ''}"
+                                @click="model._selectedFile = model._files[${i}]"
+                                class="${Array.from(model._files ?? []).indexOf(model._selectedFile) === i ? 'selected' : ''}"
                             >
                                 ${file.name}
                             </li>
@@ -124,6 +131,21 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body">
+            <div class="mb-3">
+                <label for="fileUrl" class="form-label">File URL</label>
+                <input
+                    interactive
+                    type="text"
+                    class="form-control"
+                    id="fileUrl"
+                    placeholder="Enter URL to data file (.csv/.json/.xlsx)"
+                    @change="functions.update(event.target.textContent, 'url')"
+                >
+            </div>
+            <div class="mb-3">
+                <label for="mainSheet" class="form-label">Main Sheet (for XLSX files)</label>
+                <input type="text" class="form-control" id="mainSheet" placeholder="Enter main sheet name">
+            </div>
             <div class="table-responsive">
                 <table class="table table-dark table-striped">
                     <thead>

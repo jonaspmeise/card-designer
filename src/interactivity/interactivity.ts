@@ -1,15 +1,11 @@
-import { simpleHash } from "../utility/utility.js";
-
-type BindingType = 'attribute' | 'property';
-
 type BindableElement = Element & {
   bindings: Binding[],
   blueprint: string
 };
 type Binding = {
   source: string,
-  query: (model: any) => string,
-  value: string,
+  query: (model: any, functions: Record<string, Function>) => string,
+  value?: string,
   element: BindableElement
 };
 type PropertyPath = string;
@@ -28,9 +24,17 @@ type InteractivityConfiguration = {
 
 const IS_PROXY = Symbol("is-proxy");
 
+const cleanHTML = (html: string) => html
+  .trim()
+  .replaceAll(/&(?:amp;)?gt;/gi, '>')
+  .replaceAll(/&(?:amp;)?lt;/gi, '<');
+
 export const Interactivity = (function() {
-  let loggerPrefix = '[INTERACTIVITY]'
+  let loggerPrefix = '[INTERACTIVITY]';
+  const INTERACTIVITY_REGISTERED_ATTRIBUTE = 'interactivity-registered';
+  let registeredElementsCounter = 0;
   let doc: Document = document;
+  const eventHandlerTag = /^@/;
   let model: any = undefined;
   let logger: Logger = {
     debug: (message: string, ...data: any[]) => console.debug(`${loggerPrefix}: ${message}`, ...data),
@@ -40,12 +44,15 @@ export const Interactivity = (function() {
     error: (message: string, ...data: any[]) => console.error(`${loggerPrefix}: ${message}`, ...data),
   };
   const bindings: Binding[] = [];
-  let currentlyEvaluatedBinding: Binding | undefined;
+  let currentlyEvaluatedBinding: (Binding | ChangeHandler) | undefined;
   const interestMatrix: Map<PropertyPath, (ChangeHandler | Binding)[]> = new Map();
+  const utilityFunctions: Record<string, Function> = {};
 
   const update = (binding: Binding) => {
-    logger.debug(`Updating binding ${binding}...`);
-    const value = binding.query(model);
+    logger.debug(`Updating binding "${binding.source}"...`);
+
+    logger.debug('Executing', binding.query.toString());
+    const value = binding.query(model, utilityFunctions);
 
     if(value === binding.value) {
       return;
@@ -54,10 +61,11 @@ export const Interactivity = (function() {
     binding.value = value;
     let newHtml: string = binding.element.blueprint;
 
+    // Apply all transformations through bindings to the HTML.
     binding.element.bindings.forEach((binding) => {
       newHtml = newHtml.replaceAll(
         binding.source,
-        binding.value
+        binding.value!
       );
     });
 
@@ -74,12 +82,12 @@ export const Interactivity = (function() {
   };
 
   const createReactive = <T extends Record<(string | symbol), unknown>>(obj: T, parents: string[] = []): T => {
-    logger.debug(`Registering proxy ${parents.length == 0 ? '' : `with parents "${parents.join('.')}"`}`);
-
     // If the object is already reactive, return it as-is
     if(obj[IS_PROXY]) {
       return obj;
     }
+    
+    logger.debug(`Registering proxy ${parents.length == 0 ? '' : `with parents "${parents.join('.')}"`}`);
 
     const handler: ProxyHandler<T> = {
       set: (target, prop, value, receiver) => {
@@ -98,12 +106,16 @@ export const Interactivity = (function() {
 
         // Inform all Bindings that are interested in this change to update.
         (interestMatrix.get(propertyPath) ?? []).forEach(binding => {
+          currentlyEvaluatedBinding = binding;
+          
           // The Binding can either update a function (handler) or otherwise updates some "binding" attribute.
           if(typeof binding === 'function') {
             (binding as ChangeHandler)(value, propertyPath);
           } else {
             update(binding);
           }
+          
+          currentlyEvaluatedBinding = undefined;
         });
 
         return result;
@@ -131,7 +143,8 @@ export const Interactivity = (function() {
 
           registerHandler(currentlyEvaluatedBinding, propertyPath);
 
-          logger.log(`Property "${propertyPath}" is interesting for Binding`, currentlyEvaluatedBinding.source);
+          // TODO: A Binding that is a function should have a shared attribute with a normal property/attribute binding!
+          logger.log(`Property "${propertyPath}" is interesting for a Binding!`);
         }
 
         return value;
@@ -149,21 +162,32 @@ export const Interactivity = (function() {
 
   // Tracks a single element.
   const track = (element: Element) => {
+    if(element.attributes.getNamedItem('interactive') === null) {
+      logger.debug(`Skipping tracking element ${element.id ?? element.innerHTML} because it has no "interactive" HTML tag!`);
+
+      return;
+    }
+
+    if(element.attributes.getNamedItem(INTERACTIVITY_REGISTERED_ATTRIBUTE) !== null) {
+      logger.debug(`Skipping tracking element ${element.id ?? element.innerHTML} because it already was registered!`);
+      return;
+    }
+
     const snippets = Array.from(element.innerHTML.matchAll(/{{(.+?)}}/gs));
 
     if(snippets === null) {
       return [];
     }
     
-    console.log(snippets);
+    // Processing this element is finished - we add the "interactivity-registered" element to it!
+    element.setAttribute(INTERACTIVITY_REGISTERED_ATTRIBUTE, '' + (++registeredElementsCounter));
+    
     const parsedBindings: Binding[] = snippets.map(snippet => ({
-      source: snippet[0],
-      query: new Function('model', `return ${
-        snippet[1]
-          .trim()
-          .replaceAll(/&(?:amp;)?gt;/gi, '>')
+      source: cleanHTML(snippet[0]),
+      query: new Function('model', 'functions', `return ${
+        cleanHTML(snippet[1])
       }`) as (model: any) => string,
-      value: '',
+      value: undefined,
       element: (element as BindableElement)
     }));
 
@@ -172,7 +196,7 @@ export const Interactivity = (function() {
         .filter(binding => binding.element == element),
       ...parsedBindings
     ];
-    (element as BindableElement).blueprint = element.innerHTML;
+    (element as BindableElement).blueprint = cleanHTML(element.innerHTML);
 
     logger.info(`Found a total of ${parsedBindings.length} new bindings!`);
 
@@ -189,15 +213,63 @@ export const Interactivity = (function() {
       // Reset binding.
       currentlyEvaluatedBinding = undefined;
     });
+
+    // Register event listeners!
+    const subnodes = Array.from(element.querySelectorAll('*'));
+    
+    // "This" element might not even exist anymore, because our DOM was overwritten by the above operations.
+    console.log('DEBUG', document.body.innerHTML);
+
+    if(element.parentElement !== null) {
+      subnodes.push(element);
+      console.log('DEBUG #2', element.outerHTML);
+    }
+
+    logger.debug(`${element.outerHTML} -> Checking a total of ${subnodes.length} sub-nodes for attributes...`);
+
+    subnodes
+      .flatMap(e => {
+        Array.from(e.attributes)
+          .filter(a => eventHandlerTag.test(a.name))
+          .forEach(a => {
+            const eventType = a.name.substring(1);
+            logger.debug(`Registering event listener for event "${eventType}" with function "${a.value}".`);
+            const func = new Function('model', 'functions', 'event', `return ${cleanHTML(a.value)};`);
+
+            e.addEventListener(eventType, (event: Event) => {
+              func.call(e, model, utilityFunctions, event);
+            });
+          });
+      });
   };
 
   return { 
     start: () => {
+      // Track changes to dom!
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(record => {
+          const newElements: Element[] = Array.from(record.addedNodes)
+            .filter(node => node.nodeType === Node.ELEMENT_NODE)
+            .map(node => node as Element);
+            
+          if(newElements.length === 0) {
+            return;
+          }
+
+          logger.debug(`${newElements.length} new elements were created in the DOM!`);
+
+          newElements.forEach(track);
+        });
+      });
+
+      observer.observe(doc, {
+        childList: true,
+        subtree: true
+      });
+      
       // Find all bindings in the document.
-      Array.from(doc.querySelectorAll('*'))
-        // TODO: Allow multiple interactive nodes!
-        .filter(e => e.attributes.getNamedItem('interactive') !== null)
-        .forEach(e => track(e));
+      Array.from(doc.querySelectorAll('[interactive]:not([interactivity-registered])'))
+        .forEach(track);
     },
     register: <T extends Record<string, unknown>> (data: T): T => {
       if(model !== undefined && model !== data) {
@@ -212,11 +284,16 @@ export const Interactivity = (function() {
       model = undefined;
       interestMatrix.clear();
       bindings.splice(0);
+      registeredElementsCounter = 0;
       doc = document;
     },
     configure: (config: Partial<InteractivityConfiguration>) => {
       doc = config.document ?? doc;
       logger = config.logger ?? logger;
+    },
+    registerFunction: (name: string, func: Function) => {
+      // TODO: Log Warning if value would be overwritten!
+      utilityFunctions[name] = func;
     }
   };
 })();

@@ -1,18 +1,12 @@
 import { AppState } from "../types/types.js";
-import { EditorView, basicSetup } from "codemirror";
-import { compile, debounce } from "../utility/utility.js";
-import { oneDark } from "@codemirror/theme-one-dark";
-import { svgjsLanguage } from "../utility/svgjs.js";
-import { Interactivity } from "./interactivity/interactivity.js";
+import { compile, debounce, initialSvg } from "../utility/utility.js";
 import * as XLSX from 'xlsx';
-
-const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
-</svg>
-`;
+import { Interactivity } from "../interactivity/interactivity.js";
+import { compilerEditor } from "../editor/editor.js";
 
 let model: AppState = {
   code: initialSvg,
+  url: undefined,
   loadedFiles: [],
   _compiled: initialSvg,
   _target: initialSvg,
@@ -20,6 +14,11 @@ let model: AppState = {
   _selectedFile: undefined,
   _cards: []
 };
+
+export const update = debounce((value: string, prop: string = 'code') => {
+  console.log('Updating', prop, value);
+  model[prop] = value;
+}, 100);
 
 document.addEventListener('DOMContentLoaded', () => {
   model = Interactivity.register(model);
@@ -30,64 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
   Interactivity.registerHandler((code: string) => model._compiled = compile(code), 'code');
   Interactivity.registerHandler((files: FileList) => model.loadedFiles = Array.from(files).map(f => f.name), '_files');
 
-  const update = debounce((code: string, prop: string = 'code') => {
-    console.log('Updating', prop, code);
-    model[prop] = code;
-  }, 100);
-
-  // SOURCE EDITOR
-  const sourceEditor = new EditorView({
-    parent: document.getElementById('source-editor')!,
-    doc: initialSvg,
-    extensions: [
-      basicSetup,
-      svgjsLanguage,
-      oneDark,
-      EditorView.theme({
-        "&": {
-          height: "100%"
-        },
-        ".cm-scroller": {
-          overflow: "auto",
-          fontFamily: "monospace"
-        }
-      }),
-      EditorView.updateListener.of((e) => {
-        if(!e.docChanged) {
-          return;
-        }
-        
-        update(e.state.doc.toString(), 'code');
-      })
-    ]
-  });
-
-  // COMPILE EDITOR
-  const compilerEditor = new EditorView({
-    parent: document.getElementById('compile-editor')!,
-    doc: initialSvg,
-    extensions: [
-      basicSetup,
-      svgjsLanguage,
-      oneDark,
-      EditorView.theme({
-        "&": {
-          height: "100%"
-        },
-        ".cm-scroller": {
-          overflow: "auto",
-          fontFamily: "monospace"
-        }
-      }),
-      EditorView.updateListener.of((e) => {
-        if(!e.docChanged) {
-          return;
-        }
-        
-        update(e.state.doc.toString(), '_target');
-      })
-    ]
-  });
   Interactivity.registerHandler((compiled: string) => compilerEditor.dispatch({
     changes: {
       from: 0,
