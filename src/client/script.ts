@@ -3,14 +3,17 @@ import { compile, debounce, initialSvg } from "../utility/utility.js";
 import * as XLSX from 'xlsx';
 import { Interactivity } from "../interactivity/interactivity.js";
 import { compilerEditor } from "../editor/editor.js";
+import { isValidUrl } from '../utility/utility.js';
 
 let model: AppState = {
   code: initialSvg,
-  url: undefined,
+  datasource: undefined,
   loadedFiles: [],
+  _datatype: undefined,
   _compiled: initialSvg,
   _target: initialSvg,
   _files: [],
+  _fileMap: new Map(),
   _selectedFile: undefined,
   _cards: []
 };
@@ -27,15 +30,29 @@ document.addEventListener('DOMContentLoaded', () => {
   window['model'] = model;
 
   Interactivity.registerHandler((code: string) => model._compiled = compile(code), 'code');
-  Interactivity.registerHandler((files: FileList) => model.loadedFiles = Array.from(files).map(f => f.name), '_files');
+  Interactivity.registerHandler((files: AppState['_files']) => {
+    model._fileMap.clear();
+    
+    model.loadedFiles = files!.map(f => {
+        model._fileMap.set(f.name, f);
 
-  Interactivity.registerHandler((compiled: string) => compilerEditor.dispatch({
+        return f;
+      })
+      .map(f => f.name)
+  }, '_files');
+  Interactivity.registerHandler((compiled: AppState['_compiled']) => compilerEditor.dispatch({
     changes: {
       from: 0,
       to: compilerEditor.state.doc.length,
       insert: compiled
     }
   }), '_compiled');
+  Interactivity.registerHandler((datasource: Exclude<AppState['datasource'], undefined>) => model._datatype = isValidUrl(model.datasource!)
+    ? 'URL'
+    : model._fileMap.has(datasource)
+      ? 'File'
+      : undefined,
+  'datasource');
 
   Interactivity.start();
 });

@@ -120,7 +120,7 @@ export const Interactivity = (function() {
         return result;
       },
       get: (target, prop, receiver) => {
-        logger.debug(`Getting "${prop.toString()}".`);
+        logger.debug(`Getting "${prop.toString()}" (${typeof target[prop]}).`);
         if(prop == IS_PROXY) {
           return true;
         }
@@ -128,6 +128,7 @@ export const Interactivity = (function() {
         // Early return: This value is already tracked by our current binding.
 
         let value: any = target[prop];
+
         const p: string = prop.toString();
 
         if(typeof value === 'object' && value !== null && !value[IS_PROXY]) {
@@ -143,13 +144,24 @@ export const Interactivity = (function() {
           const propertyPath = [...parents, p].join('.');
 
           if(interestMatrix.get(propertyPath)?.has(currentlyEvaluatedBinding)) {
+            if(target instanceof Map && typeof value === 'function') {   
+              logger.debug(`Creating "this-recovery" for property "${p}".`);
+              return (...args: any[]) => value.apply(obj === receiver ? target : obj, args);
+            }
+
             return value;
           }
 
           registerHandler(currentlyEvaluatedBinding, propertyPath);
 
-          // TODO: A Binding that is a function should have a shared attribute with a normal property/attribute binding!
+          // TODO: A Binding that is a function should have a shared attribute with a normal property/attribute binding, so that we can differentiate here!
           logger.log(`Property "${propertyPath}" is interesting for a Binding!`);
+        }
+
+        if(target instanceof Map && typeof value === 'function') {
+          logger.debug(`Creating "this-recovery" for property "${p}".`);
+          // return (...args: any[]) => value.apply(obj === receiver ? target : obj, args);
+          value = value.bind(obj === receiver ? target : obj);
         }
 
         return value;

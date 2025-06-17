@@ -26,3 +26,12 @@ export const initialSvg: string = `<svg width="320" height="130" xmlns="http://w
   <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
 </svg>
 `;
+
+export const isValidUrl = (urlString: string): boolean => {
+  try {
+    new URL(urlString);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}

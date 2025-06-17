@@ -1,10 +1,14 @@
+export type DataType = 'URL' | 'File';
+
 export type AppState = {
   code: string,
   loadedFiles: string[],
-  url: string | undefined,
+  datasource: string | undefined,
+  _datatype: DataType | undefined,
   _compiled: string,
   _target: string,
-  _files: File[],
+  _fileMap: Map<String, File>,
+  _files: File[] | undefined,
   _selectedFile: File | undefined,
   _cards: []
 };

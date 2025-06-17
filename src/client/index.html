@@ -23,7 +23,7 @@
 
 <body>
     <div id="app" class="d-flex container-fluid flex-column vh-100 p-0">
-        <div id="upper" class="d-flex container-fluid flex-column">
+        <div id="upper" class="d-flex container-fluid">
             <!-- Left Column: Editors -->
             <div id="code-editor" class="code-editor vh-60 col-md-6 d-flex flex-column">
                 <!-- Bootstrap Tabs -->
@@ -102,20 +102,17 @@
                     interactive
                 >
                     {{
-                        model._files.length === 0
+                        model.loadedFiles.length === 0
                         ? 'No files uploaded.'
                         : ''
                     }}
-                    <!-- TODO: This is broken!-->
                     {{
-                        model._files.map((file, i) => `
+                        model.loadedFiles.map((file, i) => `
                             <li
                                 interactive
                                 id="file-item-${i}"
-                                @click="model._selectedFile = model._files[${i}]"
-                                class="${model._files.indexOf(model._selectedFile) === i ? 'selected' : ''}"
                             >
-                                ${file.name}
+                                ${file}
                             </li>
                         `).join('')
                     }}
@@ -138,9 +135,10 @@
                     type="text"
                     class="form-control"
                     id="fileUrl"
-                    placeholder="Enter URL to data file (.csv/.json/.xlsx)"
-                    @change="functions.update(event.target.textContent, 'url')"
+                    placeholder="Enter either URL or name of uploaded data file (.csv/.json/.xlsx)"
+                    @change="model.datasource = event.target.textContent"
                 >
+                <span interactive>{{ model._datatype }}</span>
             </div>
             <div class="mb-3">
                 <label for="mainSheet" class="form-label">Main Sheet (for XLSX files)</label>

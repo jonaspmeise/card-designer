@@ -230,4 +230,42 @@ describe('Interactivity.', () => {
   });
 
   test.todo('Handlers can be created and revoked.');
+
+  test.todo('Interaction can be done in the same element it is enabled.', () => {
+    model = Interactivity.register({
+      value: 'abc'
+    });
+
+    document.body.innerHTML = '<div id="main" interactive class="{{model.value}}"></div>';
+    Interactivity.start();
+
+    expect(document.body.innerHTML).toEqual(`<div id="main" interactive class="{{model.value}}"></div>`);
+  });
+
+  test.todo('Elements are not created new constantly, references on javascript side can be kept.');
+  test.todo('Easy Attribute rendering can be done.', () => {
+    model = Interactivity.register({
+      value: 'abc'
+    });
+
+    document.body.innerHTML = '<div id="main" interactive [class]="model.value" [innerHTML]="model.value.toUpperCase()"></div>';
+    Interactivity.start();
+
+    expect(document.body.innerHTML).toEqual(`<div id="main" interactive [class]="model.value" class="abc" [innerHTML]="model.value.toUpperCase()">ABC</div>`);
+  });
+
+  test('Proxy for Map works.', () => {
+    model = Interactivity.register({
+      map: new Map()
+    });
+
+    document.body.innerHTML = `<div id="main" interactive>{{model.map.has('value') ? model.map.get('value') : 'xd'}}</div>`;
+
+    Interactivity.start();
+
+    expect(document.getElementById('main')!.innerHTML).toEqual('xd');
+
+    model.map.set('value', 'abc');
+    expect(document.getElementById('main')!.innerHTML).toEqual('abc');
+  });
 });
