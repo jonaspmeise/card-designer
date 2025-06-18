@@ -78,11 +78,6 @@ button {
     background-color: orange;
 }
 
-.selected {
-    background-color: orange;
-    color: black;
-}
-
 #upper {
     height: 0.66vh;
 }
@@ -107,6 +102,6 @@ button {
     color: red;
 }
 
-#data-table {
-    border-collapse: collapse;
+.table tbody tr.highlight td {
+  background-color: orange;
 }

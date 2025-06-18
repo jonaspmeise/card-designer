@@ -15,6 +15,8 @@ const app: () => App = () => ({
   selectedCard: undefined,
   cards: [],
   isLoading: false,
+  filetype: undefined,
+  csvSeparator: ',',
 
   mainSheet: undefined,
   datasource: undefined,
@@ -88,6 +90,7 @@ const app: () => App = () => ({
   },
   select(card: unknown) {
     this.selectedCard = card;
+    console.log(this);
     this.preview(card);
   },
   preview(card: unknown) {

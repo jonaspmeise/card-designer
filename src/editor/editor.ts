@@ -15,10 +15,6 @@ export const sourceEditor = (app: App) => new EditorView({
     EditorView.theme({
       "&": {
         height: "100%"
-      },
-      ".cm-scroller": {
-        overflow: "auto",
-        fontFamily: "monospace"
       }
     }),
     EditorView.updateListener.of((e) => {
@@ -42,10 +38,6 @@ export const compilerEditor = (app: App) => new EditorView({
     EditorView.theme({
       "&": {
         height: "100%"
-      },
-      ".cm-scroller": {
-        overflow: "auto",
-        fontFamily: "monospace"
       }
     }),
     EditorView.updateListener.of((e) => {
