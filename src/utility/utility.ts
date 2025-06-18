@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
   let timeout: NodeJS.Timeout;
 
@@ -34,4 +35,70 @@ export const isValidUrl = (urlString: string): boolean => {
   } catch (e) {
     return false;
   }
+};
+
+export const loadRemoteData: (
+  url: URL,
+  sheet?: string
+) => Promise<unknown[]> = async (
+  url: URL,
+  sheet?: string
+) => {
+   try {
+    const response = await fetch(url);
+    const contentType = response.headers.get('Content-Type');
+
+    if (!contentType) {
+      throw new Error('Content-Type header not found.');
+    }
+
+    console.log(`Found Content-Type on remote data: ${contentType}`);
+
+    if (contentType.includes('application/json')) {
+      const jsonData: unknown[] = await response.json();
+      
+      if(!Array.isArray(jsonData)) {
+        throw new Error('Loaded JSON is not an array!', jsonData);
+      }
+
+      return jsonData;
+    } else if (contentType.includes('text/csv')) {
+      const csvData = await response.text();
+
+      return csvToJson(csvData);
+    } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+      const arrayBuffer = await response.arrayBuffer();
+      
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      if(sheet === undefined && workbook.SheetNames.length > 1) {
+        throw new Error(`Found ${workbook.SheetNames.length} Sheets: ${workbook.SheetNames.join(', ')}. Please provide the name of the correct sheet!`);
+      }
+
+      const sheetName = sheet || workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      return XLSX.utils.sheet_to_json(worksheet);
+    } else {
+      throw new Error(`Unsupported file type: ${contentType}.`);
+    }
+  } catch (error) {
+    console.error('Error loading data:', error);
+  }
+  
+  console.warn('No Data was loaded...?');
+
+  return [];
+};
+
+export const csvToJson = (csv: string): unknown[] => {
+  const lines = csv.split('\n');
+  const headers = lines[0].split(',');
+
+  return lines.slice(1).map(line => {
+    const values = line.split(',');
+    return headers.reduce((obj, header, index) => {
+        obj[header] = values[index];
+        return obj;
+    }, {});
+  });
 }

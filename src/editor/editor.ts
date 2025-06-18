@@ -1,11 +1,11 @@
 import { EditorView, basicSetup } from "codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { svgjsLanguage } from "../utility/svgjs.js";
-import { update } from "../client/script.js";
 import { initialSvg } from "../utility/utility.js";
+import { App } from "../types/types.js";
 
 // SOURCE EDITOR
-export const sourceEditor = new EditorView({
+export const sourceEditor = (app: App) => new EditorView({
   parent: document.getElementById('source-editor')!,
   doc: initialSvg,
   extensions: [
@@ -26,13 +26,13 @@ export const sourceEditor = new EditorView({
         return;
       }
       
-      update(e.state.doc.toString(), 'code');
+      app.update('source', e.state.doc.toString());
     })
   ]
 });
 
 // COMPILE EDITOR
-export const compilerEditor = new EditorView({
+export const compilerEditor = (app: App) => new EditorView({
   parent: document.getElementById('compile-editor')!,
   doc: initialSvg,
   extensions: [
@@ -53,7 +53,7 @@ export const compilerEditor = new EditorView({
         return;
       }
       
-      update(e.state.doc.toString(), '_target');
+      app.update('compiled', e.state.doc.toString());
     })
   ]
 });

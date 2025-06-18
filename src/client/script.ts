@@ -1,58 +1,102 @@
-import { AppState } from "../types/types.js";
-import { compile, debounce, initialSvg } from "../utility/utility.js";
-import * as XLSX from 'xlsx';
-import { Interactivity } from "../interactivity/interactivity.js";
-import { compilerEditor } from "../editor/editor.js";
+import { App } from "../types/types.js";
+import { compile, initialSvg } from "../utility/utility.js";
+import { compilerEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
+import Alpine from "alpinejs";
+import { loadRemoteData } from '../utility/utility.js';
 
-let model: AppState = {
-  code: initialSvg,
+window['Alpine'] = Alpine;
+
+const app: () => App = () => ({
+  source: initialSvg,
+  compiled: initialSvg,
+  target: initialSvg,
+
+  selectedCard: undefined,
+  cards: [],
+  isLoading: false,
+
+  mainSheet: undefined,
   datasource: undefined,
+  datatype: undefined,
+  fileMap: new Map(),
   loadedFiles: [],
-  _datatype: undefined,
-  _compiled: initialSvg,
-  _target: initialSvg,
-  _files: [],
-  _fileMap: new Map(),
-  _selectedFile: undefined,
-  _cards: []
-};
+  sourceEditor: undefined,
+  compiledEditor: undefined,
+  files: undefined,
 
-export const update = debounce((value: string, prop: string = 'code') => {
-  console.log('Updating', prop, value);
-  model[prop] = value;
-}, 100);
+  update(property: string, value: unknown) {
+    console.log('Updating', property, value);
+    this[property] = value;
+  },
 
-document.addEventListener('DOMContentLoaded', () => {
-  model = Interactivity.register(model);
+  init() {
+    console.log('IS LOADING', this.isLoading);
+    this.registerComputedPropertyWatches();
+    this.sourceEditor = sourceEditor(this as App);
+    this.compiledEditor = compilerEditor(this as App);
+  },
 
-  window['interactivity'] = Interactivity;
-  window['model'] = model;
+  registerComputedPropertyWatches() {
+    // Register computed property handlers.
+    this.$watch('source', (source: string) => {
+      console.log('WATCH SOURCE');
+      this.compiled = compile(source);
+    });
 
-  Interactivity.registerHandler((code: string) => model._compiled = compile(code), 'code');
-  Interactivity.registerHandler((files: AppState['_files']) => {
-    model._fileMap.clear();
+    this.$watch('files', (files: FileList) => {
+      console.log('WATCH FILES');
+      this.fileMap.clear();
+
+      this.loadedFiles = Array.from(files).map(f => {
+        this.fileMap.set(f.name, f);
+        return f.name;
+      });
+    });
     
-    model.loadedFiles = files!.map(f => {
-        model._fileMap.set(f.name, f);
+    this.$watch('compiled', (compiled: string) => {
+      console.log('WATCH COMPILED');
+      this.compiledEditor!.dispatch({
+        changes: {
+          from: 0,
+          to: this.compiledEditor!.state.doc.length,
+          insert: compiled
+        }
+      });
+      // TODO: Inject Card data here!
+      this.target = compiled;
+    });
 
-        return f;
-      })
-      .map(f => f.name)
-  }, '_files');
-  Interactivity.registerHandler((compiled: AppState['_compiled']) => compilerEditor.dispatch({
-    changes: {
-      from: 0,
-      to: compilerEditor.state.doc.length,
-      insert: compiled
-    }
-  }), '_compiled');
-  Interactivity.registerHandler((datasource: Exclude<AppState['datasource'], undefined>) => model._datatype = isValidUrl(model.datasource!)
-    ? 'URL'
-    : model._fileMap.has(datasource)
-      ? 'File'
-      : undefined,
-  'datasource');
+    this.$watch('datasource', (datasource: string) => {
+      console.log('WATCH DATASOURCE', datasource);
+      if (datasource !== undefined) {
+        this.datatype = isValidUrl(datasource)
+          ? 'URL'
+          : this.fileMap.has(datasource)
+            ? 'File'
+            : 'Error';
+      }
+      console.log(this.datatype);
+    });
+  },
+  async loadRemoteData() {
+    this.isLoading = true;
+    const cards = await loadRemoteData(new URL(this.datasource!), this.mainSheet);
 
-  Interactivity.start();
+    this.cards = cards;
+    this.isLoading = false;
+  },
+  select(card: unknown) {
+    this.selectedCard = card;
+    this.preview(card);
+  },
+  preview(card: unknown) {
+    console.log('PREVIEWING', card);
+  }
 });
+
+Alpine.data('app', app);
+
+Alpine.start();
+
+// TODO: Allow blacklist pattern so certain files are ignored when uploaded and dont show! (regex[])

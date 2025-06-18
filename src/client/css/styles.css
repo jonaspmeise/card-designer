@@ -83,10 +83,30 @@ button {
     color: black;
 }
 
+#upper {
+    height: 0.66vh;
+}
+
+#data-table {
+    height: 0.33vh;
+}
+
 #code-editor {
     overflow: auto;
 }
 
 #svg-preview {
     overflow: auto;
+}
+
+.valid {
+    color: green;
+}
+
+.invalid {
+    color: red;
+}
+
+#data-table {
+    border-collapse: collapse;
 }

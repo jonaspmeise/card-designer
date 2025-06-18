@@ -1,14 +1,31 @@
-export type DataType = 'URL' | 'File';
+import Alpine from "alpinejs";
+import { EditorView } from "codemirror";
+
+export type DataType = 'URL' | 'File' | 'Error';
+
+export type App = Alpine.AlpineComponent<AppState & AppFunctions>;
 
 export type AppState = {
-  code: string,
+  source: string,
+  compiled: string,
+  target: string,
   loadedFiles: string[],
   datasource: string | undefined,
-  _datatype: DataType | undefined,
-  _compiled: string,
-  _target: string,
-  _fileMap: Map<String, File>,
-  _files: File[] | undefined,
-  _selectedFile: File | undefined,
-  _cards: []
+  datatype: DataType | undefined
+  fileMap: Map<String, File>,
+  files: FileList | undefined,
+  mainSheet: string | undefined,
+  selectedCard: unknown,
+  cards: unknown[],
+  isLoading: boolean,
+  // Both Editors are initialized lazily.
+  sourceEditor: EditorView | undefined,
+  compiledEditor: EditorView | undefined
+};
+
+export type AppFunctions = {
+  registerComputedPropertyWatches: () => void,
+  select: (card: unknown) => void,
+  preview: (card: unknown) => void,
+  update: (property: string, value: unknown) => void
 };

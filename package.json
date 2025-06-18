@@ -12,7 +12,6 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@happy-dom/global-registrator": "^18.0.1",
     "@types/bun": "^1.2.16",
     "copy-webpack-plugin": "^13.0.0",
     "terser-webpack-plugin": "^5.3.14",
@@ -27,9 +26,10 @@
     "@codemirror/rangeset": "^0.19.9",
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.2",
+    "@types/alpinejs": "^3.13.11",
     "@types/xlsx": "^0.0.36",
+    "alpinejs": "^3.14.9",
     "codemirror": "^6.0.1",
-    "happy-dom": "^18.0.1",
     "xlsx": "^0.18.5"
   }
 }
