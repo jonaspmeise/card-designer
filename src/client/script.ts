@@ -8,89 +8,98 @@ import { loadRemoteData } from '../utility/utility.js';
 window['Alpine'] = Alpine;
 
 const app: () => App = () => ({
-  source: initialSvg,
-  compiled: initialSvg,
-  target: initialSvg,
-
-  selectedCard: undefined,
-  cards: [],
-  isLoading: false,
-  filetype: undefined,
-  csvSeparator: ',',
-
-  mainSheet: undefined,
-  datasource: undefined,
-  datatype: undefined,
-  fileMap: new Map(),
-  loadedFiles: [],
-  sourceEditor: undefined,
-  compiledEditor: undefined,
-  files: undefined,
-
+  files: {
+    fileMap: new Map(),
+    files: undefined
+  },
+  code: {
+    source: initialSvg,
+    compiled: initialSvg,
+    target: initialSvg
+  },
+  data: {
+    cards: [],
+    isLoading: false,
+    selectedCard: undefined,
+    datatype: undefined,
+    filetype: undefined
+  },
+  editors: {
+    // Initialized lazily!
+    compiled: undefined,
+    source: undefined
+  },
+  project: {
+    datasource: undefined,
+    loadedFiles: [],
+    settings: {
+      csv: {
+        csvSeparator: ', '
+      },
+      json: {},
+      xlsx: {
+        mainSheet: undefined
+      }
+    }
+  },
   update(property: string, value: unknown) {
     console.log('Updating', property, value);
     this[property] = value;
   },
 
   init() {
-    console.log('IS LOADING', this.isLoading);
     this.registerComputedPropertyWatches();
-    this.sourceEditor = sourceEditor(this as App);
-    this.compiledEditor = compilerEditor(this as App);
+    this.editors.source = sourceEditor(this as App);
+    this.editors.compiled = compilerEditor(this as App);
   },
 
   registerComputedPropertyWatches() {
     // Register computed property handlers.
-    this.$watch('source', (source: string) => {
-      console.log('WATCH SOURCE');
-      this.compiled = compile(source);
+    this.$watch('code.source', (source: string) => {
+      this.code.compiled = compile(source);
     });
 
-    this.$watch('files', (files: FileList) => {
-      console.log('WATCH FILES');
-      this.fileMap.clear();
+    this.$watch('files.files', (files: FileList) => {
+      this.files.fileMap.clear();
 
-      this.loadedFiles = Array.from(files).map(f => {
-        this.fileMap.set(f.name, f);
+      this.project.loadedFiles = Array.from(files).map(f => {
+        this.files.fileMap.set(f.name, f);
         return f.name;
       });
     });
     
-    this.$watch('compiled', (compiled: string) => {
+    this.$watch('code.compiled', (compiled: string) => {
       console.log('WATCH COMPILED');
-      this.compiledEditor!.dispatch({
+      this.editors.compiled!.dispatch({
         changes: {
           from: 0,
-          to: this.compiledEditor!.state.doc.length,
+          to: this.editors.compiled!.state.doc.length,
           insert: compiled
         }
       });
       // TODO: Inject Card data here!
-      this.target = compiled;
+      this.code.target = compiled;
     });
 
-    this.$watch('datasource', (datasource: string) => {
-      console.log('WATCH DATASOURCE', datasource);
+    this.$watch('data.datasource', (datasource: string) => {
       if (datasource !== undefined) {
-        this.datatype = isValidUrl(datasource)
+        this.data.datatype = isValidUrl(datasource)
           ? 'URL'
-          : this.fileMap.has(datasource)
+          : this.files.fileMap.has(datasource)
             ? 'File'
             : 'Error';
       }
-      console.log(this.datatype);
     });
   },
   async loadRemoteData() {
-    this.isLoading = true;
-    const cards = await loadRemoteData(new URL(this.datasource!), this.mainSheet);
+    this.data.isLoading = true;
+    const cards = await loadRemoteData(new URL(this.project.datasource!), this.project.settings);
 
-    this.cards = cards;
-    this.isLoading = false;
+    this.data.cards = cards;
+    this.data.isLoading = false;
   },
   select(card: unknown) {
-    this.selectedCard = card;
-    console.log(this);
+    this.data.selectedCard = card;
     this.preview(card);
   },
   preview(card: unknown) {

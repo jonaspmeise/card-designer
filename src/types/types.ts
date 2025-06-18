@@ -6,24 +6,45 @@ export type FileType = 'CSV' | 'JSON' | 'XLSX' | 'Error';
 
 export type App = Alpine.AlpineComponent<AppState & AppFunctions>;
 
-export type AppState = {
-  source: string,
-  compiled: string,
-  target: string,
+export type Project = {
+  settings: ProjectSettings,
   loadedFiles: string[],
-  csvSeparator: string,
   datasource: string | undefined,
-  datatype: DataType | undefined,
-  filetype: FileType | undefined,
-  fileMap: Map<String, File>,
-  files: FileList | undefined,
-  mainSheet: string | undefined,
-  selectedCard: unknown,
-  cards: unknown[],
-  isLoading: boolean,
+};
+
+export type ProjectSettings = {
+  csv: {
+    csvSeparator: string
+  }
+  json: {}
+  xlsx: {
+    mainSheet: string | undefined
+  }
+};
+
+export type AppState = {
+  code: {
+    source: string,
+    compiled: string,
+    target: string,
+  },
+  project: Project,
+  files: {
+    fileMap: Map<String, File>,
+    files: FileList | undefined,
+  },
+  data: {
+    datatype: DataType | undefined,
+    filetype: FileType | undefined,
+    selectedCard: unknown,
+    cards: unknown[],
+    isLoading: boolean,
+  }
   // Both Editors are initialized lazily.
-  sourceEditor: EditorView | undefined,
-  compiledEditor: EditorView | undefined
+  editors: {
+    source: EditorView | undefined,
+    compiled: EditorView | undefined
+  }
 };
 
 export type AppFunctions = {

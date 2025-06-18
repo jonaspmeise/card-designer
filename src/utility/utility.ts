@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { ProjectSettings } from '../types/types.js';
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
   let timeout: NodeJS.Timeout;
 
@@ -39,10 +40,10 @@ export const isValidUrl = (urlString: string): boolean => {
 
 export const loadRemoteData: (
   url: URL,
-  sheet?: string
+  settings: ProjectSettings
 ) => Promise<unknown[]> = async (
   url: URL,
-  sheet?: string
+  settings: ProjectSettings
 ) => {
    try {
     const response = await fetch(url);
@@ -70,11 +71,11 @@ export const loadRemoteData: (
       const arrayBuffer = await response.arrayBuffer();
       
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      if(sheet === undefined && workbook.SheetNames.length > 1) {
+      if(settings.xlsx.mainSheet === undefined && workbook.SheetNames.length > 1) {
         throw new Error(`Found ${workbook.SheetNames.length} Sheets: ${workbook.SheetNames.join(', ')}. Please provide the name of the correct sheet!`);
       }
 
-      const sheetName = sheet || workbook.SheetNames[0];
+      const sheetName = settings.xlsx.mainSheet || workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       
       return XLSX.utils.sheet_to_json(worksheet);
