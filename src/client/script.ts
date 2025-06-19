@@ -9,18 +9,32 @@ window['Alpine'] = Alpine;
 
 const app: () => App = () => ({
   init() {
+
+    // This should still happen with "this" referencing the Alpine instance.
+    this.actions.registerComputedPropertyWatches.bind(this)();
+
     // Bind the correct reference for all actions.
     this.actions = Object.fromEntries(
       Object.entries(this.actions)
         .map(([key, func]) => [key, func.bind(this)])
     ) as AppActions;
 
-    this.actions.registerComputedPropertyWatches();
     this.editors.source = sourceEditor(this as App);
     this.editors.compiled = compilerEditor(this as App);
   },
   files: {
     fileMap: new Map()
+  },
+  dialog: {
+    show: false,
+    title: 'Cardcreator',
+    text: 'Found a project file. Load?',
+    options: ['Load', 'Ignore'],
+    handle(pressedButton: string) {
+      this.dialog.show = false;
+      this.dialog.callback(pressedButton);
+    },
+    callback: (pressedButton: string) => console.info('User pressed', pressedButton)
   },
   code: {
     source: initialSvg,
@@ -87,7 +101,6 @@ const app: () => App = () => ({
       });
     },
     async loadRemoteData() {
-      console.log(this);
       this.data.isLoading = true;
       try {
         const cards = await loadRemoteData(new URL(this.project.settings.datasource!), this.project.settings);

@@ -20,6 +20,26 @@
 
 <body x-data="app()">
     <div id="app" class="d-flex container-fluid flex-row vh-100 p-0">
+        <!-- Modal Dialog -->
+        <div x-class="{'show': dialog.show}" class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="staticBackdropLabel" x-text="dialog.title"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" x-text="dialog.text">
+                    </div>
+                    <div class="modal-footer">
+                        <template x-for="(option, index) in dialog.options" :key="index">
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" x-text="option" x-on:click="dialog.handle(option)"></button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Left Column: Editors & Table -->
         <div class="col-md-6">
             <div id="code-editor" class="code-editor h-50 d-flex flex-column">
@@ -127,7 +147,7 @@
                 <label for="formFileMultiple" class="form-label">Choose Workspace Directory</label>
                 <input class="form-control" type="file" multiple webkitdirectory
                     @change="actions.loadFiles($event.target.files)">
-                    <!-- TODO: Warning if too many files are uploaded: Hint that Blacklist exists! -->
+                <!-- TODO: Warning if too many files are uploaded: Hint that Blacklist exists! -->
             </div>
             <div>
                 <ul id="file-list" class="scrollable-list">
@@ -137,29 +157,21 @@
                     <div x-show="project.loadedFilteredFiles.length === 0">No files uploaded.</div>
                 </ul>
             </div>
-            <div class="mt-3">
-                <label class="form-label" x-text="`Blacklist Filters (${files.fileMap.size - project.loadedFilteredFiles.length} files are filtered)`"></label>
+            <div class="mt-3" x-show="files.fileMap.size > 0">
+                <label class="form-label"
+                    x-text="`Blacklist Filters (${files.fileMap.size - project.loadedFilteredFiles.length} files are filtered)`"></label>
                 <div class="mb-2">
                     <template x-for="(filter, index) in project.settings.fileBlacklist" :key="index">
                         <div class="input-group mb-2">
-                            <input
-                                type="text"
-                                class="form-control"
-                                x-model="project.settings.fileBlacklist[index]"
-                                placeholder="temporary/.*"
-                                @input="actions.updateFilteredFiles"
-                            >
+                            <input type="text" class="form-control" x-model="project.settings.fileBlacklist[index]"
+                                placeholder="temporary/.*" @input="actions.updateFilteredFiles">
                         </div>
                     </template>
-                    
+
                     <!-- For new blacklist entries, this can be modified! -->
-                    <input
-                        type="text"
-                        class="form-control"
+                    <input type="text" class="form-control"
                         x-model="project.settings.fileBlacklist[project.settings.fileBlacklist.length]"
-                        placeholder="temporary/.*"
-                        @input="actions.updateFilteredFiles"
-                    >
+                        placeholder="temporary/.*" @input="actions.updateFilteredFiles">
                 </div>
             </div>
         </div>
@@ -179,66 +191,66 @@
                     <i class="fas fa-download me-2"></i>Download Settings
                 </button>
             </div>
-            
+
             <div class="mb-3">
                 <label for="projectName" class="form-label">Project Name</label>
                 <input type="text" id="projectName" class="form-control" placeholder="My Cardcreator Project"
                     x-model="project.name"></input>
-            <div class="mb-3">
-                <label for="fileUrl" class="form-label">URL or file name for card data</label>
-                <input type="text" id="fileUrl" class="form-control" placeholder="my-game-cards.xlsx"
-                    x-model="project.datasource"></input>
-                <span>
-                    <div x-show="data.datatype === 'URL'">
-                        <i class="fas fa-globe"></i>
-                        Is a valid URL
-                        <i class="valid fas fa-check"></i>
-                        <div>
-                            <button @click="actions.loadRemoteData">Load Data</button>
+                <div class="mb-3">
+                    <label for="fileUrl" class="form-label">URL or file name for card data</label>
+                    <input type="text" id="fileUrl" class="form-control" placeholder="my-game-cards.xlsx"
+                        x-model="project.datasource"></input>
+                    <span>
+                        <div x-show="data.datatype === 'URL'">
+                            <i class="fas fa-globe"></i>
+                            Is a valid URL
+                            <i class="valid fas fa-check"></i>
+                            <div>
+                                <button @click="actions.loadRemoteData">Load Data</button>
+                            </div>
                         </div>
+                        <div x-show="data.datatype === 'File'">
+                            <i class="fas fa-file"></i>
+                            Is a valid file
+                            <i class="valid fas fa-check"></i>
+                        </div>
+                        <div x-show="data.datatype === 'Error'">
+                            <i class="invalid fas fa-times"></i>
+                            This neither points to a valid file or URL!
+                        </div>
+                    </span>
+                </div>
+                <div class="mb-3">
+                    <div x-show="data.filetype === 'CSV'">
+                        <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
+                        <input id="csvSeparator" type="text" class="form-control" placeholder=","
+                            x-model="project.settings.csv.separator">
                     </div>
-                    <div x-show="data.datatype === 'File'">
-                        <i class="fas fa-file"></i>
-                        Is a valid file
-                        <i class="valid fas fa-check"></i>
-                    </div>
-                    <div x-show="data.datatype === 'Error'">
-                        <i class="invalid fas fa-times"></i>
-                        This neither points to a valid file or URL!
-                    </div>
-                </span>
-            </div>
-            <div class="mb-3">
-                <div x-show="data.filetype === 'CSV'">
-                    <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
-                    <input id="csvSeparator" type="text" class="form-control" placeholder=","
-                        x-model="project.settings.csv.separator">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped">
+                        <thead>
+                            <tr>
+                                <th>Key</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Setting 1</td>
+                                <td>Value 1</td>
+                            </tr>
+                            <tr>
+                                <td>Setting 2</td>
+                                <td>Value 2</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table table-dark table-striped">
-                    <thead>
-                        <tr>
-                            <th>Key</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Setting 1</td>
-                            <td>Value 1</td>
-                        </tr>
-                        <tr>
-                            <td>Setting 2</td>
-                            <td>Value 2</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
         </div>
-    </div>
 
-    <script src="./bundle.js"></script>
+        <script src="./bundle.js"></script>
 </body>
 
 </html>

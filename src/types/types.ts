@@ -30,6 +30,14 @@ export type AppState = {
     compiled: string,
     target: string,
   },
+  dialog: {
+    show: boolean,
+    title: string,
+    text: string,
+    options: string[],
+    handle: (pressedButton: string) => void,
+    callback: (pressedButton: string) => void
+  }
   project: Project,
   files: {
     fileMap: Map<String, File>
