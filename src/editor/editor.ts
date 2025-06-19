@@ -4,7 +4,6 @@ import { svgjsLanguage } from "../utility/svgjs.js";
 import { initialSvg } from "../utility/utility.js";
 import { App } from "../types/types.js";
 
-// SOURCE EDITOR
 export const sourceEditor = (app: App) => new EditorView({
   parent: document.getElementById('source-editor')!,
   doc: initialSvg,
@@ -22,12 +21,11 @@ export const sourceEditor = (app: App) => new EditorView({
         return;
       }
       
-      app.update('source', e.state.doc.toString());
+      app.code.source = e.state.doc.toString();
     })
   ]
 });
 
-// COMPILE EDITOR
 export const compilerEditor = (app: App) => new EditorView({
   parent: document.getElementById('compile-editor')!,
   doc: initialSvg,
@@ -45,7 +43,7 @@ export const compilerEditor = (app: App) => new EditorView({
         return;
       }
       
-      app.update('compiled', e.state.doc.toString());
+      app.code.compiled = e.state.doc.toString();
     })
   ]
 });

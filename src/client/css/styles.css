@@ -6,6 +6,10 @@ html {
     overflow: hidden;
 }
 
+body {
+    padding: 25px;
+}
+
 .workspace {
     display: flex;
     height: 100vh;

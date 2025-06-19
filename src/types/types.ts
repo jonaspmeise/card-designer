@@ -4,17 +4,19 @@ import { EditorView } from "codemirror";
 export type DataType = 'URL' | 'File' | 'Error';
 export type FileType = 'CSV' | 'JSON' | 'XLSX' | 'Error';
 
-export type App = Alpine.AlpineComponent<AppState & AppFunctions>;
+export type App = Alpine.AlpineComponent<AppState>;
 
 export type Project = {
+  name: string,
   settings: ProjectSettings,
-  loadedFiles: string[],
-  datasource: string | undefined,
+  loadedFilteredFiles: string[]
 };
 
 export type ProjectSettings = {
+  fileBlacklist: string[],
+  datasource: string | undefined,
   csv: {
-    csvSeparator: string
+    separator: string
   }
   json: {}
   xlsx: {
@@ -30,8 +32,7 @@ export type AppState = {
   },
   project: Project,
   files: {
-    fileMap: Map<String, File>,
-    files: FileList | undefined,
+    fileMap: Map<String, File>
   },
   data: {
     datatype: DataType | undefined,
@@ -44,12 +45,17 @@ export type AppState = {
   editors: {
     source: EditorView | undefined,
     compiled: EditorView | undefined
-  }
+  },
+  actions: AppActions
 };
 
-export type AppFunctions = {
+export type AppActions = {
   registerComputedPropertyWatches: () => void,
+  loadRemoteData: () => Promise<void>,
   select: (card: unknown) => void,
-  preview: (card: unknown) => void,
-  update: (property: string, value: unknown) => void
+  renderPreview: () => void,
+  loadFiles: (files: FileList) => Promise<void>,
+  downloadSettings: () => void,
+  compile: (source: string) => void,
+  updateFilteredFiles: () => void
 };

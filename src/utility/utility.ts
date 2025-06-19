@@ -9,7 +9,7 @@ export const debounce = (func: (...args: any[]) => any, delay: number = 500) => 
   };
 };
 
-export const compile = (source: string): string => {
+export const compile = (source: string, card?: unknown): string => {
   console.error('COMPILING', source);
   return source;
 };
@@ -22,7 +22,9 @@ export const simpleHash = (str: string) => {
     hash = hash & hash;
   }
   return new Uint32Array([hash])[0].toString(36);
-}
+};
+
+export const projectFilePattern = /^.+\.cardcreator\.json$/i;
 
 export const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
   <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
@@ -102,4 +104,6 @@ export const csvToJson = (csv: string): unknown[] => {
         return obj;
     }, {});
   });
-}
+};
+
+export const kebapify: (value: string) => string = (value: string) => value.split(' ').map(part => part.toLowerCase()).join('-');

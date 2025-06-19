@@ -21,7 +21,7 @@
 <body x-data="app()">
     <div id="app" class="d-flex container-fluid flex-row vh-100 p-0">
         <!-- Left Column: Editors & Table -->
-         <div class="col-md-6">
+        <div class="col-md-6">
             <div id="code-editor" class="code-editor h-50 d-flex flex-column">
                 <!-- Bootstrap Tabs -->
                 <ul class="nav nav-tabs" id="editorTabs" role="tablist">
@@ -50,22 +50,22 @@
                 </div>
             </div>
             <div id="table-container" class="h-50 align-items-center justify-content-center overflow-auto">
-                <div x-show="isLoading">
+                <div x-show="data.isLoading">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
-                <table id="data-table" class="table table-striped table-dark table-hover" x-show="!isLoading">
+                <table id="data-table" class="table table-striped table-dark table-hover" x-show="!data.isLoading">
                     <thead>
                         <tr>
-                            <template x-for="value in Object.keys(cards[0] ?? {})">
+                            <template x-for="value in Object.keys(data.cards[0] ?? {})">
                                 <th x-text="value"></th>
                             </template>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        <template x-for="(card, index) in cards" :key="index">
-                            <tr x-on:click="select(card)" :class="{ 'highlight': selectedCard === card }">
+                        <template x-for="(card, index) in data.cards" :key="index">
+                            <tr x-on:click="select(card)" :class="{ 'highlight': data.selectedCard === card }">
                                 <template x-for="value in Object.keys(card)">
                                     <td x-text="card[value]"></td>
                                 </template>
@@ -85,88 +85,135 @@
                 <button class="btn btn-primary m-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#settings">
                     <i class="fas fa-cog"></i>
                 </button>
+                <div class="toast-container">
+                    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header">
+                            <strong class="me-auto">Bootstrap</strong>
+                            <small class="text-muted">just now</small>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">
+                            See? Just like this.
+                        </div>
+                    </div>
+
+                    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="toast-header">
+                            <strong class="me-auto">Bootstrap</strong>
+                            <small class="text-muted">2 seconds ago</small>
+                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                        <div class="toast-body">
+                            Heads up, toasts will stack automatically
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div id="svg-preview" class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center">
-                <div x-html="target"></div>
+            <div id="svg-preview"
+                class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center">
+                <div x-html="code.target"></div>
             </div>
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end text-bg-dark" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="files">
+    <div class="offcanvas offcanvas-end text-bg-dark" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1"
+        id="files">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="fileViewLabel">Files</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body container mt-5">
             <div class="mb-3">
-                <label for="formFileMultiple" class="form-label">Choose files</label>
-                <input
-                    class="form-control"
-                    type="file"
-                    multiple
-                    webkitdirectory
-                    @change="files = Array.from($event.target.files)"
-                >
+                <label for="formFileMultiple" class="form-label">Choose Workspace Directory</label>
+                <input class="form-control" type="file" multiple webkitdirectory
+                    @change="actions.loadFiles($event.target.files)">
+                    <!-- TODO: Warning if too many files are uploaded: Hint that Blacklist exists! -->
             </div>
             <div>
                 <ul id="file-list" class="scrollable-list">
-                    <template x-for="file in loadedFiles" :key="file">
+                    <template x-for="(file, index) in project.loadedFilteredFiles" :key="index">
                         <li x-text="file"></li>
                     </template>
-                    <div x-show="loadedFiles.length === 0">No files uploaded.</div>
+                    <div x-show="project.loadedFilteredFiles.length === 0">No files uploaded.</div>
                 </ul>
+            </div>
+            <div class="mt-3">
+                <label class="form-label" x-text="`Blacklist Filters (${files.fileMap.size - project.loadedFilteredFiles.length} files are filtered)`"></label>
+                <div class="mb-2">
+                    <template x-for="(filter, index) in project.settings.fileBlacklist" :key="index">
+                        <div class="input-group mb-2">
+                            <input
+                                type="text"
+                                class="form-control"
+                                x-model="project.settings.fileBlacklist[index]"
+                                placeholder="temporary/.*"
+                                @input="actions.updateFilteredFiles"
+                            >
+                        </div>
+                    </template>
+                    
+                    <!-- For new blacklist entries, this can be modified! -->
+                    <input
+                        type="text"
+                        class="form-control"
+                        x-model="project.settings.fileBlacklist[project.settings.fileBlacklist.length]"
+                        placeholder="temporary/.*"
+                        @input="actions.updateFilteredFiles"
+                    >
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end text-bg-dark" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="settings">
+    <div class="offcanvas offcanvas-end text-bg-dark" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1"
+        id="settings">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="settingsViewLabel">Settings</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body">
+            <!-- Download Button -->
+            <div class="mb-3">
+                <button type="button" class="btn btn-primary" @click="actions.downloadSettings" data-bs-toggle="tooltip"
+                    data-bs-placement="top" title="Download Project Settings">
+                    <i class="fas fa-download me-2"></i>Download Settings
+                </button>
+            </div>
+            
+            <div class="mb-3">
+                <label for="projectName" class="form-label">Project Name</label>
+                <input type="text" id="projectName" class="form-control" placeholder="My Cardcreator Project"
+                    x-model="project.name"></input>
             <div class="mb-3">
                 <label for="fileUrl" class="form-label">URL or file name for card data</label>
-                <input 
-                    type="text"
-                    id="fileUrl"
-                    class="form-control"
-                    placeholder="my-game-cards.xlsx"
-                    x-model="datasource"
-                >
+                <input type="text" id="fileUrl" class="form-control" placeholder="my-game-cards.xlsx"
+                    x-model="project.datasource"></input>
                 <span>
-                    <div x-show="datatype === 'URL'">
+                    <div x-show="data.datatype === 'URL'">
                         <i class="fas fa-globe"></i>
-                            Is a valid URL
+                        Is a valid URL
                         <i class="valid fas fa-check"></i>
                         <div>
-                            <button @click="loadRemoteData()">Load Data</button>
+                            <button @click="actions.loadRemoteData">Load Data</button>
                         </div>
                     </div>
-                    <div x-show="datatype === 'File'">
+                    <div x-show="data.datatype === 'File'">
                         <i class="fas fa-file"></i>
-                            Is a valid file
+                        Is a valid file
                         <i class="valid fas fa-check"></i>
                     </div>
-                    <div x-show="datatype === 'Error'">
+                    <div x-show="data.datatype === 'Error'">
                         <i class="invalid fas fa-times"></i>
-                            This neither points to a valid file or URL!
+                        This neither points to a valid file or URL!
                     </div>
                 </span>
             </div>
             <div class="mb-3">
-                <div x-show="filetype === 'CSV'">
+                <div x-show="data.filetype === 'CSV'">
                     <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
-                    <input
-                        id="csvSeparator"
-                        type="text"
-                        class="form-control"
-                        placeholder=","
-                        x-model="csvSeparator"
-                    >
+                    <input id="csvSeparator" type="text" class="form-control" placeholder=","
+                        x-model="project.settings.csv.separator">
                 </div>
-            </div>
-            <div class="mb-3" x-show="">
             </div>
             <div class="table-responsive">
                 <table class="table table-dark table-striped">
@@ -193,4 +240,5 @@
 
     <script src="./bundle.js"></script>
 </body>
+
 </html>
