@@ -1,4 +1,4 @@
-import { App, AppActions } from "../types/types.js";
+import { App, AppActions, AppState, DialogOptions, ToastOptions } from "../types/types.js";
 import { compile, initialSvg, kebapify, projectFilePattern } from "../utility/utility.js";
 import { compilerEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
@@ -14,10 +14,10 @@ const app: () => App = () => ({
     this.actions.registerComputedPropertyWatches.bind(this)();
 
     // Bind the correct reference for all actions.
-    this.actions = Object.fromEntries(
-      Object.entries(this.actions)
-        .map(([key, func]) => [key, func.bind(this)])
-    ) as AppActions;
+    Object.entries(this.actions)
+      .forEach(([key, func]) => {
+        this.actions[key] = func.bind(this)
+      });
 
     this.editors.source = sourceEditor(this as App);
     this.editors.compiled = compilerEditor(this as App);
@@ -28,14 +28,11 @@ const app: () => App = () => ({
   dialog: {
     show: false,
     title: 'Cardcreator',
-    text: 'Found a project file. Load?',
-    options: ['Load', 'Ignore'],
-    handle(pressedButton: string) {
-      this.dialog.show = false;
-      this.dialog.callback(pressedButton);
-    },
+    body: 'Found a project file. Load?',
+    actions: ['Load', 'Ignore'],
     callback: (pressedButton: string) => console.info('User pressed', pressedButton)
   },
+  toasts: [],
   code: {
     source: initialSvg,
     compiled: initialSvg,
@@ -103,7 +100,11 @@ const app: () => App = () => ({
     async loadRemoteData() {
       this.data.isLoading = true;
       try {
-        const cards = await loadRemoteData(new URL(this.project.settings.datasource!), this.project.settings);
+        const cards = await loadRemoteData(
+          new URL(this.project.settings.datasource!),
+          this.project.settings,
+          this as AppState
+        );
         this.data.cards = cards;
       } catch (e) {
         console.error(`Error while loading data`, e);
@@ -119,7 +120,6 @@ const app: () => App = () => ({
       console.log('PREVIEWING', this.data.selectedCard);
     },
     async loadFiles(files: FileList) {
-      console.log(this);
       this.files.fileMap.clear();
 
       // Check whether a project setting file exists!
@@ -128,13 +128,27 @@ const app: () => App = () => ({
       const potentialFiles = fileArray.filter(file => projectFilePattern.test(file.name));
 
       if(potentialFiles.length > 0) {
-        // TODO: Smart selection, User prompt, ...
-        console.info(`Found project file "${potentialFiles[0].name}", loading it...`);
-        const project = JSON.parse(await potentialFiles[0].text());
-        this.project = project;
+        this.actions.showDialog<'Load' | 'Cancel'>({
+          body: `Found project file <b>"${potentialFiles[0].name}"</b> among the loaded files.<br><br>Load its settings?`,
+          title: 'Project File',
+          actions: ['Load', 'Cancel'],
+          callback: async (action) => {
+            if(action === 'Cancel') {
+              return;
+            }
 
-        // Instantly try and load Data!
-        this.actions.loadRemoteData();
+            const project = JSON.parse(await potentialFiles[0].text());
+            this.project = project;
+
+            // Instantly try and load Data!
+            await this.actions.loadRemoteData();
+
+            this.actions.showToast({
+              body: `Loaded project settings for ${this.project.name}.`,
+              severity: "success"
+            });
+          }
+        })
       }
 
       let folderName: string | undefined = undefined;
@@ -166,13 +180,19 @@ const app: () => App = () => ({
 
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
-      downloadLink.download = `${kebapify(this.project.name)}.cardcreator.json`;
+      const filename = `${kebapify(this.project.name)}.cardcreator.json`;
+      downloadLink.download = filename;
       document.body.appendChild(downloadLink);
 
       downloadLink.click();
 
       document.body.removeChild(downloadLink);
       URL.revokeObjectURL(url);
+
+      this.actions.showToast({
+        body: `File <b>${filename}</b> has started to download...`,
+        severity: "primary"
+      });
     },
     updateFilteredFiles() {
       console.log(this.project.settings.fileBlacklist);
@@ -190,6 +210,21 @@ const app: () => App = () => ({
 
       this.project.loadedFilteredFiles = fileNames
         .filter(name => this.project.settings.fileBlacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined);
+    },
+    showDialog(options: DialogOptions<any>) {
+      this.dialog = {
+        ...this.dialog,
+        ...options,
+        callback: (takenAction: string) => {
+          this.dialog.show = false;
+          options.callback(takenAction);
+        }
+      };
+
+      this.dialog.show = true;
+    },
+    showToast(options: ToastOptions) {
+      this.toasts.push(options);
     }
   }
 });
@@ -197,5 +232,3 @@ const app: () => App = () => ({
 Alpine.data('app', app);
 
 Alpine.start();
-
-// TODO: Allow blacklist pattern so certain files are ignored when uploaded and dont show! (regex[])

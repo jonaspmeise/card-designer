@@ -12,6 +12,22 @@ export type Project = {
   loadedFilteredFiles: string[]
 };
 
+export type Size = {
+  width: number,
+  height: number
+};
+
+export type RenderJob = {
+  name: string,
+  targetSize: Size,
+  group: {
+    by: RegExp,
+    maxElementsPerSheet: number,
+    rowsPerSheet: number,
+    columnsPerSheet: number
+  }
+};
+
 export type ProjectSettings = {
   fileBlacklist: string[],
   datasource: string | undefined,
@@ -30,18 +46,14 @@ export type AppState = {
     compiled: string,
     target: string,
   },
-  dialog: {
-    show: boolean,
-    title: string,
-    text: string,
-    options: string[],
-    handle: (pressedButton: string) => void,
-    callback: (pressedButton: string) => void
-  }
+  dialog: DialogOptions<any> & {
+    show: boolean
+  },
   project: Project,
   files: {
     fileMap: Map<String, File>
   },
+  toasts: ToastOptions[],
   data: {
     datatype: DataType | undefined,
     filetype: FileType | undefined,
@@ -57,6 +69,19 @@ export type AppState = {
   actions: AppActions
 };
 
+export type DialogOptions<OPTIONS extends string> = {
+  title: string,
+  body: string,
+  actions: OPTIONS[],
+  callback: (takenAction: OPTIONS) => void
+};
+
+export type ToastSeverity = 'primary' | 'success' | 'danger' | 'warning';
+export type ToastOptions = {
+  body: string,
+  severity: ToastSeverity
+};
+
 export type AppActions = {
   registerComputedPropertyWatches: () => void,
   loadRemoteData: () => Promise<void>,
@@ -65,5 +90,7 @@ export type AppActions = {
   loadFiles: (files: FileList) => Promise<void>,
   downloadSettings: () => void,
   compile: (source: string) => void,
-  updateFilteredFiles: () => void
+  updateFilteredFiles: () => void,
+  showDialog: <OPTIONS extends string>(options: DialogOptions<OPTIONS>) => void,
+  showToast: (options: ToastOptions) => void
 };

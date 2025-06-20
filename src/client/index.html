@@ -20,20 +20,21 @@
 
 <body x-data="app()">
     <div id="app" class="d-flex container-fluid flex-row vh-100 p-0">
+        <!-- Modal Backdrop -->
+        <div x-show="dialog.show" class="modal-backdrop" :class="{ 'show': dialog.show }"></div>
+
         <!-- Modal Dialog -->
-        <div x-class="{'show': dialog.show}" class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-            aria-labelledby="staticBackdropLabel" aria-hidden="true">
-            <div class="modal-dialog">
+        <div :class="`modal fade ${dialog.show ? 'show' : ''}`" id="staticBackdrop" data-bs-backdrop="static"
+            data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
+            :style="`display: ${dialog.show ? 'block' : 'none'}`">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="staticBackdropLabel" x-text="dialog.title"></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" x-text="dialog.text">
+                    <div class="modal-body" x-html="dialog.body">
                     </div>
                     <div class="modal-footer">
-                        <template x-for="(option, index) in dialog.options" :key="index">
-                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" x-text="option" x-on:click="dialog.handle(option)"></button>
+                        <template x-for="(option, index) in dialog.actions" :key="index">
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" x-text="option"
+                                x-on:click="dialog.callback(option)"></button>
                         </template>
                     </div>
                 </div>
@@ -105,29 +106,6 @@
                 <button class="btn btn-primary m-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#settings">
                     <i class="fas fa-cog"></i>
                 </button>
-                <div class="toast-container">
-                    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="toast-header">
-                            <strong class="me-auto">Bootstrap</strong>
-                            <small class="text-muted">just now</small>
-                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                        <div class="toast-body">
-                            See? Just like this.
-                        </div>
-                    </div>
-
-                    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="toast-header">
-                            <strong class="me-auto">Bootstrap</strong>
-                            <small class="text-muted">2 seconds ago</small>
-                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                        <div class="toast-body">
-                            Heads up, toasts will stack automatically
-                        </div>
-                    </div>
-                </div>
             </div>
             <div id="svg-preview"
                 class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center">
@@ -199,7 +177,7 @@
                 <div class="mb-3">
                     <label for="fileUrl" class="form-label">URL or file name for card data</label>
                     <input type="text" id="fileUrl" class="form-control" placeholder="my-game-cards.xlsx"
-                        x-model="project.datasource"></input>
+                        x-model="project.settings.datasource"></input>
                     <span>
                         <div x-show="data.datatype === 'URL'">
                             <i class="fas fa-globe"></i>
@@ -220,6 +198,14 @@
                         </div>
                     </span>
                 </div>
+                <div class="mb-3">
+                    <div x-show="data.filetype === 'CSV'">
+                        <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
+                        <input id="csvSeparator" type="text" class="form-control" placeholder=","
+                            x-model="project.settings.csv.separator">
+                    </div>
+                </div>
+                <!-- File-Specific settings -->
                 <div class="mb-3">
                     <div x-show="data.filetype === 'CSV'">
                         <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
@@ -249,8 +235,23 @@
                 </div>
             </div>
         </div>
-
-        <script src="./bundle.js"></script>
+    </div>
+    
+    <!-- Toasts -->
+    <div class="toast-container">
+        <template x-for="(toast, index) in toasts" :key="index">
+            <div :class="`toast fade show align-items-center text-bg-${toast.severity} border-0 position-fixed bottom-0 end-0 m-3`" role="alert"
+                aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body" x-text="toast.body"></div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+                </div>
+            </div>
+        </template>
+    </div>
+    
+    <script src="./bundle.js"></script>
 </body>
 
 </html>

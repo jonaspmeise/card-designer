@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { ProjectSettings } from '../types/types.js';
+import { AppState, ProjectSettings } from '../types/types.js';
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
   let timeout: NodeJS.Timeout;
 
@@ -42,10 +42,12 @@ export const isValidUrl = (urlString: string): boolean => {
 
 export const loadRemoteData: (
   url: URL,
-  settings: ProjectSettings
+  settings: ProjectSettings,
+  app: AppState
 ) => Promise<unknown[]> = async (
   url: URL,
-  settings: ProjectSettings
+  settings: ProjectSettings,
+  app: AppState
 ) => {
    try {
     const response = await fetch(url);
@@ -59,17 +61,20 @@ export const loadRemoteData: (
 
     if (contentType.includes('application/json')) {
       const jsonData: unknown[] = await response.json();
-      
+      app.data.filetype = 'JSON';
+
       if(!Array.isArray(jsonData)) {
         throw new Error('Loaded JSON is not an array!', jsonData);
       }
 
       return jsonData;
     } else if (contentType.includes('text/csv')) {
+      app.data.filetype = 'CSV';
       const csvData = await response.text();
 
       return csvToJson(csvData);
     } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+      app.data.filetype = 'XLSX';
       const arrayBuffer = await response.arrayBuffer();
       
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -85,10 +90,12 @@ export const loadRemoteData: (
       throw new Error(`Unsupported file type: ${contentType}.`);
     }
   } catch (error) {
-    console.error('Error loading data:', error);
+    app.actions.showToast({
+      body: `Data could not be loaded! ${error}`,
+      severity: 'danger'
+    });
+    app.data.filetype = 'Error';
   }
-  
-  console.warn('No Data was loaded...?');
 
   return [];
 };
