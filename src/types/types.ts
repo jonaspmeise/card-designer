@@ -47,7 +47,8 @@ export type AppState = {
     target: string,
   },
   dialog: DialogOptions<any> & {
-    show: boolean
+    show: boolean,
+    callback: (option: string) => Promise<string>
   },
   project: Project,
   files: {
@@ -72,8 +73,7 @@ export type AppState = {
 export type DialogOptions<OPTIONS extends string> = {
   title: string,
   body: string,
-  actions: OPTIONS[],
-  callback: (takenAction: OPTIONS) => void
+  actions: OPTIONS[]
 };
 
 export type ToastSeverity = 'primary' | 'success' | 'danger' | 'warning';
@@ -91,6 +91,6 @@ export type AppActions = {
   downloadSettings: () => void,
   compile: (source: string) => void,
   updateFilteredFiles: () => void,
-  showDialog: <OPTIONS extends string>(options: DialogOptions<OPTIONS>) => void,
+  showDialog: <OPTIONS extends string>(options: DialogOptions<OPTIONS>) => Promise<OPTIONS>,
   showToast: (options: ToastOptions) => void
 };

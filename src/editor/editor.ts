@@ -26,8 +26,8 @@ export const sourceEditor = (app: App) => new EditorView({
   ]
 });
 
-export const compilerEditor = (app: App) => new EditorView({
-  parent: document.getElementById('compile-editor')!,
+export const compiledEditor = (app: App) => new EditorView({
+  parent: document.getElementById('compiled-editor')!,
   doc: initialSvg,
   extensions: [
     basicSetup,

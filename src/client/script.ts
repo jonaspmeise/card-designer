@@ -1,6 +1,6 @@
 import { App, AppActions, AppState, DialogOptions, ToastOptions } from "../types/types.js";
 import { compile, initialSvg, kebapify, projectFilePattern } from "../utility/utility.js";
-import { compilerEditor, sourceEditor } from "../editor/editor.js";
+import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
 import { loadRemoteData } from '../utility/utility.js';
@@ -20,7 +20,7 @@ const app: () => App = () => ({
       });
 
     this.editors.source = sourceEditor(this as App);
-    this.editors.compiled = compilerEditor(this as App);
+    this.editors.compiled = compiledEditor(this as App);
   },
   files: {
     fileMap: new Map()
@@ -128,27 +128,24 @@ const app: () => App = () => ({
       const potentialFiles = fileArray.filter(file => projectFilePattern.test(file.name));
 
       if(potentialFiles.length > 0) {
-        this.actions.showDialog<'Load' | 'Cancel'>({
+        const choice = await this.actions.showDialog<'Load' | 'Cancel'>({
           body: `Found project file <b>"${potentialFiles[0].name}"</b> among the loaded files.<br><br>Load its settings?`,
           title: 'Project File',
-          actions: ['Load', 'Cancel'],
-          callback: async (action) => {
-            if(action === 'Cancel') {
-              return;
-            }
+          actions: ['Load', 'Cancel']
+        });
 
-            const project = JSON.parse(await potentialFiles[0].text());
-            this.project = project;
+        if(choice === 'Load') {
+          const project = JSON.parse(await potentialFiles[0].text());
+          this.project = project;
 
-            // Instantly try and load Data!
-            await this.actions.loadRemoteData();
+          // Instantly try and load Data!
+          await this.actions.loadRemoteData();
 
-            this.actions.showToast({
-              body: `Loaded project settings for ${this.project.name}.`,
-              severity: "success"
-            });
-          }
-        })
+          this.actions.showToast({
+            body: `Loaded project settings for ${this.project.name}.`,
+            severity: "success"
+          });
+        }
       }
 
       let folderName: string | undefined = undefined;
@@ -212,13 +209,16 @@ const app: () => App = () => ({
         .filter(name => this.project.settings.fileBlacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined);
     },
     showDialog(options: DialogOptions<any>) {
+      const callback = async (takenAction: string) => {
+        this.dialog.show = false;
+
+        return takenAction;
+      };
+
       this.dialog = {
         ...this.dialog,
         ...options,
-        callback: (takenAction: string) => {
-          this.dialog.show = false;
-          options.callback(takenAction);
-        }
+        callback: callback
       };
 
       this.dialog.show = true;

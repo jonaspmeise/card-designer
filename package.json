@@ -2,7 +2,7 @@
   "name": "card-designer",
   "version": "1.0.0",
   "scripts": {
-    "clean-ts-temp": "rimraf ts-temp",
+    "clean-ts-temp": "rm -rf ts-temp",
     "webpack": "bun run clean-ts-temp && bun run tsc && webpack --config webpack.config.cjs",
     "test": "bun test \".spec.ts\""
   },
