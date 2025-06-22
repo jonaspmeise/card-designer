@@ -58,10 +58,11 @@ export const loadRemoteData: (
     }
 
     console.log(`Found Content-Type on remote data: ${contentType}`);
+    app.cache.files.remoteRawData = await response.arrayBuffer();
 
     if (contentType.includes('application/json')) {
       const jsonData: unknown[] = await response.json();
-      app.data.filetype = 'JSON';
+      app.cache.data.filetype = 'JSON';
 
       if(!Array.isArray(jsonData)) {
         throw new Error('Loaded JSON is not an array!', jsonData);
@@ -69,12 +70,12 @@ export const loadRemoteData: (
 
       return jsonData;
     } else if (contentType.includes('text/csv')) {
-      app.data.filetype = 'CSV';
+      app.cache.data.filetype = 'CSV';
       const csvData = await response.text();
 
       return csvToJson(csvData);
     } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
-      app.data.filetype = 'XLSX';
+      app.cache.data.filetype = 'XLSX';
       const arrayBuffer = await response.arrayBuffer();
       
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -94,7 +95,7 @@ export const loadRemoteData: (
       body: `Data could not be loaded! ${error}`,
       severity: 'danger'
     });
-    app.data.filetype = 'Error';
+    app.cache.data.filetype = 'Error';
   }
 
   return [];

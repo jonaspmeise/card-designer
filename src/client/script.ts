@@ -19,42 +19,54 @@ const app: () => App = () => ({
         this.actions[key] = func.bind(this)
       });
 
-    this.editors.source = sourceEditor(this as App);
-    this.editors.compiled = compiledEditor(this as App);
+    this.ui.editors.source = sourceEditor(this as App);
+    this.ui.editors.compiled = compiledEditor(this as App);
   },
-  files: {
-    fileMap: new Map()
+  cache: {
+    files: {
+      fileMap: new Map(),
+      remoteRawData: undefined
+    },
+    code: {
+      compiled: initialSvg,
+      target: initialSvg
+    },
+    data: {
+      cards: [],
+      isLoading: false,
+      selectedCard: undefined,
+      datatype: undefined,
+      filetype: undefined
+    }
   },
-  dialog: {
-    show: false,
-    title: 'Cardcreator',
-    body: 'Found a project file. Load?',
-    actions: ['Load', 'Ignore'],
-    callback: (pressedButton: string) => console.info('User pressed', pressedButton)
-  },
-  toasts: [],
-  code: {
-    source: initialSvg,
-    compiled: initialSvg,
-    target: initialSvg
-  },
-  data: {
-    cards: [],
-    isLoading: false,
-    selectedCard: undefined,
-    datatype: undefined,
-    filetype: undefined
-  },
-  editors: {
-    // Initialized lazily!
-    compiled: undefined,
-    source: undefined
+  ui: {
+    dialog: {
+      show: false,
+      title: 'Cardcreator',
+      body: 'Found a project file. Load?',
+      actions: ['Load', 'Ignore'],
+      callback: (pressedButton: string) => console.info('User pressed', pressedButton)
+    },
+    toasts: [],
+    editors: {
+      // Initialized lazily!
+      compiled: undefined,
+      source: undefined
+    },
   },
   project: {
     name: 'My Cardcreator Project',
-    loadedFilteredFiles: [],
+    files: {
+      loadedFilteredFiles: []
+    },
+    jobs: [],
+    code: {
+      source: initialSvg
+    },
     settings: {
-      fileBlacklist: [],
+      files: {
+        blacklist: [],
+      },
       datasource: undefined,
       csv: {
         separator: ', '
@@ -67,60 +79,64 @@ const app: () => App = () => ({
   },
   actions: {
     compile(source: string) {
-      this.code.compiled = compile(source);
-      this.editors.compiled!.dispatch({
+      this.cache.code.compiled = compile(source);
+      this.ui.editors.compiled!.dispatch({
         changes: {
           from: 0,
-          to: this.editors.compiled!.state.doc.length,
-          insert: this.code.compiled
+          to: this.ui.editors.compiled!.state.doc.length,
+          insert: this.cache.code.compiled
         }
       });
       this.actions.renderPreview();
     },
     registerComputedPropertyWatches() {
       // Register computed property handlers.
-      this.$watch('project.datasource', (datasource: string) => {
+      this.$watch('project.settings.datasource', (datasource: string) => {
         if (datasource !== undefined) {
-          this.data.datatype = isValidUrl(datasource)
+          this.cache.data.datatype = isValidUrl(datasource)
             ? 'URL'
-            : this.files.fileMap.has(datasource)
+            : this.cache.files.fileMap.has(datasource)
               ? 'File'
               : 'Error';
         }
       });
 
-      this.$watch('code.compiled', (code: string) => {
-        this.code.target = compile(code, this.data.selectedCard);
+      this.$watch('project.code.source', (code: string) => {
+        this.cache.code.compiled = compile(code, this.cache.data.selectedCard);
+      });
+
+      this.$watch('cache.code.compiled', (code: string) => {
+        this.cache.code.target = code;
       });
       
-      this.$watch('code.target', (code: string) => {
+      this.$watch('cache.code.target', (code: string) => {
         this.actions.renderPreview();
       });
     },
     async loadRemoteData() {
-      this.data.isLoading = true;
+      this.cache.data.isLoading = true;
       try {
         const cards = await loadRemoteData(
           new URL(this.project.settings.datasource!),
           this.project.settings,
           this as AppState
         );
-        this.data.cards = cards;
+        this.cache.data.cards = cards;
       } catch (e) {
         console.error(`Error while loading data`, e);
       }
 
-      this.data.isLoading = false;
+      this.cache.data.isLoading = false;
     },
     select(card: unknown) {
-      this.code.compiled = compile(this.code.source, card);
-      this.data.selectedCard = card;
+      this.cache.code.compiled = compile(this.project.code.source, card);
+      this.cache.data.selectedCard = card;
     },
     renderPreview() {
-      console.log('PREVIEWING', this.data.selectedCard);
+      console.log('PREVIEWING', this.cache.data.selectedCard);
     },
     async loadFiles(files: FileList) {
-      this.files.fileMap.clear();
+      this.cache.files.fileMap.clear();
 
       // Check whether a project setting file exists!
       const fileArray = Array.from(files);
@@ -150,7 +166,7 @@ const app: () => App = () => ({
 
       let folderName: string | undefined = undefined;
 
-      this.project.loadedFilteredFiles = fileArray.map(f => {
+      this.project.files.loadedFilteredFiles = fileArray.map(f => {
         // Remove first folder, because it's always identical!
         const splits = f.webkitRelativePath.split('/');
 
@@ -160,12 +176,12 @@ const app: () => App = () => ({
 
         const fileName = splits.slice(1).join('/');
 
-        this.files.fileMap.set(fileName, f);
+        this.cache.files.fileMap.set(fileName, f);
 
         return fileName;
       }).filter(name => {
         // Filter out files that match any blacklist entry!
-        return this.project.settings.fileBlacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined;
+        return this.project.settings.files.blacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined;
       });
       
       // TODO: Popup that from that folder a total of {} files have been loaded!
@@ -192,40 +208,54 @@ const app: () => App = () => ({
       });
     },
     updateFilteredFiles() {
-      console.log(this.project.settings.fileBlacklist);
+      console.log(this.project.settings.files.blacklist);
 
       // Clean up blacklist entries by removing seemingly empty entries!
-      const filters = this.project.settings.fileBlacklist.filter(filter => filter.trim().length > 0);
-      this.project.settings.fileBlacklist = filters;
+      const filters = this.project.settings.files.blacklist.filter(filter => filter.trim().length > 0);
+      this.project.settings.files.blacklist = filters;
 
-      const fileNames: string[] = Array.from(this.files.fileMap.keys()).map(s => s as string);
+      const fileNames: string[] = Array.from(this.cache.files.fileMap.keys()).map(s => s as string);
 
       if(filters.length === 0) {
-        this.project.loadedFilteredFiles = fileNames;
+        this.project.files.loadedFilteredFiles = fileNames;
         return;
       }
 
-      this.project.loadedFilteredFiles = fileNames
-        .filter(name => this.project.settings.fileBlacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined);
+      this.project.files.loadedFilteredFiles = fileNames
+        .filter(name => this.project.settings.files.blacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined);
     },
     showDialog(options: DialogOptions<any>) {
-      const callback = async (takenAction: string) => {
-        this.dialog.show = false;
+      return new Promise((resolve) => {
+        const callback = (takenAction: string) => {
+          this.ui.dialog.show = false;
 
-        return takenAction;
-      };
+          // @ts-expect-error
+          resolve(takenAction);
+        };
 
-      this.dialog = {
-        ...this.dialog,
-        ...options,
-        callback: callback
-      };
+        this.ui.dialog = {
+          ...this.ui.dialog,
+          ...options,
+          callback: callback
+        };
 
-      this.dialog.show = true;
+        this.ui.dialog.show = true;
+    });
     },
     showToast(options: ToastOptions) {
-      this.toasts.push(options);
-    }
+      this.ui.toasts.push(options);
+    },
+    addRenderJob() {
+      this.project.jobs.push({
+        name: 'New Render Job',
+        filterCards: [],
+        group: undefined,
+        targetSize: {
+          height: 1050,
+          width: 750
+        }
+      })
+    },
   }
 });
 

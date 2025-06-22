@@ -21,7 +21,7 @@ export const sourceEditor = (app: App) => new EditorView({
         return;
       }
       
-      app.code.source = e.state.doc.toString();
+      app.project.code.source = e.state.doc.toString();
     })
   ]
 });
@@ -43,7 +43,7 @@ export const compiledEditor = (app: App) => new EditorView({
         return;
       }
       
-      app.code.compiled = e.state.doc.toString();
+      app.cache.code.compiled = e.state.doc.toString();
     })
   ]
 });

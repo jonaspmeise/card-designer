@@ -9,7 +9,13 @@ export type App = Alpine.AlpineComponent<AppState>;
 export type Project = {
   name: string,
   settings: ProjectSettings,
-  loadedFilteredFiles: string[]
+  jobs: RenderJob[],
+  files: {
+    loadedFilteredFiles: string[],
+  },
+  code: {
+    source: string
+  }
 };
 
 export type Size = {
@@ -25,11 +31,14 @@ export type RenderJob = {
     maxElementsPerSheet: number,
     rowsPerSheet: number,
     columnsPerSheet: number
-  }
+  } | undefined,
+  filterCards: RegExp[]
 };
 
 export type ProjectSettings = {
-  fileBlacklist: string[],
+  files: {
+    blacklist: string[]
+  },
   datasource: string | undefined,
   csv: {
     separator: string
@@ -40,21 +49,15 @@ export type ProjectSettings = {
   }
 };
 
-export type AppState = {
+export type AppCache = {
   code: {
-    source: string,
     compiled: string,
     target: string,
   },
-  dialog: DialogOptions<any> & {
-    show: boolean,
-    callback: (option: string) => Promise<string>
-  },
-  project: Project,
   files: {
-    fileMap: Map<String, File>
+    fileMap: Map<String, File>,
+    remoteRawData: ArrayBuffer | undefined
   },
-  toasts: ToastOptions[],
   data: {
     datatype: DataType | undefined,
     filetype: FileType | undefined,
@@ -62,11 +65,25 @@ export type AppState = {
     cards: unknown[],
     isLoading: boolean,
   }
+};
+
+export type AppUi = {
+  dialog: DialogOptions<any> & {
+    show: boolean,
+    callback: (option: string) => void
+  },
+  toasts: ToastOptions[],
   // Both Editors are initialized lazily.
   editors: {
     source: EditorView | undefined,
     compiled: EditorView | undefined
-  },
+  }
+}
+
+export type AppState = {
+  cache: AppCache
+  ui: AppUi,
+  project: Project,
   actions: AppActions
 };
 
@@ -92,5 +109,6 @@ export type AppActions = {
   compile: (source: string) => void,
   updateFilteredFiles: () => void,
   showDialog: <OPTIONS extends string>(options: DialogOptions<OPTIONS>) => Promise<OPTIONS>,
-  showToast: (options: ToastOptions) => void
+  showToast: (options: ToastOptions) => void,
+  addRenderJob: () => void
 };
