@@ -25,6 +25,7 @@ export type Size = {
 
 export type RenderJob = {
   name: string,
+  activate: boolean,
   targetSize: Size,
   group: {
     by: RegExp,

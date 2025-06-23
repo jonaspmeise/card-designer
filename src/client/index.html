@@ -115,7 +115,7 @@
 
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="fileViewLabel">Menu</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
         </div>
         <div class="offcanvas-body container mt-5">
             <ul class="nav nav-tabs">
@@ -173,13 +173,58 @@
                 </div>
                 <div class="tab-pane" id="jobs" role="tabpanel">
                     <template x-for="(job, index) in project.jobs" :key="index">
-                        <div>
-                            <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
-                                x-data-bs-target="`#job-${index}`" aria-expanded="false" x-aria-controls="`#job-${index}`" x-text="job.name">
-                            </button>
-                            <div class="collapse" x-id="`#job-${index}`">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <button class="btn" role="button" data-bs-toggle="collapse"
+                                    :href="`#job-${index}`" aria-expanded="false"
+                                    :aria-controls="`#job-${index}`" x-text="job.name">
+                                </button>
+                                <button class="btn btn-danger" type="button" x-on:click="project.jobs.splice(index, 1)">Remove</button>
+                            </div>
+                            <div class="collapse" :id="`job-${index}`">
                                 <div class="card card-body">
-                                    
+                                    <!-- Image Size Input -->
+                                    <div class="mb-3">
+                                        <label for="imageSize" class="form-label">Image Size</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" placeholder="Width"
+                                                x-model="job.targetSize.width">
+                                            <span class="input-group-text">x</span>
+                                            <input type="number" class="form-control" placeholder="Height"
+                                                x-model="job.targetSize.height">
+                                        </div>
+                                    </div>
+
+                                    <!-- Group Cards Checkbox -->
+                                    <div class="form-check mb-3">
+                                        <input type="checkbox" class="form-check-input" id="groupCards"
+                                            x-model="job.activate">
+                                        <label class="form-check-label" for="groupCards">Group Cards</label>
+                                    </div>
+
+                                    <!-- Additional Grouping Options -->
+                                    <div x-show="job.activate">
+                                        <div class="mb-3">
+                                            <label for="groupBy" class="form-label">Group By</label>
+                                            <input type="text" class="form-control" id="groupBy" x-model="job.group?.by" placeholder="">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="columnsPerSheet" class="form-label">Columns Per Sheet</label>
+                                            <input type="number" class="form-control" id="columnsPerSheet"
+                                                x-model="job.group?.columnsPerSheet" placeholder="10">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="rowsPerSheet" class="form-label">Rows Per Sheet</label>
+                                            <input type="number" class="form-control" id="rowsPerSheet"
+                                                x-model="job.group?.rowsPerSheet" placeholder="7">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="maxElementsPerSheet" class="form-label">Max Elements Per
+                                                Sheet</label>
+                                            <input type="number" class="form-control" id="maxElementsPerSheet"
+                                                x-model="job.group?.maxElementsPerSheet" placeholder="69">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -21,6 +21,8 @@ const app: () => App = () => ({
 
     this.ui.editors.source = sourceEditor(this as App);
     this.ui.editors.compiled = compiledEditor(this as App);
+
+    window['Model'] = this;
   },
   cache: {
     files: {
@@ -32,7 +34,7 @@ const app: () => App = () => ({
       target: initialSvg
     },
     data: {
-      cards: [],
+      cards: Array.from([]),
       isLoading: false,
       selectedCard: undefined,
       datatype: undefined,
@@ -248,13 +250,14 @@ const app: () => App = () => ({
     addRenderJob() {
       this.project.jobs.push({
         name: 'New Render Job',
+        activate: false,
         filterCards: [],
         group: undefined,
         targetSize: {
           height: 1050,
           width: 750
         }
-      })
+      });
     },
   }
 });
