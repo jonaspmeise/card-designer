@@ -1,0 +1,16 @@
+<div :class="`modal fade ${ui.dialog.show ? 'show' : ''}`" id="staticBackdrop" data-bs-backdrop="static"
+  data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel"
+  :style="`display: ${ui.dialog.show ? 'block' : 'none'}`">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body" x-html="ui.dialog.body">
+      </div>
+      <div class="modal-footer">
+        <template x-for="(option, index) in ui.dialog.actions" :key="index">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" x-text="option"
+            x-on:click="ui.dialog.callback(option)"></button>
+        </template>
+      </div>
+    </div>
+  </div>
+</div>

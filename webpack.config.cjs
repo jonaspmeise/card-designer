@@ -1,6 +1,9 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
+
+const HtmlIncludePlugin = require('./html-include-plugin.cjs');
 
 module.exports = {
   devtool: 'inline-source-map',
@@ -25,9 +28,11 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: './src/client/css/*.css', to: './client/[name][ext]' },
-        { from: './src/client/*.html', to: './client/[name][ext]' },
+        // { from: './src/client/*.html', to: './client/[name][ext]' },
         { from: './src/client/icon/*.ico', to: './client/[name][ext]' }
       ]
-    })
+    }),
+    new HtmlWebpackPlugin({ template: "./src/client/index.html" }),
+    new HtmlIncludePlugin()
   ]
 };

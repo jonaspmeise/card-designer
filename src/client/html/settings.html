@@ -1,0 +1,63 @@
+<div class="mb-3">
+  <label for="projectName" class="form-label">Project Name</label>
+  <input type="text" id="projectName" class="form-control" placeholder="My Cardcreator Project"
+    x-model="project.name"></input>
+  <div class="mb-3">
+    <label for="fileUrl" class="form-label">URL or file name for card data</label>
+    <input type="text" id="fileUrl" class="form-control" placeholder="my-game-cards.xlsx"
+      x-model="project.settings.datasource"></input>
+    <span>
+      <div x-show="cache.data.datatype === 'URL'">
+        <i class="fas fa-globe"></i>
+        Is a valid URL
+        <i class="valid fas fa-check"></i>
+        <div>
+          <button @click="actions.loadRemoteData">Load Data</button>
+        </div>
+      </div>
+      <div x-show="cache.data.datatype === 'File'">
+        <i class="fas fa-file"></i>
+        Is a valid file
+        <i class="valid fas fa-check"></i>
+      </div>
+      <div x-show="cache.data.datatype === 'Error'">
+        <i class="invalid fas fa-times"></i>
+        This neither points to a valid file or URL!
+      </div>
+    </span>
+  </div>
+  <div class="mb-3">
+    <div x-show="cache.data.filetype === 'CSV'">
+      <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
+      <input id="csvSeparator" type="text" class="form-control" placeholder=","
+        x-model="project.settings.csv.separator">
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Setting 1</td>
+          <td>Value 1</td>
+        </tr>
+        <tr>
+          <td>Setting 2</td>
+          <td>Value 2</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<!-- Download Button -->
+<div class="mb-3">
+  <button type="button" class="btn btn-primary" @click="actions.downloadSettings" data-bs-toggle="tooltip"
+    data-bs-placement="top" title="Download Project Settings">
+    <i class="fas fa-download me-2"></i>Download Settings
+  </button>
+</div>
