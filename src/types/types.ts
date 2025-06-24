@@ -28,7 +28,7 @@ export type RenderJob = {
   activate: boolean,
   targetSize: Size,
   group: {
-    by: RegExp,
+    by: string,
     maxElementsPerSheet: number,
     rowsPerSheet: number,
     columnsPerSheet: number
@@ -111,5 +111,6 @@ export type AppActions = {
   updateFilteredFiles: () => void,
   showDialog: <OPTIONS extends string>(options: DialogOptions<OPTIONS>) => Promise<OPTIONS>,
   showToast: (options: ToastOptions) => void,
-  addRenderJob: () => void
+  addRenderJob: () => void,
+  reloadDataTable: () => void
 };

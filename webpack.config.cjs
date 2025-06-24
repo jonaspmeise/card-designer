@@ -19,20 +19,22 @@ module.exports = {
     })]
   },
   output: {
-    filename: './client/bundle.js'
+    filename: './bundle.js',
+    path: path.resolve(__dirname, './dist')
   },
   resolve: {
     extensions: ['.js']
   },
   plugins: [
+    new HtmlWebpackPlugin({
+      template: "./src/client/index.html"
+    }),
+    new HtmlIncludePlugin(),
     new CopyWebpackPlugin({
       patterns: [
-        { from: './src/client/css/*.css', to: './client/[name][ext]' },
-        // { from: './src/client/*.html', to: './client/[name][ext]' },
-        { from: './src/client/icon/*.ico', to: './client/[name][ext]' }
+        { from: './src/client/css/*.css', to: './[name][ext]' },
+        { from: './src/client/icon/*.ico', to: './[name][ext]' }
       ]
     }),
-    new HtmlWebpackPlugin({ template: "./src/client/index.html" }),
-    new HtmlIncludePlugin()
   ]
 };

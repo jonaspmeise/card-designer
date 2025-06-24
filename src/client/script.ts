@@ -1,9 +1,10 @@
 import { App, AppActions, AppState, DialogOptions, ToastOptions } from "../types/types.js";
-import { compile, initialSvg, kebapify, projectFilePattern } from "../utility/utility.js";
+import { byteDecoder, compile, csvToJson, initialSvg, kebapify, projectFilePattern } from "../utility/utility.js";
 import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
 import { loadRemoteData } from '../utility/utility.js';
+import * as XLSX from 'xlsx';
 
 window['Alpine'] = Alpine;
 
@@ -114,19 +115,19 @@ const app: () => App = () => ({
       this.$watch('cache.code.target', (code: string) => {
         this.actions.renderPreview();
       });
+
+      // Reload Data automatically whenever this property is manually modified.
+      this.$watch('project.settings.csv.separator', (separator: string) => {
+        this.actions.reloadDataTable();
+      });
     },
     async loadRemoteData() {
       this.cache.data.isLoading = true;
-      try {
-        const cards = await loadRemoteData(
-          new URL(this.project.settings.datasource!),
-          this.project.settings,
-          this as AppState
-        );
-        this.cache.data.cards = cards;
-      } catch (e) {
-        console.error(`Error while loading data`, e);
-      }
+
+      await loadRemoteData(
+        new URL(this.project.settings.datasource!),
+        this as AppState
+      );
 
       this.cache.data.isLoading = false;
     },
@@ -156,13 +157,13 @@ const app: () => App = () => ({
           const project = JSON.parse(await potentialFiles[0].text());
           this.project = project;
 
-          // Instantly try and load Data!
-          await this.actions.loadRemoteData();
-
           this.actions.showToast({
             body: `Loaded project settings for ${this.project.name}.`,
             severity: "success"
           });
+
+          // Instantly try and load Data!
+          await this.actions.loadRemoteData();
         }
       }
 
@@ -205,7 +206,7 @@ const app: () => App = () => ({
       URL.revokeObjectURL(url);
 
       this.actions.showToast({
-        body: `File <b>${filename}</b> has started to download...`,
+        body: `File "${filename}" has started to download...`,
         severity: "primary"
       });
     },
@@ -246,19 +247,61 @@ const app: () => App = () => ({
     },
     showToast(options: ToastOptions) {
       this.ui.toasts.push(options);
+
+      setTimeout(() => this.ui.toasts.slice(
+        this.ui.toasts.indexOf(options),
+        1
+      ), 10000);
     },
     addRenderJob() {
       this.project.jobs.push({
         name: 'New Render Job',
         activate: false,
         filterCards: [],
-        group: undefined,
+        group: {
+          by: '',
+          columnsPerSheet: 10,
+          maxElementsPerSheet: 69,
+          rowsPerSheet: 7
+        },
         targetSize: {
           height: 1050,
           width: 750
         }
       });
     },
+    reloadDataTable() {
+      const data = this.cache.files.remoteRawData;
+      
+      this.cache.data.cards = (() => {
+        if(this.cache.data.filetype === 'JSON') {
+          const jsonData: unknown[] = JSON.parse(byteDecoder.decode(data));
+
+          if(!Array.isArray(jsonData)) {
+            throw new Error('Loaded JSON is not an array!', jsonData);
+          }
+
+          return jsonData;
+        } else if(this.cache.data.filetype === 'CSV') {
+          const csvData = byteDecoder.decode(data);
+
+          return csvToJson(csvData, this.project.settings);
+        } else if(this.cache.data.filetype === 'XLSX') {
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          if(this.project.settings.xlsx.mainSheet === undefined && workbook.SheetNames.length > 1) {
+            throw new Error(`Found ${workbook.SheetNames.length} Sheets: ${workbook.SheetNames.join(', ')}. Please provide the name of the correct sheet!`);
+          }
+
+          const sheetName = this.project.settings.xlsx.mainSheet || workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          
+          return XLSX.utils.sheet_to_json(worksheet);
+        }
+
+        return [];
+      })();
+    }
   }
 });
 

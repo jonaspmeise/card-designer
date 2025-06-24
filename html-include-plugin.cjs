@@ -30,21 +30,25 @@ class HtmlIncludePlugin {
     let newHtml = html;
 
     let counter = 0;
-    while(counter == 0 || oldHtml !== html) {
+    while(counter == 0 || oldHtml !== newHtml) {
       if(counter++ > 1000) {
         throw new Error('Infinite loop encountered!');
       }
 
-      oldHtml = newHtml;
+      oldHtml = newHtml + '';
       newHtml = newHtml.replaceAll(this.placeholderRegex, (_, includePath) => {
         try {
           const fullPath = path.resolve(basePath, includePath.trim());
+
+          console.log(`Including HTML template "${fullPath}"...`);
 
           return fs.readFileSync(fullPath, 'utf8');
         } catch (error) {
           throw new Error(`❌ Error including file: ${includePath}: ${error}`);
         }
       });
+
+      this.placeholderRegex.lastIndex = 0;
     }
 
     return newHtml;

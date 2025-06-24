@@ -1,23 +1,23 @@
 <div x-show="cache.data.isLoading">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-                <table id="cache.data-table" class="table table-striped table-hover" x-show="!cache.data.isLoading">
-                    <thead>
-                        <tr>
-                            <template x-for="value in Object.keys(cache.data.cards[0] ?? {})">
-                                <th x-text="value"></th>
-                            </template>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <template x-for="(card, index) in cache.data.cards" :key="index">
-                            <tr x-on:click="select(card)" :class="{ 'highlight': data.selectedCard === card }">
-                                <template x-for="value in Object.keys(card)">
-                                    <td x-text="card[value]"></td>
-                                </template>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+</div>
+<table id="cache.data-table" class="table table-striped table-hover" x-show="!cache.data.isLoading">
+  <thead>
+    <tr>
+      <template x-for="value in Object.keys(cache.data.cards[0] ?? {})">
+        <th x-text="value"></th>
+      </template>
+    </tr>
+  </thead>
+  <tbody id="table-body">
+    <template x-for="(card, index) in cache.data.cards" :key="index">
+      <tr x-on:click="actions.select(card)" :class="{ 'highlight': cache.data.selectedCard === card }">
+        <template x-for="value in Object.keys(card)">
+          <td x-text="card[value]"></td>
+        </template>
+      </tr>
+    </template>
+  </tbody>
+</table>

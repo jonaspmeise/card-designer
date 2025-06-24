@@ -40,13 +40,13 @@ export const isValidUrl = (urlString: string): boolean => {
   }
 };
 
+export const byteDecoder = new TextDecoder('utf-8');
+
 export const loadRemoteData: (
   url: URL,
-  settings: ProjectSettings,
   app: AppState
-) => Promise<unknown[]> = async (
+) => Promise<void> = async (
   url: URL,
-  settings: ProjectSettings,
   app: AppState
 ) => {
    try {
@@ -61,32 +61,16 @@ export const loadRemoteData: (
     app.cache.files.remoteRawData = await response.arrayBuffer();
 
     if (contentType.includes('application/json')) {
-      const jsonData: unknown[] = await response.json();
       app.cache.data.filetype = 'JSON';
+      app.actions.reloadDataTable();
 
-      if(!Array.isArray(jsonData)) {
-        throw new Error('Loaded JSON is not an array!', jsonData);
-      }
-
-      return jsonData;
     } else if (contentType.includes('text/csv')) {
       app.cache.data.filetype = 'CSV';
-      const csvData = await response.text();
+      app.actions.reloadDataTable();
 
-      return csvToJson(csvData);
     } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
       app.cache.data.filetype = 'XLSX';
-      const arrayBuffer = await response.arrayBuffer();
-      
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-      if(settings.xlsx.mainSheet === undefined && workbook.SheetNames.length > 1) {
-        throw new Error(`Found ${workbook.SheetNames.length} Sheets: ${workbook.SheetNames.join(', ')}. Please provide the name of the correct sheet!`);
-      }
-
-      const sheetName = settings.xlsx.mainSheet || workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      
-      return XLSX.utils.sheet_to_json(worksheet);
+      app.actions.reloadDataTable();
     } else {
       throw new Error(`Unsupported file type: ${contentType}.`);
     }
@@ -97,16 +81,19 @@ export const loadRemoteData: (
     });
     app.cache.data.filetype = 'Error';
   }
-
-  return [];
 };
 
-export const csvToJson = (csv: string): unknown[] => {
+export const csvToJson = (csv: string, settings: ProjectSettings): unknown[] => {
+  const separator = new RegExp(settings.csv.separator, 'g');
+
   const lines = csv.split('\n');
-  const headers = lines[0].split(',');
+  separator.lastIndex = 0;
+  const headers = lines[0].split(separator);
 
   return lines.slice(1).map(line => {
-    const values = line.split(',');
+    separator.lastIndex = 0;
+    const values = line.split(separator);
+    
     return headers.reduce((obj, header, index) => {
         obj[header] = values[index];
         return obj;

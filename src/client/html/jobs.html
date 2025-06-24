@@ -1,7 +1,7 @@
 <template x-for="(job, index) in project.jobs" :key="index">
   <div class="mb-3">
     <div class="d-flex justify-content-between">
-      <button class="btn" role="button" data-bs-toggle="collapse" :href="`#job-${index}`" aria-expanded="false"
+      <button class="btn btn-info" role="button" data-bs-toggle="collapse" :href="`#job-${index}`" aria-expanded="false"
         :aria-controls="`#job-${index}`" x-text="job.name">
       </button>
       <button class="btn btn-danger" type="button" x-on:click="project.jobs.splice(index, 1)">Remove</button>
@@ -28,23 +28,20 @@
         <div x-show="job.activate">
           <div class="mb-3">
             <label for="groupBy" class="form-label">Group By</label>
-            <input type="text" class="form-control" id="groupBy" x-model="job.group?.by" placeholder="">
+            <input type="text" class="form-control" id="groupBy" x-model="job.group.by">
           </div>
           <div class="mb-3">
             <label for="columnsPerSheet" class="form-label">Columns Per Sheet</label>
-            <input type="number" class="form-control" id="columnsPerSheet" x-model="job.group?.columnsPerSheet"
-              placeholder="10">
+            <input type="number" class="form-control" id="columnsPerSheet" x-model="job.group.columnsPerSheet">
           </div>
           <div class="mb-3">
             <label for="rowsPerSheet" class="form-label">Rows Per Sheet</label>
-            <input type="number" class="form-control" id="rowsPerSheet" x-model="job.group?.rowsPerSheet"
-              placeholder="7">
+            <input type="number" class="form-control" id="rowsPerSheet" x-model="job.group.rowsPerSheet">
           </div>
           <div class="mb-3">
             <label for="maxElementsPerSheet" class="form-label">Max Elements Per
               Sheet</label>
-            <input type="number" class="form-control" id="maxElementsPerSheet" x-model="job.group?.maxElementsPerSheet"
-              placeholder="69">
+            <input type="number" class="form-control" id="maxElementsPerSheet" x-model="job.group.maxElementsPerSheet">
           </div>
         </div>
       </div>
