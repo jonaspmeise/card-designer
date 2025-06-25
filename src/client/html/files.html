@@ -6,7 +6,7 @@
 <div>
   <ul id="file-list" class="scrollable-list">
     <template x-for="(file, index) in project.files.loadedFilteredFiles" :key="index">
-      <li x-text="file"></li>
+      <li x-text="file" class="file-entry" x-on:click="actions.loadFile(file)"></li>
     </template>
     <div x-show="project.files.loadedFilteredFiles.length === 0">No files uploaded.</div>
   </ul>

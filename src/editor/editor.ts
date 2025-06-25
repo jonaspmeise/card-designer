@@ -21,7 +21,7 @@ export const sourceEditor = (app: App) => new EditorView({
         return;
       }
       
-      app.project.code.source = e.state.doc.toString();
+      app.actions.updateSourceCode(e.state.doc.toString(), false);
     })
   ]
 });

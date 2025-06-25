@@ -30,20 +30,29 @@
         <div class="col-md-6">
             <div id="code-editor" class="code-editor h-50 d-flex flex-column">
                 <!-- Bootstrap Tabs -->
-                <ul class="nav nav-tabs" id="editorTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="source-tab" data-bs-toggle="tab" data-bs-target="#source"
-                            type="button" role="tab">
-                            <i class="fas fa-code me-2"></i>Source
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="compiled-tab" data-bs-toggle="tab" data-bs-target="#compiled"
-                            type="button" role="tab">
-                            <i class="fas fa-cogs me-2"></i>Compiled
-                        </button>
-                    </li>
-                </ul>
+                <div class="d-flex justify-content-between">
+                    <ul class="nav nav-tabs" id="editorTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="source-tab" data-bs-toggle="tab" data-bs-target="#source"
+                                type="button" role="tab">
+                                <i class="fas fa-code me-2"></i>Source
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="compiled-tab" data-bs-toggle="tab" data-bs-target="#compiled"
+                                type="button" role="tab">
+                                <i class="fas fa-cogs me-2"></i>Compiled
+                            </button>
+                        </li>
+                    </ul>
+                    <!-- Buttons for interactivity -->
+                    <div>
+                        <input id="auto-render" type="checkbox" x-model="project.settings.ui.automatic">
+                        <label for="auto-render">Automatically render</label>
+
+                        <button class="btn btn-info" @click="actions.compile()" :disabled="project.settings.ui.automatic === false">Render</button>
+                    </div>
+                </div>
 
                 <!-- Tab Content -->
                 <div class="tab-content flex-grow-1">

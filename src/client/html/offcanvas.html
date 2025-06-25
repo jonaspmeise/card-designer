@@ -2,33 +2,43 @@
   <h5 class="offcanvas-title" id="fileViewLabel">Menu</h5>
   <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
 </div>
-<div class="offcanvas-body container mt-5">
-  <ul class="nav nav-tabs">
-    <li class="nav-item">
-      <a class="nav-link active" role="tab" data-bs-toggle="tab" href="#files"><i class="fas fa-folder-open"></i>
-        Files</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" role="tab" data-bs-toggle="tab" href="#jobs"><i class="fas fa-terminal"></i>
-        Jobs</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" role="tab" data-bs-toggle="tab" href="#settings"><i class="fas fa-cog"></i>
-        Settings</a>
-    </li>
-  </ul>
+<div class="d-flex flex-column align-items-end justify-content-between offcanvas-body container mt-5">
+  <!-- Menu -->
+  <div class="w-100">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link active" role="tab" data-bs-toggle="tab" href="#files"><i class="fas fa-folder-open"></i>
+          Files</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" role="tab" data-bs-toggle="tab" href="#jobs"><i class="fas fa-terminal"></i>
+          Jobs</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" role="tab" data-bs-toggle="tab" href="#settings"><i class="fas fa-cog"></i>
+          Settings</a>
+      </li>
+    </ul>
 
-  <!-- Todo: Separate into single views -->
-  <!-- Tab panes -->
-  <div class="tab-content mt-3">
-    <div class="tab-pane active" id="files" role="tabpanel">
-      {{ ./src/client/html/files.html }}
+    <!-- Tab panes -->
+    <div class="tab-content mt-3">
+      <div class="tab-pane active" id="files" role="tabpanel">
+        {{ ./src/client/html/files.html }}
+      </div>
+      <div class="tab-pane" id="jobs" role="tabpanel">
+        {{ ./src/client/html/jobs.html }}
+      </div>
+      <div class="tab-pane" id="settings" role="tabpanel">
+        {{ ./src/client/html/settings.html }}
+      </div>
     </div>
-    <div class="tab-pane" id="jobs" role="tabpanel">
-      {{ ./src/client/html/jobs.html }}
-    </div>
-    <div class="tab-pane" id="settings" role="tabpanel">
-      {{ ./src/client/html/settings.html }}
-    </div>
+  </div>
+  
+  <!-- Download Button -->
+  <div class="mb-3">
+    <button type="button" class="btn btn-primary" @click="actions.downloadSettings" data-bs-toggle="tooltip"
+      data-bs-placement="top" title="Download Project Settings">
+      <i class="fas fa-download me-2"></i>Download Settings
+    </button>
   </div>
 </div>

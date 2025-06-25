@@ -42,22 +42,13 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td>Setting 1</td>
-          <td>Value 1</td>
-        </tr>
-        <tr>
-          <td>Setting 2</td>
-          <td>Value 2</td>
-        </tr>
+        <template x-for="([key, value], index) in Object.entries(project.settings.config)" :key="index">
+          <tr>
+            <td x-text="key"></td>
+            <td x-text="value"></td>
+          </tr>
+        </template>
       </tbody>
     </table>
   </div>
-</div>
-<!-- Download Button -->
-<div class="mb-3">
-  <button type="button" class="btn btn-primary" @click="actions.downloadSettings" data-bs-toggle="tooltip"
-    data-bs-placement="top" title="Download Project Settings">
-    <i class="fas fa-download me-2"></i>Download Settings
-  </button>
 </div>

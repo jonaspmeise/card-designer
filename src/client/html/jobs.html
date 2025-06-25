@@ -4,7 +4,7 @@
       <button class="btn btn-info" role="button" data-bs-toggle="collapse" :href="`#job-${index}`" aria-expanded="false"
         :aria-controls="`#job-${index}`" x-text="job.name">
       </button>
-      <button class="btn btn-danger" type="button" x-on:click="project.jobs.splice(index, 1)">Remove</button>
+      <button class="btn btn-danger" type="button" x-on:click="project.jobs.splice(index, 1)" x-show="index > 0">Remove</button>
     </div>
     <div class="collapse" :id="`job-${index}`">
       <div class="card card-body">

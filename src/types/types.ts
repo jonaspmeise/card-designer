@@ -18,6 +18,12 @@ export type Project = {
   }
 };
 
+export type TemplateFunction = {
+  source: string,
+  parameters: string[],
+  func: (...args: unknown[]) => string
+};
+
 export type Size = {
   width: number,
   height: number
@@ -47,6 +53,10 @@ export type ProjectSettings = {
   json: {}
   xlsx: {
     mainSheet: string | undefined
+  },
+  config: Record<string, unknown>,
+  ui: {
+    automatic: boolean
   }
 };
 
@@ -54,6 +64,7 @@ export type AppCache = {
   code: {
     compiled: string,
     target: string,
+    templateFunctions: TemplateFunction[]
   },
   files: {
     fileMap: Map<String, File>,
@@ -65,6 +76,9 @@ export type AppCache = {
     selectedCard: unknown,
     cards: unknown[],
     isLoading: boolean,
+  },
+  jobs: {
+    currentJob: RenderJob | undefined
   }
 };
 
@@ -104,13 +118,16 @@ export type AppActions = {
   registerComputedPropertyWatches: () => void,
   loadRemoteData: () => Promise<void>,
   select: (card: unknown) => void,
-  renderPreview: () => void,
+  render: () => void,
   loadFiles: (files: FileList) => Promise<void>,
   downloadSettings: () => void,
-  compile: (source: string) => void,
+  compile: () => void,
   updateFilteredFiles: () => void,
   showDialog: <OPTIONS extends string>(options: DialogOptions<OPTIONS>) => Promise<OPTIONS>,
   showToast: (options: ToastOptions) => void,
   addRenderJob: () => void,
-  reloadDataTable: () => void
+  reloadDataTable: () => void,
+  updatePreview: () => void,
+  loadFile: (filename: string) => Promise<void>,
+  updateSourceCode: (source: string, refreshUI: boolean) => void
 };

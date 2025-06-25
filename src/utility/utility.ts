@@ -1,5 +1,6 @@
-import * as XLSX from 'xlsx';
 import { AppState, ProjectSettings } from '../types/types.js';
+import * as yaml from 'js-yaml';
+
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
   let timeout: NodeJS.Timeout;
 
@@ -7,11 +8,6 @@ export const debounce = (func: (...args: any[]) => any, delay: number = 500) => 
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), delay);
   };
-};
-
-export const compile = (source: string, card?: unknown): string => {
-  console.error('COMPILING', source);
-  return source;
 };
 
 export const simpleHash = (str: string) => {
@@ -25,6 +21,7 @@ export const simpleHash = (str: string) => {
 };
 
 export const projectFilePattern = /^.+\.cardcreator\.json$/i;
+export const templatePattern = /{{\s*\((?<parameters>[^)]+)\)\s*=>\s*(?<lambda>{?\s*)(?<body>.+?)}?\s*}}[^}]/gms;
 
 export const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
   <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
@@ -102,3 +99,29 @@ export const csvToJson = (csv: string, settings: ProjectSettings): unknown[] => 
 };
 
 export const kebapify: (value: string) => string = (value: string) => value.split(' ').map(part => part.toLowerCase()).join('-');
+
+export const flattenObject = (obj: any, prefix: string = '', result: Record<string, any> = {}): Record<string, any> => {
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+
+      if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+        flattenObject(obj[key], newKey, result);
+      } else {
+        result[newKey] = obj[key];
+      }
+    }
+  }
+  return result;
+}
+
+export const loadYaml = (source: string): Record<string, unknown> => {
+  try {
+    const parsedYaml = yaml.load(source);
+
+    return flattenObject(parsedYaml);
+  } catch (e) {
+    console.error(e);
+    return {};
+  }
+}

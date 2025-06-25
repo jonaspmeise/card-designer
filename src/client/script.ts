@@ -1,5 +1,5 @@
-import { App, AppActions, AppState, DialogOptions, ToastOptions } from "../types/types.js";
-import { byteDecoder, compile, csvToJson, initialSvg, kebapify, projectFilePattern } from "../utility/utility.js";
+import { App, AppState, DialogOptions, ToastOptions } from "../types/types.js";
+import { byteDecoder, csvToJson, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
 import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
@@ -10,14 +10,22 @@ window['Alpine'] = Alpine;
 
 const app: () => App = () => ({
   init() {
-
     // This should still happen with "this" referencing the Alpine instance.
     this.actions.registerComputedPropertyWatches.bind(this)();
 
     // Bind the correct reference for all actions.
     Object.entries(this.actions)
       .forEach(([key, func]) => {
-        this.actions[key] = func.bind(this)
+        this.actions[key] = ((...args: any[]) => {
+          try {
+            return (func as Function).apply(this, args);
+          } catch (e) {
+            this.actions.showToast({
+              severity: "danger",
+              body: `Error occured: ${e}`
+            });
+          }
+        })
       });
 
     this.ui.editors.source = sourceEditor(this as App);
@@ -32,7 +40,8 @@ const app: () => App = () => ({
     },
     code: {
       compiled: initialSvg,
-      target: initialSvg
+      target: initialSvg,
+      templateFunctions: []
     },
     data: {
       cards: Array.from([]),
@@ -40,6 +49,9 @@ const app: () => App = () => ({
       selectedCard: undefined,
       datatype: undefined,
       filetype: undefined
+    },
+    jobs: {
+      currentJob: undefined
     }
   },
   ui: {
@@ -77,20 +89,48 @@ const app: () => App = () => ({
       json: {},
       xlsx: {
         mainSheet: undefined
+      },
+      config: {},
+      ui: {
+        automatic: false
       }
     }
   },
   actions: {
-    compile(source: string) {
-      this.cache.code.compiled = compile(source);
-      this.ui.editors.compiled!.dispatch({
-        changes: {
-          from: 0,
-          to: this.ui.editors.compiled!.state.doc.length,
-          insert: this.cache.code.compiled
-        }
-      });
-      this.actions.renderPreview();
+    compile() {
+      const source = this.project.code.source;
+      const templates = Array.from(source.matchAll(templatePattern));
+
+      if(templates.length > 0) {
+        // Save all template function references for easier future calculation.
+        this.cache.code.templateFunctions = templates.map(match => {
+          const parameters: string[] = match.groups!.parameters.split(',').map(parameter => parameter.trim());
+
+          const isLambda = match.groups!.lambda === undefined;
+          const body = isLambda
+            ? `return ${match.groups!.body}`
+            : match.groups!.body;
+
+          console.log('Function body (' + isLambda + '):' + match.groups!.parameters + '->' + match.groups!.body);
+
+          try {
+            const func = new Function(
+              ...parameters,
+              body
+            ) as (...parameters: unknown[]) => string;
+
+            return {
+              parameters: parameters,
+              func: func,
+              source: match[0]
+            };
+          } catch (e) {
+            throw new Error(`Encountered error "${e}" while parsing "${match[0]}"!`);
+          }
+        });
+      }
+
+      this.actions.updatePreview();
     },
     registerComputedPropertyWatches() {
       // Register computed property handlers.
@@ -104,16 +144,12 @@ const app: () => App = () => ({
         }
       });
 
-      this.$watch('project.code.source', (code: string) => {
-        this.cache.code.compiled = compile(code, this.cache.data.selectedCard);
-      });
-
       this.$watch('cache.code.compiled', (code: string) => {
         this.cache.code.target = code;
       });
       
-      this.$watch('cache.code.target', (code: string) => {
-        this.actions.renderPreview();
+      this.$watch('cache.code.target', (_: string) => {
+        this.actions.render();
       });
 
       // Reload Data automatically whenever this property is manually modified.
@@ -131,12 +167,50 @@ const app: () => App = () => ({
 
       this.cache.data.isLoading = false;
     },
-    select(card: unknown) {
-      this.cache.code.compiled = compile(this.project.code.source, card);
-      this.cache.data.selectedCard = card;
+    updatePreview() {
+      // Only inject data of selected card into the code if there are any templates!
+      if(this.cache.code.templateFunctions.length > 0) {
+        let code = this.project.code.source;
+
+        this.cache.code.templateFunctions.forEach(func => {
+          const parameters: unknown[] = func.parameters.map(parameter => {
+            if(parameter === 'project') {
+              return this.project;
+            } else if(parameter === 'card') {
+              return this.cache.data.selectedCard;
+            } else if(parameter === 'job') {
+              return this.cache.jobs.currentJob;
+            } else if(parameter === 'files') {
+              return this.cache.files.fileMap
+            } else if(parameter === 'config') {
+              return this.project.settings.config;
+            } else {
+              throw new Error(`Parameter "${parameter}" could not be resolved!
+                
+              Expected either: "project", "card" or "job".
+              `);
+            }
+          });
+
+          try {
+            code = code.replaceAll(func.source, func.func(...parameters));
+          } catch (e) {
+            throw new Error(`Error on function "${func.source}": ${e}`);
+          }
+        });
+
+        this.cache.code.compiled = code;
+      } else {
+        this.cache.code.compiled = this.project.code.source;
+      }
     },
-    renderPreview() {
-      console.log('PREVIEWING', this.cache.data.selectedCard);
+    select(card: unknown) {
+      this.cache.data.selectedCard = card;
+      
+      this.actions.updatePreview();
+    },
+    render() {
+      console.log('RENDERING', this.cache.data.selectedCard);
     },
     async loadFiles(files: FileList) {
       this.cache.files.fileMap.clear();
@@ -154,8 +228,14 @@ const app: () => App = () => ({
         });
 
         if(choice === 'Load') {
-          const project = JSON.parse(await potentialFiles[0].text());
-          this.project = project;
+          const source = await potentialFiles[0].text();
+          const project = JSON.parse(source);
+
+          this.project = Alpine.reactive(project);
+
+          // Init Cache values.
+          this.cache.jobs.currentJob = this.project.jobs[0];
+          this.actions.updateSourceCode(this.project.code.source, true);
 
           this.actions.showToast({
             body: `Loaded project settings for ${this.project.name}.`,
@@ -248,10 +328,13 @@ const app: () => App = () => ({
     showToast(options: ToastOptions) {
       this.ui.toasts.push(options);
 
-      setTimeout(() => this.ui.toasts.slice(
-        this.ui.toasts.indexOf(options),
-        1
-      ), 10000);
+      // Make non-important toasts disappear after a while.
+      if(options.severity !== 'warning' && options.severity !== 'danger') {
+        setTimeout(() => this.ui.toasts.splice(
+          this.ui.toasts.indexOf(options),
+          1
+        ), 15000);
+      }
     },
     addRenderJob() {
       this.project.jobs.push({
@@ -301,7 +384,41 @@ const app: () => App = () => ({
 
         return [];
       })();
-    }
+    },
+    async loadFile(filename) {
+      console.info('Load file', filename);
+      const clean = filename.toLowerCase().trim();
+
+      if(clean.endsWith('.yml') || clean.endsWith('.yaml')) {
+        const config = loadYaml(await this.cache.files.fileMap.get(filename)!.text());
+        
+        // TODO: Handling for overwriting, interacting with strings, etc...
+        this.project.settings.config = {
+          ...this.project.settings.config,
+          ...config
+        };
+
+        this.actions.showToast({
+          body: `Loaded a total of ${Object.keys(config).length} entries from "${filename}".`,
+          severity: 'success'
+        });
+      }
+    },
+    updateSourceCode(source, refreshUI = false) {
+      this.project.code.source = source;
+
+      if(refreshUI) {
+        this.ui.editors.source!.dispatch({
+          changes: {
+            from: 0,
+            to: this.ui.editors.source!.state.doc.length,
+            insert: this.project.code.source
+          }
+        });
+      }
+
+      this.actions.compile();
+    },
   }
 });
 
