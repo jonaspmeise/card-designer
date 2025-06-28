@@ -4,7 +4,7 @@ import * as yaml from 'js-yaml';
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
   let timeout: NodeJS.Timeout;
 
-  return function(...args: any[]) {
+  return function (...args: any[]) {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), delay);
   };
@@ -46,39 +46,39 @@ export const loadRemoteData: (
   url: URL,
   app: AppState
 ) => {
-   try {
-    const response = await fetch(url);
-    const contentType = response.headers.get('Content-Type');
+    try {
+      const response = await fetch(url);
+      const contentType = response.headers.get('Content-Type');
 
-    if (!contentType) {
-      throw new Error('Content-Type header not found.');
+      if (!contentType) {
+        throw new Error('Content-Type header not found.');
+      }
+
+      console.log(`Found Content-Type on remote data: ${contentType}`);
+      app.cache.files.remoteRawData = await response.arrayBuffer();
+
+      if (contentType.includes('application/json')) {
+        app.cache.data.filetype = 'JSON';
+        app.actions.reloadDataTable();
+
+      } else if (contentType.includes('text/csv')) {
+        app.cache.data.filetype = 'CSV';
+        app.actions.reloadDataTable();
+
+      } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+        app.cache.data.filetype = 'XLSX';
+        app.actions.reloadDataTable();
+      } else {
+        throw new Error(`Unsupported file type: ${contentType}.`);
+      }
+    } catch (error) {
+      app.actions.showToast({
+        body: `Data could not be loaded! ${error}`,
+        severity: 'danger'
+      });
+      app.cache.data.filetype = 'Error';
     }
-
-    console.log(`Found Content-Type on remote data: ${contentType}`);
-    app.cache.files.remoteRawData = await response.arrayBuffer();
-
-    if (contentType.includes('application/json')) {
-      app.cache.data.filetype = 'JSON';
-      app.actions.reloadDataTable();
-
-    } else if (contentType.includes('text/csv')) {
-      app.cache.data.filetype = 'CSV';
-      app.actions.reloadDataTable();
-
-    } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
-      app.cache.data.filetype = 'XLSX';
-      app.actions.reloadDataTable();
-    } else {
-      throw new Error(`Unsupported file type: ${contentType}.`);
-    }
-  } catch (error) {
-    app.actions.showToast({
-      body: `Data could not be loaded! ${error}`,
-      severity: 'danger'
-    });
-    app.cache.data.filetype = 'Error';
-  }
-};
+  };
 
 export const csvToJson = (csv: string, settings: ProjectSettings): unknown[] => {
   const separator = new RegExp(settings.csv.separator, 'g');
@@ -90,10 +90,10 @@ export const csvToJson = (csv: string, settings: ProjectSettings): unknown[] => 
   return lines.slice(1).map(line => {
     separator.lastIndex = 0;
     const values = line.split(separator);
-    
+
     return headers.reduce((obj, header, index) => {
-        obj[header] = values[index];
-        return obj;
+      obj[header] = values[index];
+      return obj;
     }, {});
   });
 };
@@ -124,4 +124,26 @@ export const loadYaml = (source: string): Record<string, unknown> => {
     console.error(e);
     return {};
   }
+};
+
+export const convertToNestedObject = (flatObject: Record<string, unknown>): Record<string, unknown> => {
+  const nestedObject: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(flatObject)) {
+    const keys = key.split('.');
+    let currentLevel = nestedObject;
+
+    for (let i = 0; i < keys.length; i++) {
+      const currentKey = keys[i];
+
+      if (i === keys.length - 1) {
+        currentLevel[currentKey] = value;
+      } else {
+        currentLevel[currentKey] = currentLevel[currentKey] || {};
+        currentLevel = currentLevel[currentKey];
+      }
+    }
+  }
+
+  return nestedObject;
 }

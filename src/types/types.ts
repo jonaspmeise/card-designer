@@ -42,6 +42,8 @@ export type RenderJob = {
   filterCards: RegExp[]
 };
 
+export type Card = Record<string, unknown>;
+
 export type ProjectSettings = {
   files: {
     blacklist: string[]
@@ -73,9 +75,10 @@ export type AppCache = {
   data: {
     datatype: DataType | undefined,
     filetype: FileType | undefined,
-    selectedCard: unknown,
+    selectedCard: Card | undefined,
     cards: unknown[],
     isLoading: boolean,
+    populatedConfig: Record<string, unknown>
   },
   jobs: {
     currentJob: RenderJob | undefined
@@ -117,7 +120,7 @@ export type ToastOptions = {
 export type AppActions = {
   registerComputedPropertyWatches: () => void,
   loadRemoteData: () => Promise<void>,
-  select: (card: unknown) => void,
+  select: (card: Card) => void,
   render: () => void,
   loadFiles: (files: FileList) => Promise<void>,
   downloadSettings: () => void,

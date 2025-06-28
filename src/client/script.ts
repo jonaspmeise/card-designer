@@ -1,10 +1,11 @@
 import { App, AppState, DialogOptions, ToastOptions } from "../types/types.js";
-import { byteDecoder, csvToJson, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
+import { byteDecoder, convertToNestedObject, csvToJson, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
 import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
 import { loadRemoteData } from '../utility/utility.js';
 import * as XLSX from 'xlsx';
+import { Card } from '../types/types.js';
 
 window['Alpine'] = Alpine;
 
@@ -48,7 +49,8 @@ const app: () => App = () => ({
       isLoading: false,
       selectedCard: undefined,
       datatype: undefined,
-      filetype: undefined
+      filetype: undefined,
+      populatedConfig: {}
     },
     jobs: {
       currentJob: undefined
@@ -152,6 +154,10 @@ const app: () => App = () => ({
         this.actions.render();
       });
 
+      this.$watch('project.settings.config', (config) => {
+        this.cache.data.populatedConfig = convertToNestedObject(config);
+      });
+
       // Reload Data automatically whenever this property is manually modified.
       this.$watch('project.settings.csv.separator', (separator: string) => {
         this.actions.reloadDataTable();
@@ -172,18 +178,27 @@ const app: () => App = () => ({
       if(this.cache.code.templateFunctions.length > 0) {
         let code = this.project.code.source;
 
+        if(this.cache.data.selectedCard === undefined) {
+          throw new Error(`You have one or more templates defined that consume a "card".\nPlease select a card for previewing!`);
+        }
+
+        // Provide a copy of the Card, because this might be modified for a single render step!
+        const card = {
+          ...this.cache.data.selectedCard
+        };
+
         this.cache.code.templateFunctions.forEach(func => {
           const parameters: unknown[] = func.parameters.map(parameter => {
             if(parameter === 'project') {
               return this.project;
             } else if(parameter === 'card') {
-              return this.cache.data.selectedCard;
+              return card;
             } else if(parameter === 'job') {
               return this.cache.jobs.currentJob;
             } else if(parameter === 'files') {
               return this.cache.files.fileMap
             } else if(parameter === 'config') {
-              return this.project.settings.config;
+              return this.cache.data.populatedConfig;
             } else {
               throw new Error(`Parameter "${parameter}" could not be resolved!
                 
@@ -204,10 +219,12 @@ const app: () => App = () => ({
         this.cache.code.compiled = this.project.code.source;
       }
     },
-    select(card: unknown) {
+    select(card: Card) {
       this.cache.data.selectedCard = card;
       
-      this.actions.updatePreview();
+      if(this.project.settings.ui.automatic) {
+        this.actions.updatePreview();
+      }
     },
     render() {
       console.log('RENDERING', this.cache.data.selectedCard);
@@ -417,7 +434,9 @@ const app: () => App = () => ({
         });
       }
 
-      this.actions.compile();
+      if(this.project.settings.ui.automatic) {
+        this.actions.compile();
+      }
     },
   }
 });

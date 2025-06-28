@@ -50,7 +50,7 @@
                         <input id="auto-render" type="checkbox" x-model="project.settings.ui.automatic">
                         <label for="auto-render">Automatically render</label>
 
-                        <button class="btn btn-info" @click="actions.compile()" :disabled="project.settings.ui.automatic === false">Render</button>
+                        <button class="btn btn-info" @click="actions.compile()" :disabled="project.settings.ui.automatic === true">Render</button>
                     </div>
                 </div>
 
