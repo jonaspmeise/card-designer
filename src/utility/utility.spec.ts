@@ -143,3 +143,48 @@ test('Template #3.', () => {
 
   expect(templates).toHaveLength(1);
 });
+
+test('Template #5.', () => {
+  const source = `
+   <svg xmlns="http://www.w3.org/2000/svg" width="{{(job) => job.targetSize.width}}" height="{{(job) => job.targetSize.height}}" style="background-color:black">
+    <!-- Preprocessing -->
+    {{(card) => {
+      console.warn(card)
+        card.Realms = (card.Realms ?? '')
+            .trim()
+            .split(' ')
+            .map(realm => realm.trim())
+            .filter((realm) => realm.length > 0);
+        card.Types = (card.Types ?? '')
+            .split(' ')
+            .map(type => type.trim())
+            .filter((type) => type.length > 0);
+        card.Costs = (card.Costs ?? '')
+            .trim()
+            .split(',')
+            .map(cost => cost.trim())
+            .filter((cost) => cost.length > 0);
+            
+        card.RandomValue = card.Name.split('')
+            .map((character) => character.charCodeAt(0) + 3)
+            .reduce((prev, current) => ((prev * current) % 100001), 2);
+        
+        return '';
+    }}};
+ 
+    <defs>
+    `;
+
+    const templates = extractTemplates(source);
+
+    expect(templates).toHaveLength(3);
+});
+
+test('A Template without any parameters can be a template, too!', () => {
+  const source = "{{() => new Date().getFullYear()}}";
+
+  const templates = extractTemplates(source);
+
+  expect(templates).toHaveLength(1);
+  expect(templates[0].parameters).toHaveLength(0);
+});

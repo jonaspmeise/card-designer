@@ -49,12 +49,12 @@
           <tr>
             <td @click="actions.startEditing(index, 'key')" x-show="!actions.isEditing(index, 'key')" x-text="key"></td>
             <td x-show="actions.isEditing(index, 'key')">
-              <input type="text" x-model="cache.config.editing.key" @blur="actions.stopEditing(index, 'key')"
+              <input class="w-100" type="text" x-model="cache.config.editing.key" @blur="actions.stopEditing(index, 'key')"
                 @keyup.enter="actions.stopEditing(index, 'key')" autofocus>
             </td>
             <td @click="actions.startEditing(index, 'value')" x-show="!actions.isEditing(index, 'value')" x-text="value"></td>
             <td x-show="actions.isEditing(index, 'value')">
-              <input type="text" x-model="cache.config.editing.value" @blur="actions.stopEditing(index, 'value')"
+              <input class="w-100" type="text" x-model="cache.config.editing.value" @blur="actions.stopEditing(index, 'value')"
                 @keyup.enter="actions.stopEditing(index, 'value')" autofocus>
             </td>
           </tr>

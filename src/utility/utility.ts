@@ -21,7 +21,7 @@ export const simpleHash = (str: string) => {
 };
 
 export const projectFilePattern = /^.+\.cardcreator\.json$/i;
-export const templatePattern = /{{\s*\((?<parameters>[^)]+)\)\s*=>\s*(?<lambda>{?\s*)(?<body>.+?)}}(?=(?:[^}]|$))/gms;
+export const templatePattern = /{{\s*\((?<parameters>[^)]*)\)\s*=>\s*(?<lambda>{?\s*)(?<body>.+?)}}(?=(?:[^}]|$))/gms;
 
 export const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
   <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
@@ -85,7 +85,7 @@ export const csvToJson = (csv: string, settings: ProjectSettings): unknown[] => 
 
   const lines = csv.split('\n');
   separator.lastIndex = 0;
-  const headers = lines[0].split(separator);
+  const headers = lines[0].split(separator).map(header => header.trim());
 
   return lines.slice(1).map(line => {
     separator.lastIndex = 0;
@@ -152,7 +152,9 @@ export const extractTemplates = (source: string): TemplateFunction[] => {
   const templates = Array.from(source.matchAll(templatePattern));
 
   return templates.map(match => {
-    const parameters: string[] = match.groups!.parameters.split(',').map(parameter => parameter.trim());
+    const parameters: string[] = match.groups!.parameters.split(',')
+      .map(parameter => parameter.trim())
+      .filter(parameter => parameter.length > 0);
 
     const isLambda = match.groups!?.lambda?.length === 0;
     const body = isLambda

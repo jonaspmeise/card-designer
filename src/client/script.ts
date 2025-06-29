@@ -1,5 +1,5 @@
 import { App, AppState, DialogOptions, ToastOptions } from "../types/types.js";
-import { byteDecoder, convertToNestedObject, csvToJson, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
+import { byteDecoder, convertToNestedObject, csvToJson, extractTemplates, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
 import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
@@ -110,36 +110,7 @@ const app: () => App = () => ({
   actions: {
     compile() {
       const source = this.project.code.source;
-      const templates = Array.from(source.matchAll(templatePattern));
-
-      if (templates.length > 0) {
-        // Save all template function references for easier future calculation.
-        this.cache.code.templateFunctions = templates.map(match => {
-          const parameters: string[] = match.groups!.parameters.split(',').map(parameter => parameter.trim());
-
-          const isLambda = match.groups!.lambda === undefined;
-          const body = isLambda
-            ? `return ${match.groups!.body}`
-            : match.groups!.body;
-
-          console.log('Function body (' + isLambda + '):' + match.groups!.parameters + '->' + match.groups!.body);
-
-          try {
-            const func = new Function(
-              ...parameters,
-              body
-            ) as (...parameters: unknown[]) => string;
-
-            return {
-              parameters: parameters,
-              func: func,
-              source: match[0]
-            };
-          } catch (e) {
-            throw new Error(`Encountered error "${e}" while parsing "${match[0]}"!`);
-          }
-        });
-      }
+      this.cache.code.templateFunctions = extractTemplates(source);
 
       this.actions.updatePreview();
     },
