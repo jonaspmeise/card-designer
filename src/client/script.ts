@@ -49,8 +49,17 @@ const app: () => App = () => ({
       isLoading: false,
       selectedCard: undefined,
       datatype: undefined,
-      filetype: undefined,
-      populatedConfig: {}
+      filetype: undefined
+    },
+    config: {
+      editing: {
+        index: undefined,
+        type: undefined,
+        key: '',
+        value: ''
+      },
+      populated: {},
+      sorted: []
     },
     jobs: {
       currentJob: undefined
@@ -103,7 +112,7 @@ const app: () => App = () => ({
       const source = this.project.code.source;
       const templates = Array.from(source.matchAll(templatePattern));
 
-      if(templates.length > 0) {
+      if (templates.length > 0) {
         // Save all template function references for easier future calculation.
         this.cache.code.templateFunctions = templates.map(match => {
           const parameters: string[] = match.groups!.parameters.split(',').map(parameter => parameter.trim());
@@ -149,13 +158,14 @@ const app: () => App = () => ({
       this.$watch('cache.code.compiled', (code: string) => {
         this.cache.code.target = code;
       });
-      
+
       this.$watch('cache.code.target', (_: string) => {
         this.actions.render();
       });
 
       this.$watch('project.settings.config', (config) => {
-        this.cache.data.populatedConfig = convertToNestedObject(config);
+        this.cache.config.populated = convertToNestedObject(config);
+        this.cache.config.sorted = Object.entries(this.project.settings.config).sort((a, b) => a[0].localeCompare(b[0]));
       });
 
       // Reload Data automatically whenever this property is manually modified.
@@ -175,10 +185,10 @@ const app: () => App = () => ({
     },
     updatePreview() {
       // Only inject data of selected card into the code if there are any templates!
-      if(this.cache.code.templateFunctions.length > 0) {
+      if (this.cache.code.templateFunctions.length > 0) {
         let code = this.project.code.source;
 
-        if(this.cache.data.selectedCard === undefined) {
+        if (this.cache.data.selectedCard === undefined) {
           throw new Error(`You have one or more templates defined that consume a "card".\nPlease select a card for previewing!`);
         }
 
@@ -189,16 +199,16 @@ const app: () => App = () => ({
 
         this.cache.code.templateFunctions.forEach(func => {
           const parameters: unknown[] = func.parameters.map(parameter => {
-            if(parameter === 'project') {
+            if (parameter === 'project') {
               return this.project;
-            } else if(parameter === 'card') {
+            } else if (parameter === 'card') {
               return card;
-            } else if(parameter === 'job') {
+            } else if (parameter === 'job') {
               return this.cache.jobs.currentJob;
-            } else if(parameter === 'files') {
+            } else if (parameter === 'files') {
               return this.cache.files.fileMap
-            } else if(parameter === 'config') {
-              return this.cache.data.populatedConfig;
+            } else if (parameter === 'config') {
+              return this.cache.config.populated;
             } else {
               throw new Error(`Parameter "${parameter}" could not be resolved!
                 
@@ -218,11 +228,19 @@ const app: () => App = () => ({
       } else {
         this.cache.code.compiled = this.project.code.source;
       }
+
+      this.ui.editors.compiled!.dispatch({
+        changes: {
+          from: 0,
+          to: this.ui.editors.compiled!.state.doc.length,
+          insert: this.cache.code.compiled
+        }
+      });
     },
     select(card: Card) {
       this.cache.data.selectedCard = card;
-      
-      if(this.project.settings.ui.automatic) {
+
+      if (this.project.settings.ui.automatic) {
         this.actions.updatePreview();
       }
     },
@@ -237,14 +255,14 @@ const app: () => App = () => ({
 
       const potentialFiles = fileArray.filter(file => projectFilePattern.test(file.name));
 
-      if(potentialFiles.length > 0) {
+      if (potentialFiles.length > 0) {
         const choice = await this.actions.showDialog<'Load' | 'Cancel'>({
           body: `Found project file <b>"${potentialFiles[0].name}"</b> among the loaded files.<br><br>Load its settings?`,
           title: 'Project File',
           actions: ['Load', 'Cancel']
         });
 
-        if(choice === 'Load') {
+        if (choice === 'Load') {
           const source = await potentialFiles[0].text();
           const project = JSON.parse(source);
 
@@ -270,7 +288,7 @@ const app: () => App = () => ({
         // Remove first folder, because it's always identical!
         const splits = f.webkitRelativePath.split('/');
 
-        if(folderName === undefined) {
+        if (folderName === undefined) {
           folderName = splits[0];
         }
 
@@ -283,12 +301,12 @@ const app: () => App = () => ({
         // Filter out files that match any blacklist entry!
         return this.project.settings.files.blacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined;
       });
-      
+
       // TODO: Popup that from that folder a total of {} files have been loaded!
     },
     downloadSettings() {
       const settings = JSON.stringify(this.project, null, 2);
-      const blob = new Blob([settings], {type: 'application/json'});
+      const blob = new Blob([settings], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
       const downloadLink = document.createElement('a');
@@ -316,7 +334,7 @@ const app: () => App = () => ({
 
       const fileNames: string[] = Array.from(this.cache.files.fileMap.keys()).map(s => s as string);
 
-      if(filters.length === 0) {
+      if (filters.length === 0) {
         this.project.files.loadedFilteredFiles = fileNames;
         return;
       }
@@ -340,13 +358,13 @@ const app: () => App = () => ({
         };
 
         this.ui.dialog.show = true;
-    });
+      });
     },
     showToast(options: ToastOptions) {
       this.ui.toasts.push(options);
 
       // Make non-important toasts disappear after a while.
-      if(options.severity !== 'warning' && options.severity !== 'danger') {
+      if (options.severity !== 'warning' && options.severity !== 'danger') {
         setTimeout(() => this.ui.toasts.splice(
           this.ui.toasts.indexOf(options),
           1
@@ -372,30 +390,30 @@ const app: () => App = () => ({
     },
     reloadDataTable() {
       const data = this.cache.files.remoteRawData;
-      
+
       this.cache.data.cards = (() => {
-        if(this.cache.data.filetype === 'JSON') {
+        if (this.cache.data.filetype === 'JSON') {
           const jsonData: unknown[] = JSON.parse(byteDecoder.decode(data));
 
-          if(!Array.isArray(jsonData)) {
+          if (!Array.isArray(jsonData)) {
             throw new Error('Loaded JSON is not an array!', jsonData);
           }
 
           return jsonData;
-        } else if(this.cache.data.filetype === 'CSV') {
+        } else if (this.cache.data.filetype === 'CSV') {
           const csvData = byteDecoder.decode(data);
 
           return csvToJson(csvData, this.project.settings);
-        } else if(this.cache.data.filetype === 'XLSX') {
+        } else if (this.cache.data.filetype === 'XLSX') {
           const workbook = XLSX.read(data, { type: 'array' });
-          
-          if(this.project.settings.xlsx.mainSheet === undefined && workbook.SheetNames.length > 1) {
+
+          if (this.project.settings.xlsx.mainSheet === undefined && workbook.SheetNames.length > 1) {
             throw new Error(`Found ${workbook.SheetNames.length} Sheets: ${workbook.SheetNames.join(', ')}. Please provide the name of the correct sheet!`);
           }
 
           const sheetName = this.project.settings.xlsx.mainSheet || workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          
+
           return XLSX.utils.sheet_to_json(worksheet);
         }
 
@@ -406,14 +424,14 @@ const app: () => App = () => ({
       console.info('Load file', filename);
       const clean = filename.toLowerCase().trim();
 
-      if(clean.endsWith('.yml') || clean.endsWith('.yaml')) {
+      if (clean.endsWith('.yml') || clean.endsWith('.yaml')) {
         const config = loadYaml(await this.cache.files.fileMap.get(filename)!.text());
-        
+
         // TODO: Handling for overwriting, interacting with strings, etc...
-        this.project.settings.config = {
+        this.project.settings.config = Alpine.reactive({
           ...this.project.settings.config,
           ...config
-        };
+        });
 
         this.actions.showToast({
           body: `Loaded a total of ${Object.keys(config).length} entries from "${filename}".`,
@@ -424,7 +442,7 @@ const app: () => App = () => ({
     updateSourceCode(source, refreshUI = false) {
       this.project.code.source = source;
 
-      if(refreshUI) {
+      if (refreshUI) {
         this.ui.editors.source!.dispatch({
           changes: {
             from: 0,
@@ -434,10 +452,40 @@ const app: () => App = () => ({
         });
       }
 
-      if(this.project.settings.ui.automatic) {
+      if (this.project.settings.ui.automatic) {
         this.actions.compile();
       }
     },
+    isEditing(index, type) {
+      return this.cache.config.editing.index === index && this.cache.config.editing.type === type;
+    },
+
+    startEditing(index, type) {
+      this.cache.config.editing.index = index;
+      this.cache.config.editing.type = type;
+
+      const [key, value] = this.cache.config.sorted[index];
+
+      if (type === 'key') {
+        this.cache.config.editing.key = key;
+      } else {
+        this.cache.config.editing.value = value;
+      }
+    },
+
+    stopEditing(index, type) {
+      let [key, value] = this.cache.config.sorted[index];
+
+      if (type === 'key' && this.cache.config.editing.key !== key) {
+        delete this.project.settings.config[key];
+        this.project.settings.config[this.cache.config.editing.key] = value;
+      } else if (type === 'value') {
+        this.project.settings.config[key] = this.cache.config.editing.value;
+      }
+
+      this.cache.config.editing.index = undefined;
+      this.cache.config.editing.type = undefined;
+    }
   }
 });
 

@@ -30,7 +30,8 @@ class HtmlIncludePlugin {
     let newHtml = html;
 
     let counter = 0;
-    while(counter == 0 || oldHtml !== newHtml) {
+    while(counter == 0 || oldHtml !== newHtml
+    ) {
       if(counter++ > 1000) {
         throw new Error('Infinite loop encountered!');
       }

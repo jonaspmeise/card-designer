@@ -62,6 +62,8 @@ export type ProjectSettings = {
   }
 };
 
+export type KeyValue = 'key' | 'value';
+
 export type AppCache = {
   code: {
     compiled: string,
@@ -78,7 +80,16 @@ export type AppCache = {
     selectedCard: Card | undefined,
     cards: unknown[],
     isLoading: boolean,
-    populatedConfig: Record<string, unknown>
+  },
+  config: {
+    populated: Record<string, unknown>,
+    editing: {
+      index: number | undefined,
+      type: KeyValue | undefined,
+      key: string,
+      value: unknown
+    },
+    sorted: [string, unknown][]
   },
   jobs: {
     currentJob: RenderJob | undefined
@@ -132,5 +143,8 @@ export type AppActions = {
   reloadDataTable: () => void,
   updatePreview: () => void,
   loadFile: (filename: string) => Promise<void>,
-  updateSourceCode: (source: string, refreshUI: boolean) => void
+  updateSourceCode: (source: string, refreshUI: boolean) => void,
+  isEditing: (index: number, type: KeyValue) => boolean,
+  startEditing: (index: number, type: KeyValue) => void,
+  stopEditing: (index: number, type: KeyValue) => void
 };

@@ -1,4 +1,4 @@
-import { AppState, ProjectSettings } from '../types/types.js';
+import { AppState, ProjectSettings, TemplateFunction } from '../types/types.js';
 import * as yaml from 'js-yaml';
 
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
@@ -21,7 +21,7 @@ export const simpleHash = (str: string) => {
 };
 
 export const projectFilePattern = /^.+\.cardcreator\.json$/i;
-export const templatePattern = /{{\s*\((?<parameters>[^)]+)\)\s*=>\s*(?<lambda>{?\s*)(?<body>.+?)}?\s*}}[^}]/gms;
+export const templatePattern = /{{\s*\((?<parameters>[^)]+)\)\s*=>\s*(?<lambda>{?\s*)(?<body>.+?)}}(?=(?:[^}]|$))/gms;
 
 export const initialSvg: string = `<svg width="320" height="130" xmlns="http://www.w3.org/2000/svg">
   <rect width="300" height="100" x="10" y="10" style="fill:rgb(0,0,255);stroke-width:3;stroke:red" />
@@ -146,4 +146,32 @@ export const convertToNestedObject = (flatObject: Record<string, unknown>): Reco
   }
 
   return nestedObject;
-}
+};
+
+export const extractTemplates = (source: string): TemplateFunction[] => {
+  const templates = Array.from(source.matchAll(templatePattern));
+
+  return templates.map(match => {
+    const parameters: string[] = match.groups!.parameters.split(',').map(parameter => parameter.trim());
+
+    const isLambda = match.groups!?.lambda?.length === 0;
+    const body = isLambda
+      ? `return ${match.groups!.body}`
+      : `{${match.groups!.body}`;
+
+    try {
+      const func = new Function(
+        ...parameters,
+        body
+      ) as (...parameters: unknown[]) => string;
+
+      return {
+        parameters: parameters,
+        func: func,
+        source: match[0]
+      };
+    } catch (e) {
+      throw new Error(`Encountered error "${e}" while parsing "${match[0]}"!`);
+    }
+  });
+};
