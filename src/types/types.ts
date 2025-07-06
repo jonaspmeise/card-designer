@@ -18,6 +18,11 @@ export type Project = {
   }
 };
 
+export type WorkerRenderJob = {
+  code: string,
+  key: string
+}[];
+
 export type TemplateFunction = {
   source: string,
   parameters: string[],
@@ -78,7 +83,7 @@ export type AppCache = {
     datatype: DataType | undefined,
     filetype: FileType | undefined,
     selectedCard: Card | undefined,
-    cards: unknown[],
+    cards: Record<string, unknown>[],
     isLoading: boolean,
   },
   config: {
@@ -146,5 +151,6 @@ export type AppActions = {
   updateSourceCode: (source: string, refreshUI: boolean) => void,
   isEditing: (index: number, type: KeyValue) => boolean,
   startEditing: (index: number, type: KeyValue) => void,
-  stopEditing: (index: number, type: KeyValue) => void
+  stopEditing: (index: number, type: KeyValue) => void,
+  renderJob: (job: RenderJob) => Promise<void>
 };

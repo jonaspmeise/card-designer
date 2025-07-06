@@ -177,3 +177,56 @@ export const extractTemplates = (source: string): TemplateFunction[] => {
     }
   });
 };
+
+export const divideArray = (array: unknown[], numberOfChunks: number): number[][] => {
+  const targets: number[][] = new Array(numberOfChunks).fill([]);
+
+  array.forEach((_, i) => {
+    targets[i % numberOfChunks].push(i);
+  });
+
+  return targets;
+};
+
+export const applyCardToSvg = (
+  source: string,
+  templates: TemplateFunction[],
+  card: Record<string, unknown>,
+  app: AppState
+): string => {
+  // Provide a copy of the Card, because this might be modified for a single render step!
+  let code: string = source;
+
+  const current = {
+    ...card
+  };
+
+  templates.forEach(func => {
+    const parameters: unknown[] = func.parameters.map(parameter => {
+      if (parameter === 'project') {
+        return app.project;
+      } else if (parameter === 'card') {
+        return current;
+      } else if (parameter === 'job') {
+        return app.cache.jobs.currentJob;
+      } else if (parameter === 'files') {
+        return app.cache.files.fileMap
+      } else if (parameter === 'config') {
+        return app.cache.config.populated;
+      } else {
+        throw new Error(`Parameter "${parameter}" could not be resolved!
+          
+        Expected either: "project", "card" or "job".
+        `);
+      }
+    });
+
+    try {
+      code = code.replaceAll(func.source, func.func(...parameters));
+    } catch (e) {
+      throw new Error(`Error on function "${func.source}": ${e}`);
+    }
+  });
+
+  return code;
+};

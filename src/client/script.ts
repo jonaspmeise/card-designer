@@ -1,5 +1,5 @@
-import { App, AppState, DialogOptions, ToastOptions } from "../types/types.js";
-import { byteDecoder, convertToNestedObject, csvToJson, extractTemplates, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
+import { App, AppState, DialogOptions, ToastOptions, WorkerRenderJob } from "../types/types.js";
+import { applyCardToSvg, byteDecoder, convertToNestedObject, csvToJson, divideArray, extractTemplates, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
 import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
@@ -157,43 +157,16 @@ const app: () => App = () => ({
     updatePreview() {
       // Only inject data of selected card into the code if there are any templates!
       if (this.cache.code.templateFunctions.length > 0) {
-        let code = this.project.code.source;
-
         if (this.cache.data.selectedCard === undefined) {
           throw new Error(`You have one or more templates defined that consume a "card".\nPlease select a card for previewing!`);
         }
 
-        // Provide a copy of the Card, because this might be modified for a single render step!
-        const card = {
-          ...this.cache.data.selectedCard
-        };
-
-        this.cache.code.templateFunctions.forEach(func => {
-          const parameters: unknown[] = func.parameters.map(parameter => {
-            if (parameter === 'project') {
-              return this.project;
-            } else if (parameter === 'card') {
-              return card;
-            } else if (parameter === 'job') {
-              return this.cache.jobs.currentJob;
-            } else if (parameter === 'files') {
-              return this.cache.files.fileMap
-            } else if (parameter === 'config') {
-              return this.cache.config.populated;
-            } else {
-              throw new Error(`Parameter "${parameter}" could not be resolved!
-                
-              Expected either: "project", "card" or "job".
-              `);
-            }
-          });
-
-          try {
-            code = code.replaceAll(func.source, func.func(...parameters));
-          } catch (e) {
-            throw new Error(`Error on function "${func.source}": ${e}`);
-          }
-        });
+        let code = applyCardToSvg(
+          this.project.code.source,
+          this.cache.code.templateFunctions,
+          this.cache.data.selectedCard,
+          this
+        );
 
         this.cache.code.compiled = code;
       } else {
@@ -389,7 +362,7 @@ const app: () => App = () => ({
         }
 
         return [];
-      })();
+      })() as Record<string, unknown>[];
     },
     async loadFile(filename) {
       console.info('Load file', filename);
@@ -456,6 +429,46 @@ const app: () => App = () => ({
 
       this.cache.config.editing.index = undefined;
       this.cache.config.editing.type = undefined;
+    },
+    async renderJob(job) {
+      // Figure out what the best parallel scaling factor is.
+      const parallelFactor: number = navigator.hardwareConcurrency;
+
+      // Divide card indices among all parallel workers.
+      const distribution: number[][] = divideArray(this.cache.data.cards, parallelFactor);
+
+      const renderProcesses = await Promise.all(
+        distribution.map(subjob => {
+          const workerRenderJobInfos: WorkerRenderJob = subjob
+            .map(index => {
+              const card = this.cache.data.cards[index];
+
+              const source = applyCardToSvg(
+                this.project.code.source,
+                this.cache.code.templateFunctions,
+                card,
+                this
+              );
+
+              return {
+                key: `card-${index}`,
+                code: source
+              }
+            });
+
+          return new Promise((resolve) => {
+            const worker = new Worker('worker.js');
+
+            worker.onmessage = (event) => {
+              console.log(`Worker #${subjob}: done!`);
+
+              resolve(event);
+            }
+
+            worker.postMessage(workerRenderJobInfos);
+          });
+        })
+      );
     }
   }
 });
