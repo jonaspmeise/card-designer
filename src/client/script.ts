@@ -95,7 +95,8 @@ const app: () => App = () => ({
       },
       datasource: undefined,
       csv: {
-        separator: ', '
+        separator: ', ',
+        ignoreRegex: undefined
       },
       json: {},
       xlsx: {
@@ -141,6 +142,9 @@ const app: () => App = () => ({
 
       // Reload Data automatically whenever this property is manually modified.
       this.$watch('project.settings.csv.separator', (separator: string) => {
+        this.actions.reloadDataTable();
+      });
+      this.$watch('project.settings.csv.ignoreRegex', (separator: string) => {
         this.actions.reloadDataTable();
       });
     },
@@ -347,7 +351,7 @@ const app: () => App = () => ({
         } else if (this.cache.data.filetype === 'CSV') {
           const csvData = byteDecoder.decode(data);
 
-          return csvToJson(csvData, this.project.settings);
+          return csvToJson(csvData, this.project.settings.csv);
         } else if (this.cache.data.filetype === 'XLSX') {
           const workbook = XLSX.read(data, { type: 'array' });
 
@@ -422,7 +426,12 @@ const app: () => App = () => ({
 
       if (type === 'key' && this.cache.config.editing.key !== key) {
         delete this.project.settings.config[key];
-        this.project.settings.config[this.cache.config.editing.key] = value;
+
+        if(!!key && (key as String).length > 0) {
+          this.project.settings.config[this.cache.config.editing.key] = value; 
+        } else {
+          console.debug(`Evoking setting "${key}" because it's empty...`)
+        }
       } else if (type === 'value') {
         this.project.settings.config[key] = this.cache.config.editing.value;
       }
@@ -431,41 +440,51 @@ const app: () => App = () => ({
       this.cache.config.editing.type = undefined;
     },
     async renderJob(job) {
+      console.debug('Starting render job...');
       // Figure out what the best parallel scaling factor is.
       const parallelFactor: number = navigator.hardwareConcurrency;
 
       // Divide card indices among all parallel workers.
       const distribution: number[][] = divideArray(this.cache.data.cards, parallelFactor);
+      console.debug(`Will distribute a total of ${this.cache.data.cards.length} cards among ${parallelFactor} Workers.`);
+      console.debug(`Distribution is: `, distribution);
 
       const renderProcesses = await Promise.all(
-        distribution.map(subjob => {
-          const workerRenderJobInfos: WorkerRenderJob = subjob
-            .map(index => {
-              const card = this.cache.data.cards[index];
+        distribution.map((subjob, i) => {
+          const workerRenderJobInfos: WorkerRenderJob = {
+            canvas: new OffscreenCanvas(job.targetSize.width, job.targetSize.height),
+            data: subjob
+              .map(index => {
+                const card = this.cache.data.cards[index];
 
-              const source = applyCardToSvg(
-                this.project.code.source,
-                this.cache.code.templateFunctions,
-                card,
-                this
-              );
+                const source = applyCardToSvg(
+                  this.project.code.source,
+                  this.cache.code.templateFunctions,
+                  card,
+                  this
+                );
 
-              return {
-                key: `card-${index}`,
-                code: source
-              }
-            });
+                return {
+                  key: `card-${index}`,
+                  index: index,
+                  code: source
+                }
+              })
+            };
+
+          console.debug(`Finished creating Render Job #${i} (${workerRenderJobInfos.data.length} cards).`);
 
           return new Promise((resolve) => {
+            console.debug(`Instantiating new Worker #${i}...`)
             const worker = new Worker('worker.js');
 
-            worker.onmessage = (event) => {
-              console.log(`Worker #${subjob}: done!`);
+            worker.onmessage = (event: MessageEvent<{index: number}>) => {
+              console.debug(`Worker #${subjob}: Rendered Card #${event.data.index}`);
 
               resolve(event);
             }
 
-            worker.postMessage(workerRenderJobInfos);
+            worker.postMessage(workerRenderJobInfos, [workerRenderJobInfos.canvas]);
           });
         })
       );

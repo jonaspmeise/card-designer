@@ -1,4 +1,4 @@
-import { AppState, ProjectSettings, TemplateFunction } from '../types/types.js';
+import { AppState, CsvSettings, ProjectSettings, TemplateFunction } from '../types/types.js';
 import * as yaml from 'js-yaml';
 
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
@@ -80,22 +80,34 @@ export const loadRemoteData: (
     }
   };
 
-export const csvToJson = (csv: string, settings: ProjectSettings): unknown[] => {
-  const separator = new RegExp(settings.csv.separator, 'g');
+export const csvToJson = (csv: string, settings: CsvSettings): unknown[] => {
+  const separator = new RegExp(settings.separator, 'g');
 
   const lines = csv.split('\n');
   separator.lastIndex = 0;
   const headers = lines[0].split(separator).map(header => header.trim());
 
-  return lines.slice(1).map(line => {
-    separator.lastIndex = 0;
-    const values = line.split(separator);
+  const regex = (settings.ignoreRegex !== undefined && settings.ignoreRegex.trim().length > 0)
+    ? new RegExp(settings.ignoreRegex, 'g')
+    : undefined;
 
-    return headers.reduce((obj, header, index) => {
-      obj[header] = values[index];
-      return obj;
-    }, {});
-  });
+  return lines.slice(1)
+    .filter(line => {
+      if(!!regex) {
+        return !regex.test(line);
+      }
+    
+      return true;
+    })
+    .map(line => {
+      separator.lastIndex = 0;
+      const values = line.split(separator);
+
+      return headers.reduce((obj, header, index) => {
+        obj[header] = values[index];
+        return obj;
+      }, {});
+    });
 };
 
 export const kebapify: (value: string) => string = (value: string) => value.split(' ').map(part => part.toLowerCase()).join('-');
@@ -179,9 +191,10 @@ export const extractTemplates = (source: string): TemplateFunction[] => {
 };
 
 export const divideArray = (array: unknown[], numberOfChunks: number): number[][] => {
-  const targets: number[][] = new Array(numberOfChunks).fill([]);
+  const targets: number[][] = new Array(numberOfChunks).fill(null).map(() => []);
 
   array.forEach((_, i) => {
+    console.info('Pushing into', i % numberOfChunks, ' value', i)
     targets[i % numberOfChunks].push(i);
   });
 

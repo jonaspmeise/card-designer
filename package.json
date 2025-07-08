@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "clean-ts-temp": "rm -rf ts-temp",
-    "webpack": "bun run clean-ts-temp && bun run tsc && webpack --config webpack.config.cjs",
+    "build": "bun ./src/build.ts",
     "test": "bun test \".spec.ts\""
   },
   "type": "module",
@@ -12,12 +12,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@types/bun": "^1.2.16",
-    "copy-webpack-plugin": "^13.0.0",
-    "terser-webpack-plugin": "^5.3.14",
-    "typescript": "^5.8.3",
-    "webpack": "^5.99.9",
-    "webpack-cli": "^6.0.1"
+    "@types/bun": "^1.2.16"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.4",
@@ -31,7 +26,6 @@
     "@types/xlsx": "^0.0.36",
     "alpinejs": "^3.14.9",
     "codemirror": "^6.0.1",
-    "html-webpack-plugin": "^5.6.3",
     "js-yaml": "^4.1.0",
     "xlsx": "^0.18.5"
   }

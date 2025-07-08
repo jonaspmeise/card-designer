@@ -1,40 +1,22 @@
-export const render = (
+export const render = async (
   code: string,
-  canvas?: HTMLCanvasElement
+  canvas: OffscreenCanvas
 ): Promise<ArrayBuffer> => {
+  const ctx = canvas.getContext("2d");
 
-  const localCanvas = canvas || document.createElement('canvas');
+  if (!ctx) {
+    throw new Error("Could not get 2D context");
+  }
 
-  return new Promise((resolve, reject) => {
-    const ctx: CanvasRenderingContext2D | null = localCanvas.getContext('2d');
+  const svgBlob = new Blob([code], { type: "image/svg+xml" });
+  const bitmap = await createImageBitmap(svgBlob);
 
-    if (!ctx) {
-      reject(new Error('Could not get canvas context'));
-      return;
-    }
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
 
-    const img = new Image();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bitmap, 0, 0);
 
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(code)}`;
-
-    img.onload = () => {
-      localCanvas.width = img.width;
-      localCanvas.height = img.height;
-
-      ctx.drawImage(img, 0, 0);
-
-      localCanvas.toBlob(async (blob) => {
-        if(!blob) {
-          reject(new Error('Failed to convert canvas to Blob!'));
-          return;
-        }
-
-        resolve(await blob.arrayBuffer());
-      });
-    };
-
-    img.onerror = (error) => {
-      reject(error);
-    }
-  });
-}
+  const blob = await canvas.convertToBlob();
+  return await blob.arrayBuffer();
+};

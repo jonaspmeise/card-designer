@@ -29,8 +29,8 @@
   <div class="mb-3">
     <div x-show="cache.data.filetype === 'CSV'">
       <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
-      <input id="csvSeparator" type="text" class="form-control" placeholder=","
-        x-model="project.settings.csv.separator">
+      <input id="csvSeparator" type="text" class="form-control" placeholder="," x-model="project.settings.csv.separator">
+      <input id="ignoreLineRegex" type="text" class="form-control" placeholder="" x-model="project.settings.csv.ignoreRegex">
     </div>
   </div>
   <div class="table-responsive">

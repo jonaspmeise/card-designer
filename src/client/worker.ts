@@ -2,39 +2,42 @@ import { WorkerRenderJob } from "../types/types.js";
 import { render } from "../utility/render.js";
 
 self.onmessage = async (e: MessageEvent<WorkerRenderJob>) => {
-  const data = e.data;
+  const { canvas, data } = e.data;
 
-  const canvas = document.createElement('canvas');
-
-  for(let entry of data) {
+  for (let entry of data) {
     const picture: ArrayBuffer = await render(entry.code, canvas);
 
-    saveToDb(picture, entry.key);
+    await saveToSessionDb(picture, entry.key);
+
+    // Notify main thread about finished rendering process of single card.
+    self.postMessage({
+      index: entry.index
+    });
   }
-
-  self.postMessage('done!');
 };
 
-const saveToDb = (
-  image: ArrayBuffer,
+const saveToSessionDb = async (
+  buffer: ArrayBuffer,
   key: string
-): void => {
-  const dbName = 'ImageDatabase';
-  const storeName = 'Images';
+): Promise<void> => {
+  const db = await openDb();
+  const tx = db.transaction("Images", "readwrite");
+  const store = tx.objectStore("Images");
 
-  // Open the IndexedDB database
-  const openRequest = indexedDB.open(dbName, 1);
+  const blob = new Blob([buffer], { type: "image/svg+xml" });
+  store.put(blob, key);
 
-  openRequest.onsuccess = () => {
-    const db = openRequest.result;
-
-    // Check if the image data is already in IndexedDB
-    const transaction = db.transaction(storeName, 'readonly');
-    const store = transaction.objectStore(storeName);
-    const request = store.get(key);
-
-    request.onsuccess = function (event) {
-      console.error(event);
-    };
-  };
+  tx.commit();
 };
+
+const openDb = (): Promise<IDBDatabase> =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open("SessionImageDB", 1);
+
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore("Images");
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });

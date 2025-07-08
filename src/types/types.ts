@@ -18,10 +18,19 @@ export type Project = {
   }
 };
 
+export type CsvSettings = {
+  separator: string,
+  ignoreRegex?: string
+};
+
 export type WorkerRenderJob = {
-  code: string,
-  key: string
-}[];
+  canvas: OffscreenCanvas,
+  data: {
+    code: string,
+    index: number,
+    key: string
+  }[]
+};
 
 export type TemplateFunction = {
   source: string,
@@ -54,9 +63,7 @@ export type ProjectSettings = {
     blacklist: string[]
   },
   datasource: string | undefined,
-  csv: {
-    separator: string
-  }
+  csv: CsvSettings,
   json: {}
   xlsx: {
     mainSheet: string | undefined

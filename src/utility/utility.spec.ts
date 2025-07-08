@@ -1,8 +1,9 @@
-import { test, expect } from "bun:test";
-import { extractTemplates } from "./utility.js";
+import { test, expect, describe } from "bun:test";
+import { csvToJson, divideArray, extractTemplates } from "./utility.js";
+import { CsvSettings } from "../types/types.js";
 
 test('Function #1 is translated correctly.', () => {
-  const source = `
+    const source = `
   {{(card) => {
       if(card.Flavortext.length == 0) {
           return '';
@@ -31,17 +32,17 @@ test('Function #1 is translated correctly.', () => {
   }}}
   `;
 
-  expect(extractTemplates(source)).toHaveLength(1);
+    expect(extractTemplates(source)).toHaveLength(1);
 });
 
 test('No Templates are extracted from a source that does not have any templates.', () => {
-  const source = "whatever";
+    const source = "whatever";
 
-  expect(extractTemplates(source)).toHaveLength(0);
+    expect(extractTemplates(source)).toHaveLength(0);
 });
 
 test('Template Test #2.', () => {
-  const source = `
+    const source = `
     <svg xmlns="http://www.w3.org/2000/svg" width="{{(job) => job.targetSize.width}}" height="{{(job) => job.targetSize.height}}" style="background-color:black">
     <!-- Preprocessing -->
     {{(card) => {
@@ -69,13 +70,13 @@ test('Template Test #2.', () => {
     }}};
   `;
 
-  const templates = extractTemplates(source);
+    const templates = extractTemplates(source);
 
-  expect(templates).toHaveLength(3);
+    expect(templates).toHaveLength(3);
 });
 
 test('Template #3.', () => {
-  const source = `
+    const source = `
     {{(card, job, config) => {
       if(card.Costs.length == 0) return '';
       
@@ -139,13 +140,13 @@ test('Template #3.', () => {
     }}
   `;
 
-  const templates = extractTemplates(source);
+    const templates = extractTemplates(source);
 
-  expect(templates).toHaveLength(1);
+    expect(templates).toHaveLength(1);
 });
 
 test('Template #5.', () => {
-  const source = `
+    const source = `
    <svg xmlns="http://www.w3.org/2000/svg" width="{{(job) => job.targetSize.width}}" height="{{(job) => job.targetSize.height}}" style="background-color:black">
     <!-- Preprocessing -->
     {{(card) => {
@@ -181,10 +182,138 @@ test('Template #5.', () => {
 });
 
 test('A Template without any parameters can be a template, too!', () => {
-  const source = "{{() => new Date().getFullYear()}}";
+    const source = "{{() => new Date().getFullYear()}}";
 
-  const templates = extractTemplates(source);
+    const templates = extractTemplates(source);
 
-  expect(templates).toHaveLength(1);
-  expect(templates[0].parameters).toHaveLength(0);
+    expect(templates).toHaveLength(1);
+    expect(templates[0].parameters).toHaveLength(0);
+});
+
+describe('csvToJson', () => {
+    test('should parse a plain CSV with default separator', () => {
+        const csv = `name,age,city
+John,30,New York
+Jane,28,San Francisco`;
+
+        const result = csvToJson(
+            csv,
+            {
+                separator: ',',
+            }
+        );
+        expect(result).toEqual([
+            {
+                name: 'John',
+                age: '30',
+                city: 'New York'
+            },
+            {
+                name: 'Jane',
+                age: '28',
+                city: 'San Francisco'
+            },
+        ]);
+    });
+
+        test('should parse a plain CSV with default separator and empty ignoring regex', () => {
+        const csv = `name,age,city
+John,30,New York
+Jane,28,San Francisco`;
+
+        const result = csvToJson(
+            csv,
+            {
+                separator: ',',
+                ignoreRegex: ''
+            }
+        );
+        expect(result).toEqual([
+            {
+                name: 'John',
+                age: '30',
+                city: 'New York'
+            },
+            {
+                name: 'Jane',
+                age: '28',
+                city: 'San Francisco'
+            },
+        ]);
+    });
+
+    test('should parse a CSV with a custom separator', () => {
+        const csv = `name|age|city
+John|30|New York
+Jane|28|San Francisco`;
+
+        const result = csvToJson(
+            csv,
+            {
+                separator: '\\|',
+            });
+        expect(result).toEqual([
+            {
+                name: 'John',
+                age: '30',
+                city: 'New York'
+            },
+            {
+                name: 'Jane',
+                age: '28',
+                city: 'San Francisco'
+            },
+        ]);
+    });
+
+    test('should ignore lines that match the ignoreRegex', () => {
+        const csv = `name,age,city
+John,30,New York
+Jane,28,San Francisco
+Doe,45,Chicago`;
+
+        const result = csvToJson(
+            csv,
+            {
+                separator: ',',
+                ignoreRegex: 'Doe'
+            }
+        );
+        expect(result).toEqual([
+            {
+                name: 'John',
+                age: '30',
+                city: 'New York'
+            },
+            {
+                name: 'Jane',
+                age: '28',
+                city: 'San Francisco'
+            },
+        ]);
+    });
+});
+
+describe('divideArray', () => {
+    test('correctly divies an array into even segmentations.', () => {
+        const divisions = divideArray([1, 2, 3, 4, 5, 6], 3);
+
+        expect(divisions).toHaveLength(3);
+        divisions.forEach(d => expect(d).toHaveLength(2));
+
+        // No values were duplicated!
+        expect(new Set(divisions.flatMap(d => d))).toHaveLength(6);
+    });
+
+    test('correctly divies an array into even segmentations with overlap.', () => {
+        const divisions = divideArray([1, 2, 3, 4, 5, 6, 7, 8], 3);
+
+        expect(divisions).toHaveLength(3);
+        expect(divisions[0]).toHaveLength(3);
+        expect(divisions[1]).toHaveLength(3);
+        expect(divisions[2]).toHaveLength(2);
+        
+        // No values were duplicated!
+        expect(new Set(divisions.flatMap(d => d))).toHaveLength(8);
+    });
 });
