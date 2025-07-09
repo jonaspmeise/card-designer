@@ -50,7 +50,8 @@ const app: () => App = () => ({
       isLoading: false,
       selectedCard: undefined,
       datatype: undefined,
-      filetype: undefined
+      filetype: undefined,
+      columns: [] as string[]
     },
     config: {
       editing: {
@@ -110,6 +111,9 @@ const app: () => App = () => ({
       config: {},
       ui: {
         automatic: false
+      },
+      data: {
+        idColumn: undefined
       }
     }
   },
@@ -372,6 +376,18 @@ const app: () => App = () => ({
 
         return [];
       })() as Record<string, unknown>[];
+
+      this.cache.data.columns = [...
+        this.cache.data.cards.reduce((prev, curr) => {
+          Object.keys(curr).forEach(key => prev.add(key));
+
+          return prev;
+        }, new Set<string>()).values()
+      ];
+
+      if(this.project.settings?.data?.idColumn === undefined) {
+        this.project.settings.data.idColumn = this.cache.data.columns[0];
+      }
     },
     async loadFile(filename) {
       console.info('Load file', filename);
@@ -445,7 +461,9 @@ const app: () => App = () => ({
       this.cache.config.editing.type = undefined;
     },
     async renderJob(job: RenderJob) {
-      renderJob(job, this.cache.data.cards, this.project.code.source, this.cache.code.templateFunctions, this);
+      this.cache.code.templateFunctions = extractTemplates(this.project.code.source);
+
+      renderJob(job, this.cache.data.cards, this.project.code.source, this.cache.code.templateFunctions, this.project.settings.data.idColumn!, this);
     }
   }
 });

@@ -71,6 +71,9 @@ export type ProjectSettings = {
   config: Record<string, unknown>,
   ui: {
     automatic: boolean
+  },
+  data: {
+    idColumn: string | undefined
   }
 };
 
@@ -92,6 +95,7 @@ export type AppCache = {
     selectedCard: Card | undefined,
     cards: Record<string, unknown>[],
     isLoading: boolean,
+    columns: string[]
   },
   config: {
     populated: Record<string, unknown>,

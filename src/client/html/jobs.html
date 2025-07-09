@@ -29,7 +29,11 @@
         <div x-show="job.activate">
           <div class="mb-3">
             <label for="groupBy" class="form-label">Group By</label>
-            <input type="text" class="form-control" id="groupBy" x-model="job.group.by">
+            <select id="idField" x-model="job.group.by">
+              <template x-for="(column, index) in cache.data.columns" :key="index">
+                <option x-text="column" :value="column"></option>
+              </template>
+            </select>
           </div>
           <div class="mb-3">
             <label for="columnsPerSheet" class="form-label">Columns Per Sheet</label>

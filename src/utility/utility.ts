@@ -269,3 +269,17 @@ export const saveToSessionDb = async (
 
   tx.commit();
 };
+
+export const download = (blob: Blob, name: string) => {
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
