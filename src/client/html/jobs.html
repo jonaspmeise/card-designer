@@ -47,6 +47,10 @@
         </div>
       </div>
     </div>
+    <!-- Show Rendering progress, if available... -->
+    <div class="progress" x-show="cache.jobs.rendering.job === job">
+      <div class="progress-bar" role="progressbar" :style="`width: ${Math.floor((cache.jobs.rendering.finished / cache.data.cards.length) * 100)}`" :aria-valuenow="cache.jobs.rendering.finished" aria-valuemin="0" :aria-valuemax="cache.data.cards.length"></div>
+    </div>
   </div>
 </template>
 <button class="btn btn-success" x-on:click="actions.addRenderJob()">Add Render Job</button>

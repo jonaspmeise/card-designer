@@ -194,7 +194,6 @@ export const divideArray = (array: unknown[], numberOfChunks: number): number[][
   const targets: number[][] = new Array(numberOfChunks).fill(null).map(() => []);
 
   array.forEach((_, i) => {
-    console.info('Pushing into', i % numberOfChunks, ' value', i)
     targets[i % numberOfChunks].push(i);
   });
 
@@ -242,4 +241,31 @@ export const applyCardToSvg = (
   });
 
   return code;
+};
+
+export const openDb = (): Promise<IDBDatabase> =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open("SessionImageDB", 1);
+
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore("Images");
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  
+export const saveToSessionDb = async (
+  buffer: ArrayBuffer,
+  key: string,
+  db?: IDBDatabase
+): Promise<void> => {
+  db = db ?? await openDb();
+  const tx = db.transaction("Images", "readwrite");
+  const store = tx.objectStore("Images");
+
+  const blob = new Blob([buffer], { type: "image/png" });
+  store.put(blob, key);
+
+  tx.commit();
 };

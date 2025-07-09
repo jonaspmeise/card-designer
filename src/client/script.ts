@@ -1,11 +1,12 @@
-import { App, AppState, DialogOptions, ToastOptions, WorkerRenderJob } from "../types/types.js";
-import { applyCardToSvg, byteDecoder, convertToNestedObject, csvToJson, divideArray, extractTemplates, initialSvg, kebapify, loadYaml, projectFilePattern, templatePattern } from "../utility/utility.js";
+import { App, AppState, DialogOptions, RenderJob, ToastOptions, WorkerRenderJob } from "../types/types.js";
+import { applyCardToSvg, byteDecoder, convertToNestedObject, csvToJson, divideArray, extractTemplates, initialSvg, kebapify, loadYaml, openDb, projectFilePattern, saveToSessionDb, simpleHash, templatePattern } from "../utility/utility.js";
 import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
 import { loadRemoteData } from '../utility/utility.js';
 import * as XLSX from 'xlsx';
 import { Card } from '../types/types.js';
+import { renderJob } from "../functions/render-job.js";
 
 window['Alpine'] = Alpine;
 
@@ -62,7 +63,11 @@ const app: () => App = () => ({
       sorted: []
     },
     jobs: {
-      currentJob: undefined
+      currentJob: undefined,
+      rendering: {
+        job: undefined,
+        finished: 0
+      }
     }
   },
   ui: {
@@ -439,55 +444,8 @@ const app: () => App = () => ({
       this.cache.config.editing.index = undefined;
       this.cache.config.editing.type = undefined;
     },
-    async renderJob(job) {
-      console.debug('Starting render job...');
-      // Figure out what the best parallel scaling factor is.
-      const parallelFactor: number = navigator.hardwareConcurrency;
-
-      // Divide card indices among all parallel workers.
-      const distribution: number[][] = divideArray(this.cache.data.cards, parallelFactor);
-      console.debug(`Will distribute a total of ${this.cache.data.cards.length} cards among ${parallelFactor} Workers.`);
-      console.debug(`Distribution is: `, distribution);
-
-      const renderProcesses = await Promise.all(
-        distribution.map((subjob, i) => {
-          const workerRenderJobInfos: WorkerRenderJob = {
-            canvas: new OffscreenCanvas(job.targetSize.width, job.targetSize.height),
-            data: subjob
-              .map(index => {
-                const card = this.cache.data.cards[index];
-
-                const source = applyCardToSvg(
-                  this.project.code.source,
-                  this.cache.code.templateFunctions,
-                  card,
-                  this
-                );
-
-                return {
-                  key: `card-${index}`,
-                  index: index,
-                  code: source
-                }
-              })
-            };
-
-          console.debug(`Finished creating Render Job #${i} (${workerRenderJobInfos.data.length} cards).`);
-
-          return new Promise((resolve) => {
-            console.debug(`Instantiating new Worker #${i}...`)
-            const worker = new Worker('worker.js');
-
-            worker.onmessage = (event: MessageEvent<{index: number}>) => {
-              console.debug(`Worker #${subjob}: Rendered Card #${event.data.index}`);
-
-              resolve(event);
-            }
-
-            worker.postMessage(workerRenderJobInfos, [workerRenderJobInfos.canvas]);
-          });
-        })
-      );
+    async renderJob(job: RenderJob) {
+      renderJob(job, this.cache.data.cards, this.project.code.source, this.cache.code.templateFunctions, this);
     }
   }
 });

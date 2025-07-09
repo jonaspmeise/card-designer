@@ -26,10 +26,10 @@ export type CsvSettings = {
 export type WorkerRenderJob = {
   canvas: OffscreenCanvas,
   data: {
-    code: string,
+    image: ImageBitmap,
     index: number,
     key: string
-  }[]
+  }
 };
 
 export type TemplateFunction = {
@@ -104,7 +104,14 @@ export type AppCache = {
     sorted: [string, unknown][]
   },
   jobs: {
-    currentJob: RenderJob | undefined
+    currentJob: RenderJob | undefined,
+    rendering: {
+      job: RenderJob | undefined,
+      /**
+       * The number of Elements that were already rendered in the context of this job!
+       */
+      finished: number
+    }
   }
 };
 
