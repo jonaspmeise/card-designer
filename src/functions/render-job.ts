@@ -41,38 +41,19 @@ export const renderJob = async (
       // In that case, we have to create the Image here.
       // TODO: Check that the hashes of the source diverge - if they don't, don't re-render!
 
-      const img = await new Promise<HTMLImageElement | undefined>(async (resolve, reject) => {
-        try {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const img: Blob | undefined = await blobifySingleSvgCode(svg);
 
-          console.debug(img.src);
-          img.onload = () => {
-            console.log(`Image for card "${card[idColumn]}" created!`);
-            resolve(img);
-          }
-
-          await img.decode();
-        } catch (e) {
-          console.error(`Could not render card #${index}:`, e);
-          resolve(undefined);
-        }
-      });
       if(img === undefined) {
+        console.log(`Could not render card "${card[idColumn]}"!`);
         return;
       }
-
-      const canvas = new OffscreenCanvas(img.width, img.height);
-      canvas.getContext("2d")!.drawImage(img, 0, 0);
 
       const hash = simpleHash(JSON.stringify(card));
 
       const name = `card-${sourceHash}-${hash}`;
       
-      const blob = await canvas.convertToBlob();
       await saveToSessionDb(
-        await blob.arrayBuffer(),
+        await img.arrayBuffer(),
         name,
         db
       );
@@ -188,3 +169,32 @@ export const renderJob = async (
     download(archive, job.name);
   }
 }
+
+export const blobifySingleSvgCode = async (svg: string): Promise<Blob | undefined> => {
+  const img = await new Promise<HTMLImageElement | undefined>(async (resolve, reject) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = `data:image/svg+xml;base64,${btoa(svg)}`;
+
+      console.debug(img.src);
+      img.onload = () => {
+        resolve(img);
+      }
+
+      await img.decode();
+    } catch (e) {
+      console.log(`Error occured when rendering svg: ${e}`);
+      resolve(undefined);
+    }
+  });
+
+  if(img === undefined) {
+    return undefined;
+  }
+
+  const canvas = new OffscreenCanvas(img.width, img.height);
+  canvas.getContext("2d")!.drawImage(img, 0, 0);
+  
+  return await canvas.convertToBlob();
+};

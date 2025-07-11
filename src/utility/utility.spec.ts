@@ -1,6 +1,5 @@
 import { test, expect, describe } from "bun:test";
 import { csvToJson, divideArray, extractTemplates } from "./utility.js";
-import { CsvSettings } from "../types/types.js";
 
 test('Function #1 is translated correctly.', () => {
     const source = `
