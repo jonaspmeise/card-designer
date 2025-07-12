@@ -119,11 +119,11 @@ const app: () => App = () => ({
     }
   },
   actions: {
-    compile() {
+    async compile() {
       const source = this.project.code.source;
       this.cache.code.templateFunctions = extractTemplates(source);
 
-      this.actions.updatePreview();
+      await this.actions.updatePreview();
     },
     registerComputedPropertyWatches() {
       // Register computed property handlers.
@@ -138,6 +138,7 @@ const app: () => App = () => ({
       });
 
       this.$watch('cache.code.compiled', (code: string) => {
+        console.log('Updating...');
         const canvas = document.getElementById('canvas') as HTMLCanvasElement;
         const img = new Image();
         const ctx = canvas.getContext('2d')!;
@@ -148,7 +149,12 @@ const app: () => App = () => ({
         };
         img.onerror = e => console.error('SVG load error:', e);
 
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(code);
+        const svgBlob = new Blob([code], { type: "image/svg+xml" });
+        const svgUrl = URL.createObjectURL(svgBlob);
+
+        console.log(svgUrl);
+        img.src = svgUrl;
+
         this.cache.code.target = code;
       });
 
@@ -185,18 +191,16 @@ const app: () => App = () => ({
         if (this.cache.data.selectedCard === undefined) {
           throw new Error(`You have one or more templates defined that consume a "card".\nPlease select a card for previewing!`);
         }
-
-        let code = await applyCardToSvg(
-          this.project.code.source,
-          this.cache.code.templateFunctions,
-          this.cache.data.selectedCard,
-          this
-        );
-
-        this.cache.code.compiled = code;
-      } else {
-        this.cache.code.compiled = this.project.code.source;
       }
+      
+      let code = await applyCardToSvg(
+        this.project.code.source,
+        this.cache.code.templateFunctions,
+        this.cache.data.selectedCard ?? {},
+        this
+      );
+
+      this.cache.code.compiled = code;
 
       this.ui.editors.compiled!.dispatch({
         changes: {

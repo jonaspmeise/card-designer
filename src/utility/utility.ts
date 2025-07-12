@@ -244,7 +244,7 @@ export const applyCardToSvg = async (
   const matches = Array.from(code.matchAll(/<image[^>]+href="(?<link>[^"]+)"[^>]*>/g));
 
   const links = matches.reduce((prev, curr) => {
-    const link = curr.groups!.link;
+    const link = curr.groups!.link.trim();
 
     if(!app.cache.data.images.has(link)) {
       prev.add(link);
@@ -254,6 +254,10 @@ export const applyCardToSvg = async (
   }, new Set<string>());
 
   console.log(`Will download...`, links);
+
+  if(links.size === 0) {
+    return code;
+  }
 
   await Promise.all(
     [...links.keys()].map(async link => {
@@ -276,7 +280,9 @@ export const applyCardToSvg = async (
       console.log(`Downloaded image "${link}" to local URL "${url}"...`);
 
       console.debug(`Replacing "${link}" with "${url}"...`);
-      // code = code.replaceAll(link, url);
+      code = code.replaceAll(link, url);
+
+      console.warn(code);
     })
   );
 
@@ -323,3 +329,7 @@ export const download = (blob: Blob, name: string) => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+const escapeRegExp = (s: string) => {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
