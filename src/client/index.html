@@ -72,7 +72,7 @@
         <!-- Right Column: Preview -->
         <div id="svg-preview" class="col-md-6 vh-40 d-flex flex-column">
             <div class="svg-preview w-100 flex-grow-1 d-flex justify-content-center align-items-center">
-                <div x-html="cache.code.target"></div>
+                 <canvas id="canvas" :width="cache.jobs.currentJob?.targetSize?.width ?? 750" :height="cache.jobs.currentJob?.targetSize?.height ?? 1050"></canvas>
             </div>
         </div>
 

@@ -29,7 +29,7 @@ export const renderJob = async (
 
   await Promise.all(
     cards.map(async (card, index) => {
-      const svg = applyCardToSvg(
+      const svg = await applyCardToSvg(
         source,
         templates,
         card,
@@ -175,7 +175,7 @@ export const blobifySingleSvgCode = async (svg: string): Promise<Blob | undefine
     try {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = `data:image/svg+xml;base64,${btoa(svg)}`;
+      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
       console.debug(img.src);
       img.onload = () => {

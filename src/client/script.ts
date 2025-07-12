@@ -18,9 +18,9 @@ const app: () => App = () => ({
     // Bind the correct reference for all actions.
     Object.entries(this.actions)
       .forEach(([key, func]) => {
-        this.actions[key] = ((...args: any[]) => {
+        this.actions[key] = (async (...args: any[]) => {
           try {
-            return (func as Function).apply(this, args);
+            return await (func as Function).apply(this, args);
           } catch (e) {
             this.actions.showToast({
               severity: "danger",
@@ -51,7 +51,8 @@ const app: () => App = () => ({
       selectedCard: undefined,
       datatype: undefined,
       filetype: undefined,
-      columns: [] as string[]
+      columns: [] as string[],
+      images: new Map()
     },
     config: {
       editing: {
@@ -137,6 +138,17 @@ const app: () => App = () => ({
       });
 
       this.$watch('cache.code.compiled', (code: string) => {
+        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
+        const img = new Image();
+        const ctx = canvas.getContext('2d')!;
+
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        };
+        img.onerror = e => console.error('SVG load error:', e);
+
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(code);
         this.cache.code.target = code;
       });
 
@@ -167,14 +179,14 @@ const app: () => App = () => ({
 
       this.cache.data.isLoading = false;
     },
-    updatePreview() {
+    async updatePreview() {
       // Only inject data of selected card into the code if there are any templates!
       if (this.cache.code.templateFunctions.length > 0) {
         if (this.cache.data.selectedCard === undefined) {
           throw new Error(`You have one or more templates defined that consume a "card".\nPlease select a card for previewing!`);
         }
 
-        let code = applyCardToSvg(
+        let code = await applyCardToSvg(
           this.project.code.source,
           this.cache.code.templateFunctions,
           this.cache.data.selectedCard,

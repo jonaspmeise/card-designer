@@ -95,7 +95,10 @@ export type AppCache = {
     selectedCard: Card | undefined,
     cards: Record<string, unknown>[],
     isLoading: boolean,
-    columns: string[]
+    columns: string[],
+    // Map of external image-URLs, which are translated to local data URLs 
+    // to circumvent render-errors when external images are referenced
+    images: Map<string, string>
   },
   config: {
     populated: Record<string, unknown>,
@@ -164,7 +167,7 @@ export type AppActions = {
   showToast: (options: ToastOptions) => void,
   addRenderJob: () => void,
   reloadDataTable: () => void,
-  updatePreview: () => void,
+  updatePreview: () => Promise<void>,
   loadFile: (filename: string) => Promise<void>,
   updateSourceCode: (source: string, refreshUI: boolean) => void,
   isEditing: (index: number, type: KeyValue) => boolean,

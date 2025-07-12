@@ -200,12 +200,12 @@ export const divideArray = (array: unknown[], numberOfChunks: number): number[][
   return targets;
 };
 
-export const applyCardToSvg = (
+export const applyCardToSvg = async (
   source: string,
   templates: TemplateFunction[],
   card: Record<string, unknown>,
   app: AppState
-): string => {
+): Promise<string> => {
   // Provide a copy of the Card, because this might be modified for a single render step!
   let code: string = source;
 
@@ -239,6 +239,46 @@ export const applyCardToSvg = (
       throw new Error(`Error on function "${func.source}": ${e}`);
     }
   });
+
+  // Replace all external URLs with local URLs by downloading their files.
+  const matches = Array.from(code.matchAll(/<image[^>]+href="(?<link>[^"]+)"[^>]*>/g));
+
+  const links = matches.reduce((prev, curr) => {
+    const link = curr.groups!.link;
+
+    if(!app.cache.data.images.has(link)) {
+      prev.add(link);
+    }
+
+    return prev;
+  }, new Set<string>());
+
+  console.log(`Will download...`, links);
+
+  await Promise.all(
+    [...links.keys()].map(async link => {
+      const response = await fetch(link);
+
+      if(!response.ok) {
+        console.error(`HTTP error! status: ${response.status}`);
+          
+        return {
+          link: link,
+          url: ''
+        };
+      }
+
+      const blob = await response.blob();
+
+      const url = URL.createObjectURL(blob);
+      app.cache.data.images.set(link, url);
+
+      console.log(`Downloaded image "${link}" to local URL "${url}"...`);
+
+      console.debug(`Replacing "${link}" with "${url}"...`);
+      // code = code.replaceAll(link, url);
+    })
+  );
 
   return code;
 };
