@@ -6,8 +6,7 @@ const dist = resolve("./dist");
 
 await build({
   entrypoints: [
-    "./src/client/script.ts",
-    "./src/client/worker.ts"
+    "./src/client/script.ts"
   ],
   outdir: dist,
   target: "browser",

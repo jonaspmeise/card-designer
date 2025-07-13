@@ -240,52 +240,6 @@ export const applyCardToSvg = async (
     }
   });
 
-  // Replace all external URLs with local URLs by downloading their files.
-  const matches = Array.from(code.matchAll(/<image[^>]+href="(?<link>[^"]+)"[^>]*>/g));
-
-  const links = matches.reduce((prev, curr) => {
-    const link = curr.groups!.link.trim();
-
-    if(!app.cache.data.images.has(link)) {
-      prev.add(link);
-    }
-
-    return prev;
-  }, new Set<string>());
-
-  console.log(`Will download...`, links);
-
-  if(links.size === 0) {
-    return code;
-  }
-
-  await Promise.all(
-    [...links.keys()].map(async link => {
-      const response = await fetch(link);
-
-      if(!response.ok) {
-        console.error(`HTTP error! status: ${response.status}`);
-          
-        return {
-          link: link,
-          url: ''
-        };
-      }
-
-      const blob = await response.blob();
-
-      const url = URL.createObjectURL(blob);
-      app.cache.data.images.set(link, url);
-
-      console.log(`Downloaded image "${link}" to local URL "${url}"...`);
-
-      console.debug(`Replacing "${link}" with "${url}"...`);
-      code = code.replaceAll(link, url);
-
-      console.warn(code);
-    })
-  );
-
   return code;
 };
 

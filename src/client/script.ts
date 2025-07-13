@@ -7,6 +7,7 @@ import { loadRemoteData } from '../utility/utility.js';
 import * as XLSX from 'xlsx';
 import { Card } from '../types/types.js';
 import { renderJob } from "../functions/render-job.js";
+import { render } from "../utility/render.js";
 
 window['Alpine'] = Alpine;
 
@@ -42,7 +43,6 @@ const app: () => App = () => ({
     },
     code: {
       compiled: initialSvg,
-      target: initialSvg,
       templateFunctions: []
     },
     data: {
@@ -52,7 +52,8 @@ const app: () => App = () => ({
       datatype: undefined,
       filetype: undefined,
       columns: [] as string[],
-      images: new Map()
+      images: new Map(),
+      currentShownImage: undefined
     },
     config: {
       editing: {
@@ -68,7 +69,7 @@ const app: () => App = () => ({
       currentJob: undefined,
       rendering: {
         job: undefined,
-        finished: 0
+        elements: []
       }
     }
   },
@@ -137,31 +138,6 @@ const app: () => App = () => ({
         }
       });
 
-      this.$watch('cache.code.compiled', (code: string) => {
-        console.log('Updating...');
-        const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-        const img = new Image();
-        const ctx = canvas.getContext('2d')!;
-
-        img.onload = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-        };
-        img.onerror = e => console.error('SVG load error:', e);
-
-        const svgBlob = new Blob([code], { type: "image/svg+xml" });
-        const svgUrl = URL.createObjectURL(svgBlob);
-
-        console.log(svgUrl);
-        img.src = svgUrl;
-
-        this.cache.code.target = code;
-      });
-
-      this.$watch('cache.code.target', (_: string) => {
-        this.actions.render();
-      });
-
       this.$watch('project.settings.config', (config) => {
         this.cache.config.populated = convertToNestedObject(config);
         this.cache.config.sorted = Object.entries(this.project.settings.config).sort((a, b) => a[0].localeCompare(b[0]));
@@ -192,7 +168,7 @@ const app: () => App = () => ({
           throw new Error(`You have one or more templates defined that consume a "card".\nPlease select a card for previewing!`);
         }
       }
-      
+
       let code = await applyCardToSvg(
         this.project.code.source,
         this.cache.code.templateFunctions,
@@ -209,6 +185,12 @@ const app: () => App = () => ({
           insert: this.cache.code.compiled
         }
       });
+
+      const blob = await render(code, this.cache.data.images);
+
+      if (blob !== undefined) {
+        this.actions.showImageURL(new URL(URL.createObjectURL(blob)));
+      }
     },
     select(card: Card) {
       this.cache.data.selectedCard = card;
@@ -216,9 +198,6 @@ const app: () => App = () => ({
       if (this.project.settings.ui.automatic) {
         this.actions.updatePreview();
       }
-    },
-    render() {
-      console.log('RENDERING', this.cache.data.selectedCard);
     },
     async loadFiles(files: FileList) {
       this.cache.files.fileMap.clear();
@@ -391,7 +370,7 @@ const app: () => App = () => ({
         }
 
         return [];
-      })() as Record<string, unknown>[];
+      })() as Card[];
 
       this.cache.data.columns = [...
         this.cache.data.cards.reduce((prev, curr) => {
@@ -401,7 +380,7 @@ const app: () => App = () => ({
         }, new Set<string>()).values()
       ];
 
-      if(this.project.settings?.data?.idColumn === undefined) {
+      if (this.project.settings?.data?.idColumn === undefined) {
         this.project.settings.data.idColumn = this.cache.data.columns[0];
       }
     },
@@ -464,8 +443,8 @@ const app: () => App = () => ({
       if (type === 'key' && this.cache.config.editing.key !== key) {
         delete this.project.settings.config[key];
 
-        if(!!key && (key as String).length > 0) {
-          this.project.settings.config[this.cache.config.editing.key] = value; 
+        if (!!key && (key as String).length > 0) {
+          this.project.settings.config[this.cache.config.editing.key] = value;
         } else {
           console.debug(`Evoking setting "${key}" because it's empty...`)
         }
@@ -480,6 +459,27 @@ const app: () => App = () => ({
       this.cache.code.templateFunctions = extractTemplates(this.project.code.source);
 
       renderJob(job, this.cache.data.cards, this.project.code.source, this.cache.code.templateFunctions, this.project.settings.data.idColumn!, this);
+    },
+    showImageURL(url) {
+      const previous = this.cache.data.currentShownImage;
+
+      // Clean up old URL, since we don't need it anymore.
+      if (previous !== undefined) {
+        URL.revokeObjectURL(previous.toString());
+      }
+
+      const img = new Image();
+      const canvas = document.getElementById('canvas')! as HTMLCanvasElement;
+      const ctx = canvas.getContext('2d')!;
+
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+      };
+      img.onerror = e => console.error('SVG load error:', e);
+
+      this.cache.data.currentShownImage = url;
+      img.src = url.toString();
     }
   }
 });

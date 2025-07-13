@@ -57,6 +57,7 @@ export type RenderJob = {
 };
 
 export type Card = Record<string, unknown>;
+export type Config = Record<string, unknown>;
 
 export type ProjectSettings = {
   files: {
@@ -68,7 +69,7 @@ export type ProjectSettings = {
   xlsx: {
     mainSheet: string | undefined
   },
-  config: Record<string, unknown>,
+  config: Config,
   ui: {
     automatic: boolean
   },
@@ -82,7 +83,6 @@ export type KeyValue = 'key' | 'value';
 export type AppCache = {
   code: {
     compiled: string,
-    target: string,
     templateFunctions: TemplateFunction[]
   },
   files: {
@@ -93,15 +93,19 @@ export type AppCache = {
     datatype: DataType | undefined,
     filetype: FileType | undefined,
     selectedCard: Card | undefined,
-    cards: Record<string, unknown>[],
+    cards: Card[],
     isLoading: boolean,
     columns: string[],
     // Map of external image-URLs, which are translated to local data URLs 
     // to circumvent render-errors when external images are referenced
-    images: Map<string, string>
+    // "null" is used here as a pseudo-cache entry, that signals that this value was already requested.
+    // We only want to cache the values that are used atleast 2 times!
+    images: Map<string, string | null>,
+    // The blob-url of the current image, which is shown in the preview window. Is empty initially.
+    currentShownImage: URL | undefined
   },
   config: {
-    populated: Record<string, unknown>,
+    populated: Config,
     editing: {
       index: number | undefined,
       type: KeyValue | undefined,
@@ -114,12 +118,18 @@ export type AppCache = {
     currentJob: RenderJob | undefined,
     rendering: {
       job: RenderJob | undefined,
-      /**
-       * The number of Elements that were already rendered in the context of this job!
-       */
-      finished: number
+      elements: RenderCardInfo[]
     }
   }
+};
+
+/**
+ * Represents a information about a single render instance.
+ */
+export type RenderCardInfo = {
+  card: Card,
+  warnings: string[],
+  errors: string[]
 };
 
 export type AppUi = {
@@ -158,7 +168,6 @@ export type AppActions = {
   registerComputedPropertyWatches: () => void,
   loadRemoteData: () => Promise<void>,
   select: (card: Card) => void,
-  render: () => void,
   loadFiles: (files: FileList) => Promise<void>,
   downloadSettings: () => void,
   compile: () => void,
@@ -173,5 +182,6 @@ export type AppActions = {
   isEditing: (index: number, type: KeyValue) => boolean,
   startEditing: (index: number, type: KeyValue) => void,
   stopEditing: (index: number, type: KeyValue) => void,
-  renderJob: (job: RenderJob) => Promise<void>
+  renderJob: (job: RenderJob) => Promise<void>,
+  showImageURL: (url: URL) => void
 };

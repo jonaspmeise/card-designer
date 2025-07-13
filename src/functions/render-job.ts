@@ -22,43 +22,42 @@ export const renderJob = async (
     severity: "primary"
   });
   app.cache.jobs.rendering.job = job;
-  app.cache.jobs.rendering.finished = 0;
 
   const sourceHash = simpleHash(source);
   const db: IDBDatabase = await openDb();
   const hashes: Map<unknown, string> = new Map();
 
-  await Promise.all(
-    cards.map(async (card, index) => {
-      const svg = await applyCardToSvg(
-        source,
-        templates,
-        card,
-        app
-      );
+  for(let card of cards) {
+    const svg = await applyCardToSvg(
+      source,
+      templates,
+      card,
+      app
+    );
 
-      const img: Blob | undefined = await render(svg);
+    const img: Blob | undefined = await render(svg, app.cache.data.images, {
+      card: {},
+      errors: [],
+      warnings: []
+    });
 
-      if(img === undefined) {
-        console.log(`Could not render card "${card[idColumn]}"!`);
-        return;
-      }
+    if(img === undefined) {
+      console.log(`Could not render card "${card[idColumn]}"!`);
+      continue;
+    }
 
-      const hash = simpleHash(JSON.stringify(card));
-      const name = `card-${sourceHash}-${hash}`;
-      
-      await saveToSessionDb(
-        await img.arrayBuffer(),
-        name,
-        db
-      );
+    const hash = simpleHash(JSON.stringify(card));
+    const name = `card-${sourceHash}-${hash}`;
+    
+    await saveToSessionDb(
+      await img.arrayBuffer(),
+      name,
+      db
+    );
 
-      console.debug(`Finished rendering card #${index}...`);
-      hashes.set(card[idColumn], name);
-      
-      app.cache.jobs.rendering.finished += 1;
-    })
-  );
+    console.debug(`Finished rendering card "${card[idColumn]}"...`);
+    hashes.set(card[idColumn], name);
+  }
 
   app.actions.showToast({
     body: `Finished rendering job "${job.name}"!`,
