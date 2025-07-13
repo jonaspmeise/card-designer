@@ -329,7 +329,3 @@ export const download = (blob: Blob, name: string) => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
-
-const escapeRegExp = (s: string) => {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}

@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { AppState, Card, RenderJob, TemplateFunction } from "../types/types.js";
 import { applyCardToSvg, divideArray, download, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
+import { render } from "../utility/render.js";
 
 type CardsGroup = {
   // Name of the group, by which is ordered.
@@ -36,12 +37,7 @@ export const renderJob = async (
         app
       );
 
-      // This is ineffective, because we would like to offload the image-creation to worker threads.
-      // This feature is not implemented in any Browser - createImageBitmap(svgBlob) is not supported: https://issues.chromium.org/issues/41250699
-      // In that case, we have to create the Image here.
-      // TODO: Check that the hashes of the source diverge - if they don't, don't re-render!
-
-      const img: Blob | undefined = await blobifySingleSvgCode(svg);
+      const img: Blob | undefined = await render(svg);
 
       if(img === undefined) {
         console.log(`Could not render card "${card[idColumn]}"!`);
@@ -49,7 +45,6 @@ export const renderJob = async (
       }
 
       const hash = simpleHash(JSON.stringify(card));
-
       const name = `card-${sourceHash}-${hash}`;
       
       await saveToSessionDb(
@@ -152,14 +147,15 @@ export const renderJob = async (
 
     const zip = new JSZip();
     await Promise.all(
-      [...allCanvases.values()].flatMap((value) => {
-        return value.map(async v => {
-          v.canvas.getContext('2d');
+      [...allCanvases.values()]
+        .flatMap((value) => {
+          return value.map(async v => {
+            v.canvas.getContext('2d');
 
-          const blob = await v.canvas.convertToBlob();
-          zip.file(v.name + '.png', blob);
-        });
-      })
+            const blob = await v.canvas.convertToBlob();
+            zip.file(v.name + '.png', blob);
+          });
+        })
     );
 
     const archive = await zip.generateAsync({
@@ -169,32 +165,3 @@ export const renderJob = async (
     download(archive, job.name);
   }
 }
-
-export const blobifySingleSvgCode = async (svg: string): Promise<Blob | undefined> => {
-  const img = await new Promise<HTMLImageElement | undefined>(async (resolve, reject) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-
-      console.debug(img.src);
-      img.onload = () => {
-        resolve(img);
-      }
-
-      await img.decode();
-    } catch (e) {
-      console.log(`Error occured when rendering svg: ${e}`);
-      resolve(undefined);
-    }
-  });
-
-  if(img === undefined) {
-    return undefined;
-  }
-
-  const canvas = new OffscreenCanvas(img.width, img.height);
-  canvas.getContext("2d")!.drawImage(img, 0, 0);
-  
-  return await canvas.convertToBlob();
-};
