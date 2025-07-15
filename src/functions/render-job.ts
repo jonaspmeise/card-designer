@@ -1,7 +1,8 @@
 import JSZip from "jszip";
 import { AppState, Card, RenderJob, TemplateFunction } from "../types/types.js";
 import { applyCardToSvg, divideArray, download, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
-import { render } from "../utility/render.js";
+import { render, RenderResult } from "../utility/render.js";
+import { error } from "console";
 
 type CardsGroup = {
   // Name of the group, by which is ordered.
@@ -35,14 +36,16 @@ export const renderJob = async (
       app
     );
 
-    const img: Blob | undefined = await render(svg, app.cache.data.images, {
-      card: {},
-      errors: [],
-      warnings: []
-    });
+    const renderResult: RenderResult = await render(svg, app.cache.data.images);
 
-    if(img === undefined) {
-      console.log(`Could not render card "${card[idColumn]}"!`);
+    if(renderResult.image === undefined) {
+      console.log(`Could not render card "${card[idColumn]}"!`, renderResult.errors);
+      
+      app.cache.jobs.rendering.elements.push({
+        card: card,
+        errors: renderResult.errors,
+        warnings: renderResult.warnings
+      });
       continue;
     }
 
@@ -50,13 +53,19 @@ export const renderJob = async (
     const name = `card-${sourceHash}-${hash}`;
     
     await saveToSessionDb(
-      await img.arrayBuffer(),
+      await renderResult.image.arrayBuffer(),
       name,
       db
     );
 
     console.debug(`Finished rendering card "${card[idColumn]}"...`);
     hashes.set(card[idColumn], name);
+
+    app.cache.jobs.rendering.elements.push({
+      card: card,
+      errors: renderResult.errors,
+      warnings: renderResult.warnings
+    });
   }
 
   app.actions.showToast({

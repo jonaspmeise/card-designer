@@ -138,11 +138,6 @@ const app: () => App = () => ({
         }
       });
 
-      this.$watch('project.settings.config', (config) => {
-        this.cache.config.populated = convertToNestedObject(config);
-        this.cache.config.sorted = Object.entries(this.project.settings.config).sort((a, b) => a[0].localeCompare(b[0]));
-      });
-
       // Reload Data automatically whenever this property is manually modified.
       this.$watch('project.settings.csv.separator', (separator: string) => {
         this.actions.reloadDataTable();
@@ -188,8 +183,8 @@ const app: () => App = () => ({
 
       const blob = await render(code, this.cache.data.images);
 
-      if (blob !== undefined) {
-        this.actions.showImageURL(new URL(URL.createObjectURL(blob)));
+      if (blob.image !== undefined) {
+        this.actions.showImageURL(new URL(URL.createObjectURL(blob.image)));
       }
     },
     select(card: Card) {
@@ -223,6 +218,7 @@ const app: () => App = () => ({
           // Init Cache values.
           this.cache.jobs.currentJob = this.project.jobs[0];
           this.actions.updateSourceCode(this.project.code.source, true);
+          this.actions.loadConfig(this.project.settings.config);
 
           this.actions.showToast({
             body: `Loaded project settings for ${this.project.name}.`,
@@ -253,8 +249,6 @@ const app: () => App = () => ({
         // Filter out files that match any blacklist entry!
         return this.project.settings.files.blacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined;
       });
-
-      // TODO: Popup that from that folder a total of {} files have been loaded!
     },
     downloadSettings() {
       const settings = JSON.stringify(this.project, null, 2);
@@ -327,7 +321,7 @@ const app: () => App = () => ({
       this.project.jobs.push({
         name: 'New Render Job',
         activate: false,
-        filterCards: [],
+        filterCards: [], // TODO: Use it!
         group: {
           by: '',
           columnsPerSheet: 10,
@@ -337,7 +331,8 @@ const app: () => App = () => ({
         targetSize: {
           height: 1050,
           width: 750
-        }
+        },
+        _cardCount: this.cache.data.cards.length // TODO: Make adaptive!
       });
     },
     reloadDataTable() {
@@ -392,7 +387,7 @@ const app: () => App = () => ({
         const config = loadYaml(await this.cache.files.fileMap.get(filename)!.text());
 
         // TODO: Handling for overwriting, interacting with strings, etc...
-        this.project.settings.config = Alpine.reactive({
+        this.actions.loadConfig({
           ...this.project.settings.config,
           ...config
         });
@@ -480,6 +475,10 @@ const app: () => App = () => ({
 
       this.cache.data.currentShownImage = url;
       img.src = url.toString();
+    },
+    loadConfig(config) {
+      this.cache.config.populated = convertToNestedObject(config);
+      this.cache.config.sorted = Object.entries(config).sort((a, b) => a[0].localeCompare(b[0]));
     }
   }
 });

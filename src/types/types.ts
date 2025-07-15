@@ -53,6 +53,7 @@ export type RenderJob = {
     rowsPerSheet: number,
     columnsPerSheet: number
   } | undefined,
+  _cardCount: number,
   filterCards: RegExp[]
 };
 
@@ -183,5 +184,6 @@ export type AppActions = {
   startEditing: (index: number, type: KeyValue) => void,
   stopEditing: (index: number, type: KeyValue) => void,
   renderJob: (job: RenderJob) => Promise<void>,
-  showImageURL: (url: URL) => void
+  showImageURL: (url: URL) => void,
+  loadConfig: (config: Config) => void
 };

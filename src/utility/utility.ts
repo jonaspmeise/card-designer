@@ -1,4 +1,4 @@
-import { AppState, CsvSettings, ProjectSettings, TemplateFunction } from '../types/types.js';
+import { AppState, CsvSettings, ProjectSettings, RenderJob, TemplateFunction } from '../types/types.js';
 import * as yaml from 'js-yaml';
 
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
@@ -204,7 +204,8 @@ export const applyCardToSvg = async (
   source: string,
   templates: TemplateFunction[],
   card: Record<string, unknown>,
-  app: AppState
+  app: AppState,
+  job: RenderJob = app.cache.jobs.currentJob!
 ): Promise<string> => {
   // Provide a copy of the Card, because this might be modified for a single render step!
   let code: string = source;

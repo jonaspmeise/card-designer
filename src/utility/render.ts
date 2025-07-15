@@ -1,5 +1,11 @@
 import { RenderCardInfo } from "../types/types.js";
 
+export type RenderResult = {
+    image: Blob | undefined,
+    warnings: string[],
+    errors: string[]
+};
+
 /**
  * Renders SVG Code to a Blob representation.
  * 
@@ -13,9 +19,8 @@ import { RenderCardInfo } from "../types/types.js";
  */
 export const render = async (
     code: string,
-    resources: Map<string, string | null> = new Map(),
-    entry?: RenderCardInfo
-): Promise<Blob | undefined> => {
+    resources: Map<string, string | null> = new Map()
+): Promise<RenderResult> => {
     // Inline resources which are referenced via <image href="..."/>
     const matches = Array.from(code.matchAll(/<image[^>]+href="(?<link>[^"]+)"[^>]*>/g));
 
@@ -28,6 +33,9 @@ export const render = async (
 
     console.log(`Found ${externalResources.size} external resources...`);
 
+    
+    const errors: string[] = [];
+    const warnings: string[] = [];
     await Promise.all(
         [...externalResources.keys()].map(async link => {
             // Two-Step-Cache: We load many data, so this map gets very big.
@@ -40,20 +48,32 @@ export const render = async (
             // Initial load: do nothing, just load...
             if (resource === undefined) {
                 resources.set(link, null);
-                base64 = await loadBase64FromURL(link);
+                const response = await loadBase64FromURL(link);
+
+                if(response.base64 === undefined) {
+                    errors.push(response.error!);
+                    return;
+                }
+
+                base64 = response.base64;
+
                 // Fetch value for real, if it has not been loaded yet!
             } else if(resource === null) {
-                base64 = await loadBase64FromURL(link);
-                
-                if(base64 !== undefined) {
-                    resources.set(link, base64);
+                const response = await loadBase64FromURL(link);
+
+                if(response.base64 === undefined) {
+                    errors.push(response.error!);
+                    return;
                 }
+                
+                resources.set(link, response.base64);
+                base64 = response.base64;
             } else {
                 base64 = resource;
             }
 
             if(base64 === undefined) {
-                console.error(`Could not load image!`);
+                errors.push(`Could not load image "${link}"!`);
                 return;
             }
 
@@ -70,19 +90,27 @@ export const render = async (
 
             await img.decode();
         } catch (e) {
-            console.log(`Error occured when rendering svg: ${e}`);
+            errors.push(`Error occured when rendering svg: ${e}`);
             resolve(undefined);
         }
     });
 
     if (img === undefined) {
-        return undefined;
+        return {
+            errors: errors,
+            warnings: warnings,
+            image: undefined
+        };
     }
 
     const canvas = new OffscreenCanvas(img.width, img.height);
     canvas.getContext("2d")!.drawImage(img, 0, 0);
 
-    return await canvas.convertToBlob();
+    return {
+        image: await canvas.convertToBlob(),
+        warnings: warnings,
+        errors: errors
+    };
 }
 
 /**
@@ -105,13 +133,29 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
  * @param link The URL to load the content from.
  * @returns The base64 encoded string of the target resource. {@code undefined} if an error occured.
  */
-const loadBase64FromURL = async (link: string): Promise<string | undefined> => {
-    const response = await fetch(link);
+const loadBase64FromURL = async (link: string): Promise<{
+    base64: string | undefined,
+    error: string | undefined
+}> => {
+    try {
+        const response = await fetch(link);
 
-    if (!response.ok) {
-        return undefined;
+        if (!response.ok) {
+            return {
+                error: `HTTP Error Status (${response.status}) when loading "${link}"`,
+                base64: undefined
+            };
+        }
+
+        const blob = await response.blob();
+        return {
+            base64: await blobToBase64(blob),
+            error: undefined
+        };
+    } catch(e) {
+        return {
+            base64: undefined,
+            error: (e as Error).message
+        };
     }
-
-    const blob = await response.blob();
-    return await blobToBase64(blob);
 };
