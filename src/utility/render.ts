@@ -1,5 +1,3 @@
-import { RenderCardInfo } from "../types/types.js";
-
 export type RenderResult = {
     image: Blob | undefined,
     warnings: string[],
@@ -86,7 +84,10 @@ export const render = async (
             const img = new Image();
             img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(code)}`;
             img.onload = () => resolve(img);
-            img.onerror = () => resolve(undefined);
+            img.onerror = (e) => {
+                errors.push(e.toString());
+                resolve(undefined);
+            }
 
             await img.decode();
         } catch (e) {

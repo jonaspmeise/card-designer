@@ -11,6 +11,7 @@ import { render } from "../utility/render.js";
 
 window['Alpine'] = Alpine;
 
+// TODO: Extract UI methods and model methods into separate class. Clean up!
 const app: () => App = () => ({
   init() {
     // This should still happen with "this" referencing the Alpine instance.
@@ -30,6 +31,8 @@ const app: () => App = () => ({
           }
         })
       });
+
+    this.actions = Alpine.reactive(this.actions);
 
     this.ui.editors.source = sourceEditor(this as App);
     this.ui.editors.compiled = compiledEditor(this as App);
@@ -185,6 +188,12 @@ const app: () => App = () => ({
 
       if (blob.image !== undefined) {
         this.actions.showImageURL(new URL(URL.createObjectURL(blob.image)));
+      }
+      if(blob.errors.length > 0) {
+        console.error(blob.errors);
+      }
+      if(blob.warnings.length > 0) {
+        console.warn(blob.warnings);
       }
     },
     select(card: Card) {
@@ -418,7 +427,6 @@ const app: () => App = () => ({
     isEditing(index, type) {
       return this.cache.config.editing.index === index && this.cache.config.editing.type === type;
     },
-
     startEditing(index, type) {
       this.cache.config.editing.index = index;
       this.cache.config.editing.type = type;
@@ -436,16 +444,20 @@ const app: () => App = () => ({
       let [key, value] = this.cache.config.sorted[index];
 
       if (type === 'key' && this.cache.config.editing.key !== key) {
+        const newKey = this.cache.config.editing.key;
         delete this.project.settings.config[key];
 
-        if (!!key && (key as String).length > 0) {
-          this.project.settings.config[this.cache.config.editing.key] = value;
+        if (!!newKey && (newKey as String).length > 0) {
+          this.project.settings.config[newKey] = value;
         } else {
           console.debug(`Evoking setting "${key}" because it's empty...`)
         }
       } else if (type === 'value') {
         this.project.settings.config[key] = this.cache.config.editing.value;
       }
+
+      // Reload config.
+      this.actions.loadConfig(this.project.settings.config);
 
       this.cache.config.editing.index = undefined;
       this.cache.config.editing.type = undefined;

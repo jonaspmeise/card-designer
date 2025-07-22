@@ -204,8 +204,7 @@ export const applyCardToSvg = async (
   source: string,
   templates: TemplateFunction[],
   card: Record<string, unknown>,
-  app: AppState,
-  job: RenderJob = app.cache.jobs.currentJob!
+  app: AppState
 ): Promise<string> => {
   // Provide a copy of the Card, because this might be modified for a single render step!
   let code: string = source;
@@ -214,7 +213,8 @@ export const applyCardToSvg = async (
     ...card
   };
 
-  templates.forEach(func => {
+  templates.forEach((func, i) => {
+    console.debug(`Translating template function #${i} with parameters ${func.parameters}...`);
     const parameters: unknown[] = func.parameters.map(parameter => {
       if (parameter === 'project') {
         return app.project;
@@ -237,7 +237,8 @@ export const applyCardToSvg = async (
     try {
       code = code.replaceAll(func.source, func.func(...parameters));
     } catch (e) {
-      throw new Error(`Error on function "${func.source}": ${e}`);
+      console.error(`Error on function "${func.source}": ${e}`);
+      // TODO: Communicate error!
     }
   });
 
