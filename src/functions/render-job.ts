@@ -1,8 +1,7 @@
 import JSZip from "jszip";
 import { AppState, Card, RenderJob, TemplateFunction } from "../types/types.js";
-import { applyCardToSvg, divideArray, download, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
+import { applyCardToSvg, download, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
 import { render, RenderResult } from "../utility/render.js";
-import { error } from "console";
 
 type CardsGroup = {
   // Name of the group, by which is ordered.
@@ -18,6 +17,7 @@ export const renderJob = async (
   idColumn: string,
   app: AppState
 ) => {
+  console.debug(`Starting render job...`, job);
   app.actions.showToast({
     body: `Starting render job "${job.name}"...`,
     severity: "primary"
@@ -28,6 +28,7 @@ export const renderJob = async (
   const db: IDBDatabase = await openDb();
   const hashes: Map<unknown, string> = new Map();
 
+  // TODO: RENDER JOB RENDERS 1 CARD TOO MUCH!
   for(let card of cards) {
     const svg = await applyCardToSvg(
       source,
@@ -76,7 +77,8 @@ export const renderJob = async (
   console.log('Creating zip archive...');
 
   if(job.group !== undefined) {
-    // Collect all Card data again to include into a "big canvas" and download that.
+    // Collect all Card data again to include into a "render sheet" and download that.
+    // Only group if there is an actual grouping factor given.
     const possibleGroups: string[] = job.group?.by === undefined
     ? []
     : cards.reduce((prev, curr) => {
@@ -96,19 +98,20 @@ export const renderJob = async (
       name: groupBy
     }));
 
-    const tx = db.transaction("Images", "readonly");
-    
     const allCanvases: Map<unknown, {name: string, canvas: OffscreenCanvas}[]> = new Map();
+
+    console.log(`Created a total of ${groups.length}:`, groups);
 
     // Render each Group into possible multiple canvases.
     await Promise.all(
-      groups.flatMap(group => {
+      groups.map(async group => {
         // Find target canvas, so that we don't exceed the limit!
         allCanvases.set(group.name, []);
-
-        return group.cards.map(async (card, index) => {
+        
+        for(const [index, card] of group.cards.entries()) {
           const canvases = allCanvases.get(group.name)!;
 
+          // TODO: Why +1 here? Test!
           const targetCanvasIndex = Math.floor(index / job.group!.maxElementsPerSheet);
 
           if(targetCanvasIndex >= canvases.length) {
@@ -123,13 +126,15 @@ export const renderJob = async (
           }
 
           const targetCanvas: OffscreenCanvas = canvases[targetCanvasIndex].canvas;
-          const countInCanvas = (index % job.group!.maxElementsPerSheet);
-          const x = countInCanvas % job.group!.rowsPerSheet;
-          const y = Math.floor(countInCanvas / job.group!.rowsPerSheet);
+          const countInCanvas = (index % (job.group!.maxElementsPerSheet - 1));
+          const x = countInCanvas % job.group!.columnsPerSheet;
+          const y = Math.floor(countInCanvas / job.group!.columnsPerSheet);
 
           // Render single card into that canvas!
           const hash = hashes.get(card[idColumn]);
           if(hash !== undefined) {
+            const tx = db.transaction("Images", "readonly");
+    
             const imageBlob = await new Promise<Blob>((resolve, reject) => {
               const request = tx.objectStore("Images").get(hash);
 
@@ -140,12 +145,12 @@ export const renderJob = async (
             const bitmap = await createImageBitmap(imageBlob);
             const ctx = targetCanvas.getContext("2d")!;
 
-            console.debug(`Drawing card "${card[idColumn]}" into Canvas #${targetCanvasIndex} (${canvases[targetCanvasIndex].name})`);
+            console.debug(`Drawing card "${card[idColumn]}" (#${index}) into Canvas #${targetCanvasIndex} (${canvases[targetCanvasIndex].name})`);
             ctx.drawImage(bitmap, x * job.targetSize.width, y * job.targetSize.height);
           } else {
             console.error(`Tried and load image file for card "${card[idColumn]}", but couldn't find it...`);
           }
-        });
+        }
       })
     );
 

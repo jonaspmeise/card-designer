@@ -9,7 +9,7 @@ export type RenderResult = {
  * 
  * @param code The code, which should be rendered. This code should be raw and include no more templates.
  * @param resources A map of hrefs/URLs to their base64-encoded content. This is used to inline external resources,
- * which otherwise could not be loaded due to CORS errors.
+ * which otherwise could not be loaded due to CORS errors. You can pass this so that you share the same resources among multiple render calls.
  * @param entry information about this file, which can be updated within this method. This includes warnings, successes, or errors
  * associated with this render call.
  * 
@@ -31,7 +31,6 @@ export const render = async (
 
     console.log(`Found ${externalResources.size} external resources...`);
 
-    
     const errors: string[] = [];
     const warnings: string[] = [];
     await Promise.all(
@@ -48,14 +47,14 @@ export const render = async (
                 resources.set(link, null);
                 const response = await loadBase64FromURL(link);
 
+                // If an image can't be loaded, so be it - we save it as a warning, but rest of the SVG should be able to be rendered.
                 if(response.base64 === undefined) {
-                    errors.push(response.error!);
+                    warnings.push(response.error!);
                     return;
                 }
-
                 base64 = response.base64;
 
-                // Fetch value for real, if it has not been loaded yet!
+            // Fetch value for real again and cache them, because we encountered them a 2nd time!
             } else if(resource === null) {
                 const response = await loadBase64FromURL(link);
 
@@ -71,7 +70,6 @@ export const render = async (
             }
 
             if(base64 === undefined) {
-                errors.push(`Could not load image "${link}"!`);
                 return;
             }
 
@@ -91,6 +89,7 @@ export const render = async (
 
             await img.decode();
         } catch (e) {
+            // Errors occuring while trying to render the SVG are true errors, because the SVG is probably malformed.
             errors.push(`Error occured when rendering svg: ${e}`);
             resolve(undefined);
         }
@@ -133,29 +132,26 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
  * Loads the content of a link into a base64-encoded string.
  * @param link The URL to load the content from.
  * @returns The base64 encoded string of the target resource. {@code undefined} if an error occured.
+ * Additionally, a warning and/or error is returned.
  */
 const loadBase64FromURL = async (link: string): Promise<{
-    base64: string | undefined,
-    error: string | undefined
+    base64?: string,
+    error?: string
 }> => {
     try {
         const response = await fetch(link);
 
         if (!response.ok) {
             return {
-                error: `HTTP Error Status (${response.status}) when loading "${link}"`,
-                base64: undefined
+                error: `HTTP Error Status (${response.status}) when loading "${link}"`
             };
         }
 
-        const blob = await response.blob();
         return {
-            base64: await blobToBase64(blob),
-            error: undefined
+            base64: await blobToBase64(await response.blob()),
         };
     } catch(e) {
         return {
-            base64: undefined,
             error: (e as Error).message
         };
     }
