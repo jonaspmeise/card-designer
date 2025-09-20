@@ -116,17 +116,26 @@ export const renderJob = async (
 
           if(targetCanvasIndex >= canvases.length) {
             // Create new canvas.
+            const canvas = new OffscreenCanvas(
+                job.targetSize.width * job.group!.columnsPerSheet
+                + (job.group!.columnsPerSheet + 1) // + 1 because with N columns there are N+1 paddings around all columns.
+                  * job.group!.horizontalPadding,
+                job.targetSize.height * job.group!.rowsPerSheet
+                + (job.group!.rowsPerSheet + 1) // + 1 because with N rows there are N+1 paddings around all rows.
+                  * job.group!.verticalPadding
+              );
+            const ctx = canvas.getContext("2d")!;
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             canvases.push({
               name: `${job.name}-${group.name}-${targetCanvasIndex}`,
-              canvas: new OffscreenCanvas(
-                job.targetSize.width * job.group!.columnsPerSheet,
-                job.targetSize.height * job.group!.rowsPerSheet
-              )
+              canvas: canvas
             });
           }
 
           const targetCanvas: OffscreenCanvas = canvases[targetCanvasIndex].canvas;
-          const countInCanvas = (index % (job.group!.maxElementsPerSheet - 1));
+          const countInCanvas = (index % (job.group!.maxElementsPerSheet)); // TODO: -1 here correct?
           const x = countInCanvas % job.group!.columnsPerSheet;
           const y = Math.floor(countInCanvas / job.group!.columnsPerSheet);
 
@@ -146,7 +155,12 @@ export const renderJob = async (
             const ctx = targetCanvas.getContext("2d")!;
 
             console.debug(`Drawing card "${card[idColumn]}" (#${index}) into Canvas #${targetCanvasIndex} (${canvases[targetCanvasIndex].name})`);
-            ctx.drawImage(bitmap, x * job.targetSize.width, y * job.targetSize.height);
+            // Respect horizontal and vertical padding when inserting an image!
+            ctx.drawImage(
+              bitmap,
+              x * job.targetSize.width + (x + 1) * job.group!.horizontalPadding,
+              y * job.targetSize.height + (y + 1) * job.group!.verticalPadding
+            );
           } else {
             console.error(`Tried and load image file for card "${card[idColumn]}", but couldn't find it...`);
           }

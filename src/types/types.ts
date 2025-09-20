@@ -51,7 +51,9 @@ export type RenderJob = {
     by: string,
     maxElementsPerSheet: number,
     rowsPerSheet: number,
-    columnsPerSheet: number
+    columnsPerSheet: number,
+    horizontalPadding: number,
+    verticalPadding: number
   } | undefined,
   _cardCount: number,
   filterCards: RegExp[]

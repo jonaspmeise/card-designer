@@ -335,7 +335,9 @@ const app: () => App = () => ({
           by: '',
           columnsPerSheet: 10,
           maxElementsPerSheet: 69,
-          rowsPerSheet: 7
+          rowsPerSheet: 7,
+          horizontalPadding: 0,
+          verticalPadding: 0
         },
         targetSize: {
           height: 1050,
@@ -489,7 +491,9 @@ const app: () => App = () => ({
       img.src = url.toString();
     },
     loadConfig(config) {
-      this.cache.config.populated = convertToNestedObject(config);
+      const nested = convertToNestedObject(config);
+      this.project.settings.config = nested;
+      this.cache.config.populated = nested;
       this.cache.config.sorted = Object.entries(config).sort((a, b) => a[0].localeCompare(b[0]));
     }
   }
