@@ -45,8 +45,11 @@ export type Size = {
 
 export type RenderJob = {
   name: string,
-  activate: boolean,
+  jobRender: boolean,
   targetSize: Size,
+  // Describes the name of the exported image(s).
+  // This is compatible with the SVGJS injection language.
+  filename: string,
   group: {
     by: string,
     maxElementsPerSheet: number,
@@ -186,6 +189,11 @@ export type AppActions = {
   startEditing: (index: number, type: KeyValue) => void,
   stopEditing: (index: number, type: KeyValue) => void,
   renderJob: (job: RenderJob) => Promise<void>,
-  showImageURL: (url: URL) => void,
+  showImageURL: (url: URL) => void
+   /**
+    * Loads an entire config into the app.
+    * 
+    * @param config The config to be loaded. It is expected to be a simple key -> value map, not a deeply nested object!
+    */
   loadConfig: (config: Config) => void
 };

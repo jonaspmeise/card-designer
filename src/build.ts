@@ -24,7 +24,7 @@ cpSync("./src/client/icon", dist, { recursive: true });
 
 console.log("✅ Copied static assets.");
 
-const INCLUDE_REGEX = /{{\s*([^{}]+)\s*}}/g;
+const INCLUDE_REGEX = /{{\s{1,}([^{}]+)\s{1,}}}/g;
 const processIncludes = (html: string, basePath: string): string => {
   let oldHtml: string;
   let newHtml = html;

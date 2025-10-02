@@ -9,6 +9,9 @@ type CardsGroup = {
   cards: Card[]
 };
 
+const CARD_KEY: Symbol = Symbol('CARD_KEY');
+
+// TODO: Refactor and shrink!
 export const renderJob = async (
   job: RenderJob,
   cards: Card[],
@@ -26,9 +29,9 @@ export const renderJob = async (
 
   const sourceHash = simpleHash(source);
   const db: IDBDatabase = await openDb();
-  const hashes: Map<unknown, string> = new Map();
+  // A mapping between the identifying element per card and the name of the rendered blob object in the session db.
+  const hashes: Map<Card, string> = new Map();
 
-  // TODO: RENDER JOB RENDERS 1 CARD TOO MUCH!
   for(let card of cards) {
     const svg = await applyCardToSvg(
       source,
@@ -60,7 +63,8 @@ export const renderJob = async (
     );
 
     console.debug(`Finished rendering card "${card[idColumn]}"...`);
-    hashes.set(card[idColumn], name);
+    card.CARD_KEY = card[idColumn];
+    hashes.set(card, name);
 
     app.cache.jobs.rendering.elements.push({
       card: card,
@@ -76,7 +80,7 @@ export const renderJob = async (
 
   console.log('Creating zip archive...');
 
-  if(job.group !== undefined) {
+  if(job.jobRender) {
     // Collect all Card data again to include into a "render sheet" and download that.
     // Only group if there is an actual grouping factor given.
     const possibleGroups: string[] = job.group?.by === undefined
@@ -140,7 +144,7 @@ export const renderJob = async (
           const y = Math.floor(countInCanvas / job.group!.columnsPerSheet);
 
           // Render single card into that canvas!
-          const hash = hashes.get(card[idColumn]);
+          const hash = hashes.get(card);
           if(hash !== undefined) {
             const tx = db.transaction("Images", "readonly");
     
@@ -190,5 +194,31 @@ export const renderJob = async (
     });
 
     download(archive, job.name);
+  } else {
+    // We simply download individual pictures!
+    const zip = new JSZip();
+    const tx = db.transaction("Images", "readonly");
+    const response = Array.from(hashes.entries())
+      .map(async ([card, blobname]) => {
+        const imageBlob = await new Promise<Blob>((resolve, reject) => {
+          const request = tx.objectStore("Images").get(blobname);
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        
+        const name = await applyCardToSvg(job.filename, templates, card, app);
+        console.debug(`Filename of card will be "${name}".`);
+
+        zip.file(name, imageBlob);
+      });
+    
+    await Promise.all(response);
+    
+    const archive = await zip.generateAsync({
+      type: 'blob'
+    });
+
+    download(archive, job.name);
   }
-}
+};

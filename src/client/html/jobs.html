@@ -22,14 +22,20 @@
           </div>
         </div>
 
+        <!-- File Name -->
+        <div class="mb-3">
+          <label for="filename" class="form-label">Columns Per Sheet</label>
+          <input type="text" class="form-control" placeholder="{{(card) => card.Name}}.png" id="filename" x-model="job.filename">
+        </div>
+
         <!-- Group Cards Checkbox -->
         <div class="form-check mb-3">
-          <input type="checkbox" class="form-check-input" id="groupCards" x-model="job.activate">
+          <input type="checkbox" class="form-check-input" id="groupCards" x-model="job.jobRender">
           <label class="form-check-label" for="groupCards">Group Cards</label>
         </div>
 
         <!-- Additional Grouping Options -->
-        <div x-show="job.activate">
+        <div x-show="job.jobRender">
           <div class="mb-3">
             <label for="groupBy" class="form-label">Group By</label>
             <select id="idField" x-model="job.group.by">
@@ -61,6 +67,7 @@
         </div>
       </div>
     </div>
+    
     <!-- Show Rendering progress, if available... -->
     <div class="progress" x-show="cache.jobs.rendering.job === job">
       <div class="progress-bar" role="progressbar"

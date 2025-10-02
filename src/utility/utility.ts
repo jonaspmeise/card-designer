@@ -238,7 +238,8 @@ export const applyCardToSvg = async (
       code = code.replaceAll(func.source, func.func(...parameters));
     } catch (e) {
       console.error(`Error on function "${func.source}": ${e}`);
-      // TODO: Communicate error!
+
+      throw(e);
     }
   });
 
@@ -285,3 +286,8 @@ export const download = (blob: Blob, name: string) => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+export const isNested = (obj: Record<string, unknown>) => 
+  Object.values(obj)
+    .filter(v => typeof v === 'object')
+    .length > 0;

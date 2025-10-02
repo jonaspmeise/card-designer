@@ -1,5 +1,5 @@
 import { App, AppState, DialogOptions, RenderJob, ToastOptions, WorkerRenderJob } from "../types/types.js";
-import { applyCardToSvg, byteDecoder, convertToNestedObject, csvToJson, divideArray, extractTemplates, initialSvg, kebapify, loadYaml, openDb, projectFilePattern, saveToSessionDb, simpleHash, templatePattern } from "../utility/utility.js";
+import { applyCardToSvg, byteDecoder, convertToNestedObject, csvToJson, divideArray, extractTemplates, flattenObject, initialSvg, isNested, kebapify, loadYaml, openDb, projectFilePattern, saveToSessionDb, simpleHash, templatePattern } from "../utility/utility.js";
 import { compiledEditor, sourceEditor } from "../editor/editor.js";
 import { isValidUrl } from '../utility/utility.js';
 import Alpine from "alpinejs";
@@ -329,16 +329,10 @@ const app: () => App = () => ({
     addRenderJob() {
       this.project.jobs.push({
         name: 'New Render Job',
-        activate: false,
+        jobRender: false,
         filterCards: [], // TODO: Use it!
-        group: {
-          by: '',
-          columnsPerSheet: 10,
-          maxElementsPerSheet: 69,
-          rowsPerSheet: 7,
-          horizontalPadding: 0,
-          verticalPadding: 0
-        },
+        group: undefined,
+        filename: '{{(card) => card.Name}}.png',
         targetSize: {
           height: 1050,
           width: 750
@@ -427,6 +421,7 @@ const app: () => App = () => ({
       }
     },
     isEditing(index, type) {
+      console.debug(`Checking "isEditing"...`);
       return this.cache.config.editing.index === index && this.cache.config.editing.type === type;
     },
     startEditing(index, type) {
@@ -491,10 +486,18 @@ const app: () => App = () => ({
       img.src = url.toString();
     },
     loadConfig(config) {
+      console.debug(`Loading config:`, config);
+
+      if(isNested(config)) {
+        console.warn('Configuration seems to be nested! Will flatten it...');
+        config = flattenObject(config);
+      }
+
       const nested = convertToNestedObject(config);
       this.project.settings.config = nested;
       this.cache.config.populated = nested;
-      this.cache.config.sorted = Object.entries(config).sort((a, b) => a[0].localeCompare(b[0]));
+      this.cache.config.sorted = Alpine.reactive(Object.entries(config).sort((a, b) => a[0].localeCompare(b[0])));
+      console.warn(config, this.cache.config.sorted);
     }
   }
 });
