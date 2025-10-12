@@ -1,0 +1,95 @@
+<div class="mb-3">
+  <!-- Metadata -->
+  <label for="projectName" class="form-label">Project Name</label>
+  <input type="text" id="projectName" class="form-control" placeholder="My Cardcreator Project"
+    x-model="project.name"></input>
+
+  <!-- Data specific settings -->
+  <div class="mb-3">
+    <label for="idField" class="form-label">ID Column</label>
+    <select id="idField" x-model="project.settings.data.idColumn">
+      <template x-for="(column, index) in cache.data.columns" :key="index">
+        <option x-text="column" :value="column"></option>
+      </template>
+    </select>
+  </div>
+
+  <!-- Datasource specific settings -->
+  <div class="mb-3">
+    <label for="fileUrl" class="form-label">URL or file name for card data</label>
+    <input type="text" id="fileUrl" class="form-control" placeholder="my-game-cards.xlsx"
+      x-model="project.settings.datasource"></input>
+    <span>
+      <div x-show="cache.data.datatype === 'URL'">
+        <i class="fas fa-globe"></i>
+        Is a valid URL
+        <i class="valid fas fa-check"></i>
+        <div>
+          <button @click="actions.loadRemoteData">Load Data</button>
+        </div>
+      </div>
+      <div x-show="cache.data.datatype === 'File'">
+        <i class="fas fa-file"></i>
+        Is a valid file
+        <i class="valid fas fa-check"></i>
+      </div>
+      <div x-show="cache.data.datatype === 'Error'">
+        <i class="invalid fas fa-times"></i>
+        This neither points to a valid file or URL!
+      </div>
+    </span>
+  </div>
+  <div class="mb-3">
+    <div x-show="cache.data.filetype === 'CSV'">
+      <div class="mb-3">
+        <label for="mainSheet" class="form-label">Expression to split CSV fields by</label>
+        <input id="csvSeparator" type="text" class="form-control" placeholder="," x-model="project.settings.csv.separator">
+      </div>
+
+      <div class="mb-3">
+        <label for="mainSheet" class="form-label">Ignore CSV lines that include (regex)</label>
+        <input id="ignoreLineRegex" type="text" class="form-control" placeholder="" x-model="project.settings.csv.ignoreRegex">
+      </div>
+    </div>
+  </div>
+  <!-- Environment Variables -->
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template
+          x-for="([key, value], index) in cache.config.sorted"
+          :key="index"
+        >
+          <tr>
+            <td>
+              <template x-if="!actions.isEditing(index, 'key')">
+                <span @click="actions.startEditing(index, 'key')" x-text="key"></span>
+              </template>
+              <template x-if="actions.isEditing(index, 'key')">
+                <input class="w-100" type="text" x-model="cache.config.editing.key"
+                  @blur="actions.stopEditing(index, 'key')"
+                  @keyup.enter="actions.stopEditing(index, 'key')" autofocus>
+              </template>
+            </td>
+            <td>
+              <template x-if="!actions.isEditing(index, 'value')">
+                <span @click="actions.startEditing(index, 'value')" x-text="value"></span>
+              </template>
+              <template x-if="actions.isEditing(index, 'value')">
+                <input class="w-100" type="text" x-model="cache.config.editing.value"
+                  @blur="actions.stopEditing(index, 'value')"
+                  @keyup.enter="actions.stopEditing(index, 'value')" autofocus>
+              </template>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,111 @@
+<template x-for="(job, index) in project.jobs" :key="index">
+  <div class="mb-3">
+    <div class="d-flex justify-content-between">
+      <button class="btn btn-info" role="button" data-bs-toggle="collapse" :href="`#job-${index}`" aria-expanded="false"
+        :aria-controls="`#job-${index}`" x-text="job.name">
+      </button>
+      <div>
+        <button class="btn btn-info" type="button" x-on:click="actions.renderJob(project.jobs[index])">Render</button>
+        <button class="btn btn-danger" type="button" x-on:click="project.jobs.splice(index, 1)"><i
+          class="fas fa-trash"></i></button>
+      </div>
+    </div>
+    <div class="collapse" :id="`job-${index}`">
+      <div class="card card-body">
+        <!-- Image Size Input -->
+        <div class="mb-3">
+          <label for="imageSize" class="form-label">Image Size (px)</label>
+          <div class="input-group">
+            <input type="number" class="form-control" placeholder="Width" x-model="job.targetSize.width">
+            <span class="input-group-text">x</span>
+            <input type="number" class="form-control" placeholder="Height" x-model="job.targetSize.height">
+          </div>
+        </div>
+
+        <!-- File Name -->
+        <div class="mb-3">
+          <label for="filename" class="form-label">Columns Per Sheet</label>
+          <input type="text" class="form-control" placeholder="{{(card) => card.Name}}.png" id="filename" x-model="job.filename">
+        </div>
+
+        <!-- Group Cards Checkbox -->
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="groupCards" x-model="job.jobRender">
+          <label class="form-check-label" for="groupCards">Group Cards</label>
+        </div>
+
+        <!-- Additional Grouping Options -->
+        <div x-show="job.jobRender">
+          <div class="mb-3">
+            <label for="groupBy" class="form-label">Group By</label>
+            <select id="idField" x-model="job.group.by">
+              <template x-for="(column, index) in cache.data.columns" :key="index">
+                <option x-text="column" :value="column"></option>
+              </template>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="columnsPerSheet" class="form-label">Columns Per Sheet</label>
+            <input type="number" class="form-control" id="columnsPerSheet" x-model="job.group.columnsPerSheet">
+          </div>
+          <div class="mb-3">
+            <label for="rowsPerSheet" class="form-label">Rows Per Sheet</label>
+            <input type="number" class="form-control" id="rowsPerSheet" x-model="job.group.rowsPerSheet">
+          </div>
+          <div class="mb-3">
+            <label for="maxElementsPerSheet" class="form-label">Max. Elements per Sheet</label>
+            <input type="number" class="form-control" id="maxElementsPerSheet" x-model="job.group.maxElementsPerSheet">
+          </div>
+          <div class="mb-3">
+            <label for="horizontalPadding" class="form-label">Horizontal Padding (px)</label>
+            <input type="number" class="form-control" id="horizontalPadding" x-model="job.group.horizontalPadding">
+          </div>
+          <div class="mb-3">
+            <label for="verticalPadding" class="form-label">Vertical Padding (px)</label>
+            <input type="number" class="form-control" id="verticalPadding" x-model="job.group.verticalPadding">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Show Rendering progress, if available... -->
+    <div class="progress" x-show="cache.jobs.rendering.job === job">
+      <div class="progress-bar" role="progressbar"
+        :style="`width: ${Math.floor((cache.jobs.rendering.finished / cache.data.cards.length) * 100)}`"
+        :aria-valuenow="cache.jobs.rendering.finished" aria-valuemin="0" :aria-valuemax="cache.data.cards.length"></div>
+    </div>
+  </div>
+</template>
+<button class="btn btn-success" x-on:click="actions.addRenderJob()">Add Render Job</button>
+
+
+<!-- Job Execution -->
+<template x-if="cache.jobs.rendering.job !== undefined">
+  <div class="mt-3">
+    <label x-text="`Current Render: ${cache.jobs.rendering.job.name}`"></label>
+    <ul>
+      <template x-for="(info, index) in cache.jobs.rendering.elements" :key="index">
+        <li>
+          <label x-text="info.card[project.settings.data.idColumn]"></label>
+          <button @click="window.open(info.card.url)" style="cursor: pointer;" :alt="info.card[project.settings.data.idColumn]" :disabled="info.errors.length > 0">Download Image</button>
+
+          <template x-if="info.warnings.length > 0">
+            <div>
+              <i class="fas fa-exclamation-triangle"></i>
+              <span x-text="`${info.warnings.length} Warnings`" data-bs-toggle="tooltip" data-bs-placement="bottom" :title="info.warnings.join('\n')">
+              </span>
+            </div>
+          </template>
+
+          <template x-if="info.errors.length > 0">
+            <div>
+              <i class="fas fa-times-circle"></i>
+              <span x-text="`${info.errors.length} Errors`" data-bs-toggle="tooltip" data-bs-placement="bottom" :title="info.errors.join('\n')">
+              </span>
+            </div>
+          </template>
+        </li>
+      </template>
+    </ul>
+  </div>
+</template>

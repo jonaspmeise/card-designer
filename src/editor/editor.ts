@@ -1,11 +1,10 @@
 import { EditorView, basicSetup } from "codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { svgjsLanguage } from "../utility/svgjs.js";
-import { update } from "../client/script.js";
 import { initialSvg } from "../utility/utility.js";
+import { App } from "../types/types.js";
 
-// SOURCE EDITOR
-export const sourceEditor = new EditorView({
+export const sourceEditor = (app: App) => new EditorView({
   parent: document.getElementById('source-editor')!,
   doc: initialSvg,
   extensions: [
@@ -15,10 +14,6 @@ export const sourceEditor = new EditorView({
     EditorView.theme({
       "&": {
         height: "100%"
-      },
-      ".cm-scroller": {
-        overflow: "auto",
-        fontFamily: "monospace"
       }
     }),
     EditorView.updateListener.of((e) => {
@@ -26,14 +21,13 @@ export const sourceEditor = new EditorView({
         return;
       }
       
-      update(e.state.doc.toString(), 'code');
+      app.actions.updateSourceCode(e.state.doc.toString(), false);
     })
   ]
 });
 
-// COMPILE EDITOR
-export const compilerEditor = new EditorView({
-  parent: document.getElementById('compile-editor')!,
+export const compiledEditor = (app: App) => new EditorView({
+  parent: document.getElementById('compiled-editor')!,
   doc: initialSvg,
   extensions: [
     basicSetup,
@@ -42,10 +36,6 @@ export const compilerEditor = new EditorView({
     EditorView.theme({
       "&": {
         height: "100%"
-      },
-      ".cm-scroller": {
-        overflow: "auto",
-        fontFamily: "monospace"
       }
     }),
     EditorView.updateListener.of((e) => {
@@ -53,7 +43,7 @@ export const compilerEditor = new EditorView({
         return;
       }
       
-      update(e.state.doc.toString(), '_target');
+      app.cache.code.compiled = e.state.doc.toString();
     })
   ]
 });

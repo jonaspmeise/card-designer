@@ -2,8 +2,8 @@
   "name": "card-designer",
   "version": "1.0.0",
   "scripts": {
-    "clean-ts-temp": "rimraf ts-temp",
-    "webpack": "bun run clean-ts-temp && bun run tsc && webpack --config webpack.config.cjs",
+    "clean-ts-temp": "rm -rf ts-temp",
+    "build": "bun ./src/build.ts",
     "test": "bun test \".spec.ts\""
   },
   "type": "module",
@@ -12,13 +12,7 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@happy-dom/global-registrator": "^18.0.1",
-    "@types/bun": "^1.2.16",
-    "copy-webpack-plugin": "^13.0.0",
-    "terser-webpack-plugin": "^5.3.14",
-    "typescript": "^5.8.3",
-    "webpack": "^5.99.9",
-    "webpack-cli": "^6.0.1"
+    "@types/bun": "^1.2.16"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.4",
@@ -27,9 +21,13 @@
     "@codemirror/rangeset": "^0.19.9",
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.2",
+    "@types/alpinejs": "^3.13.11",
+    "@types/js-yaml": "^4.0.9",
     "@types/xlsx": "^0.0.36",
+    "alpinejs": "^3.14.9",
     "codemirror": "^6.0.1",
-    "happy-dom": "^18.0.1",
+    "js-yaml": "^4.1.0",
+    "jszip": "^3.10.1",
     "xlsx": "^0.18.5"
   }
 }

@@ -6,6 +6,10 @@ html {
     overflow: hidden;
 }
 
+body {
+    padding: 25px;
+}
+
 .workspace {
     display: flex;
     height: 100vh;
@@ -48,39 +52,12 @@ button {
     background-color: white;
 }
 
-.scrollable-list {
-    max-height: 300px;
-    /* Set a max height for the list */
-    overflow-y: auto;
-    /* Enable vertical scrolling */
-    border: 1px solid #dee2e6;
-    /* Add a border for better visual */
-    border-radius: 0.25rem;
-    /* Round the corners */
+#upper {
+    height: 0.66vh;
 }
 
-/* Style for list items */
-.list-group-item {
-    cursor: pointer;
-    /* Change cursor to pointer on hover */
-    transition: background-color 0.2s;
-    /* Smooth transition for background color */
-}
-
-/* Highlight selected item */
-.list-group-item.selected {
-    background-color: #0d6efd;
-    color: white;
-}
-
-/* Hover effect for list items */
-.list-group-item:hover {
-    background-color: orange;
-}
-
-.selected {
-    background-color: orange;
-    color: black;
+#data-table {
+    height: 0.33vh;
 }
 
 #code-editor {
@@ -89,4 +66,20 @@ button {
 
 #svg-preview {
     overflow: auto;
+}
+
+.valid {
+    color: green;
+}
+
+.invalid {
+    color: red;
+}
+
+.table tbody tr.highlight td {
+    background-color: orange;
+}
+
+.file-entry {
+    cursor: pointer;
 }
