@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { AppState, Card, RenderJob, TemplateFunction } from "../types/types.js";
-import { applyCardToSvg, download, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
+import { applyCardToSvg, download, extractTemplates, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
 import { render, RenderResult } from "../utility/render.js";
 
 type CardsGroup = {
@@ -132,8 +132,11 @@ export const renderJob = async (
             ctx.fillStyle = "#000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            const name = await applyCardToSvg(job.filename, extractTemplates(job.filename), card, app);
+            console.debug(`Canvas name will be "${name}"...`, job.filename, extractTemplates(job.filename));
+
             canvases.push({
-              name: `${job.name}-${group.name}-${targetCanvasIndex}`,
+              name: name,
               canvas: canvas
             });
           }
