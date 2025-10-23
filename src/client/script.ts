@@ -331,7 +331,14 @@ const app: () => App = () => ({
         name: 'New Render Job',
         jobRender: false,
         filterCards: [], // TODO: Use it!
-        group: undefined,
+        group: {
+          by: '',
+          columnsPerSheet: 1,
+          horizontalPadding: 0,
+          maxElementsPerSheet: 1,
+          rowsPerSheet: 1,
+          verticalPadding: 0
+        },
         filename: '{{(card) => card.Name}}.png',
         targetSize: {
           height: 1050,
