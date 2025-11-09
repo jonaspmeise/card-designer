@@ -150,10 +150,11 @@ const app: () => App = () => ({
       });
     },
     async loadRemoteData() {
+      console.debug(`Loading data from remote...`);
       this.cache.data.isLoading = true;
 
       await loadRemoteData(
-        new URL(this.project.settings.datasource!),
+        this.project.settings.datasource!,
         this as AppState
       );
 
@@ -167,12 +168,20 @@ const app: () => App = () => ({
         }
       }
 
-      let code = await applyCardToSvg(
+      let code = applyCardToSvg(
         this.project.code.source,
         this.cache.code.templateFunctions,
         this.cache.data.selectedCard ?? {},
         this
       );
+
+      if(code === undefined) {
+        this.actions.showToast({
+          severity: 'warning',
+          body: 'Render was skipped, because an error with text "skip" was thrown somewhere!'
+        });
+        return;
+      }
 
       this.cache.code.compiled = code;
 
@@ -190,10 +199,18 @@ const app: () => App = () => ({
         this.actions.showImageURL(new URL(URL.createObjectURL(blob.image)));
       }
       if(blob.errors.length > 0) {
-        console.error(blob.errors);
+        console.error(blob.warnings);
+        this.actions.showToast({
+          severity: 'danger',
+          body: blob.errors.join('\n')
+        });
       }
       if(blob.warnings.length > 0) {
         console.warn(blob.warnings);
+        this.actions.showToast({
+          severity: 'danger',
+          body: blob.errors.join('\n')
+        });
       }
     },
     select(card: Card) {
@@ -205,10 +222,26 @@ const app: () => App = () => ({
     },
     async loadFiles(files: FileList) {
       this.cache.files.fileMap.clear();
-
-      // Check whether a project setting file exists!
       const fileArray = Array.from(files);
 
+      let folderName: string | undefined = undefined;
+
+      this.project.files.loadedFilteredFiles = fileArray.map(f => {
+        // Remove first folder, because it's always identical!
+        const splits = f.webkitRelativePath.split('/');
+
+        if (folderName === undefined) {
+          folderName = splits[0];
+        }
+
+        const fileName = splits.slice(1).join('/');
+
+        this.cache.files.fileMap.set(fileName, f);
+
+        return fileName;
+      });
+
+      // Check whether a project setting file exists!
       const potentialFiles = fileArray.filter(file => projectFilePattern.test(file.name));
 
       if (potentialFiles.length > 0) {
@@ -239,22 +272,7 @@ const app: () => App = () => ({
         }
       }
 
-      let folderName: string | undefined = undefined;
-
-      this.project.files.loadedFilteredFiles = fileArray.map(f => {
-        // Remove first folder, because it's always identical!
-        const splits = f.webkitRelativePath.split('/');
-
-        if (folderName === undefined) {
-          folderName = splits[0];
-        }
-
-        const fileName = splits.slice(1).join('/');
-
-        this.cache.files.fileMap.set(fileName, f);
-
-        return fileName;
-      }).filter(name => {
+      this.project.files.loadedFilteredFiles = this.project.files.loadedFilteredFiles.filter(name => {
         // Filter out files that match any blacklist entry!
         return this.project.settings.files.blacklist.find(blacklistEntry => name.indexOf(blacklistEntry) >= 0) === undefined;
       });
@@ -348,10 +366,12 @@ const app: () => App = () => ({
       });
     },
     reloadDataTable() {
+      console.debug(`Reloading data table with data...`);
       const data = this.cache.files.remoteRawData;
 
       this.cache.data.cards = (() => {
         if (this.cache.data.filetype === 'JSON') {
+          console.debug(`Loading JSON...`, data);
           const jsonData: unknown[] = JSON.parse(byteDecoder.decode(data));
 
           if (!Array.isArray(jsonData)) {
@@ -360,10 +380,12 @@ const app: () => App = () => ({
 
           return jsonData;
         } else if (this.cache.data.filetype === 'CSV') {
+          console.debug(`Loading CSV...`);
           const csvData = byteDecoder.decode(data);
 
           return csvToJson(csvData, this.project.settings.csv);
         } else if (this.cache.data.filetype === 'XLSX') {
+          console.debug(`Loading XLSX...`);
           const workbook = XLSX.read(data, { type: 'array' });
 
           if (this.project.settings.xlsx.mainSheet === undefined && workbook.SheetNames.length > 1) {
@@ -374,6 +396,8 @@ const app: () => App = () => ({
           const worksheet = workbook.Sheets[sheetName];
 
           return XLSX.utils.sheet_to_json(worksheet);
+        } else {
+          throw new Error(`Filetype "${this.cache.data.filetype}" could not be loaded!`);
         }
 
         return [];
@@ -390,6 +414,8 @@ const app: () => App = () => ({
       if (this.project.settings?.data?.idColumn === undefined) {
         this.project.settings.data.idColumn = this.cache.data.columns[0];
       }
+
+      console.debug(`Loaded ${this.cache.data.cards.length} entries.`, this.cache.data.cards);
     },
     async loadFile(filename) {
       console.info('Load file', filename);
@@ -428,8 +454,10 @@ const app: () => App = () => ({
       }
     },
     isEditing(index, type) {
-      console.debug(`Checking "isEditing"...`);
-      return this.cache.config.editing.index === index && this.cache.config.editing.type === type;
+      const value = this.cache.config.editing.index === index && this.cache.config.editing.type === type;
+
+      console.debug(`Checking "isEditing"...`, index, type, value);
+      return value;
     },
     startEditing(index, type) {
       this.cache.config.editing.index = index;

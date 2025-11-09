@@ -7,7 +7,7 @@ export type RenderResult = {
 /**
  * Renders SVG Code to a Blob representation.
  * 
- * @param code The code, which should be rendered. This code should be raw and include no more templates.
+ * @param code The code, which should be rendered. This code should be final and include no more templates.
  * @param resources A map of hrefs/URLs to their base64-encoded content. This is used to inline external resources,
  * which otherwise could not be loaded due to CORS errors. You can pass this so that you share the same resources among multiple render calls.
  * @param entry information about this file, which can be updated within this method. This includes warnings, successes, or errors

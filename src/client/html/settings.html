@@ -62,30 +62,37 @@
         </tr>
       </thead>
       <tbody>
-        <template
-          x-for="([key, value], index) in cache.config.sorted"
-          :key="index"
-        >
-          <tr>
+        <template x-for="([key, value], index) in cache.config.sorted" :key="index">
+          <tr x-data="{ i:index }">
+            <div x-effect="console.error('editing?', i, actions.isEditing(i,'key'), actions.isEditing(i,'value'))"></div>
             <td>
-              <template x-if="!actions.isEditing(index, 'key')">
-                <span @click="actions.startEditing(index, 'key')" x-text="key"></span>
-              </template>
-              <template x-if="actions.isEditing(index, 'key')">
-                <input class="w-100" type="text" x-model="cache.config.editing.key"
-                  @blur="actions.stopEditing(index, 'key')"
-                  @keyup.enter="actions.stopEditing(index, 'key')" autofocus>
-              </template>
+              <span x-cloak
+                    x-show="!actions.isEditing(i,'key')"
+                    @click="actions.startEditing(i,'key')"
+                    x-text="key"></span>
+
+              <input x-cloak
+                    x-show="actions.isEditing(i,'key')"
+                    class="w-100" type="text"
+                    x-model="cache.config.editing.key"
+                    @blur="actions.stopEditing(i,'key')"
+                    @keyup.enter="actions.stopEditing(i,'key')"
+                    x-init="$nextTick(() => $el.focus())">
             </td>
+
             <td>
-              <template x-if="!actions.isEditing(index, 'value')">
-                <span @click="actions.startEditing(index, 'value')" x-text="value"></span>
-              </template>
-              <template x-if="actions.isEditing(index, 'value')">
-                <input class="w-100" type="text" x-model="cache.config.editing.value"
-                  @blur="actions.stopEditing(index, 'value')"
-                  @keyup.enter="actions.stopEditing(index, 'value')" autofocus>
-              </template>
+              <span x-cloak
+                    x-show="!actions.isEditing(i,'value')"
+                    @click="actions.startEditing(i,'value')"
+                    x-text="value"></span>
+
+              <input x-cloak
+                    x-show="actions.isEditing(i,'value')"
+                    class="w-100" type="text"
+                    x-model="cache.config.editing.value"
+                    @blur="actions.stopEditing(i,'value')"
+                    @keyup.enter="actions.stopEditing(i,'value')"
+                    x-init="$nextTick(() => $el.focus())">
             </td>
           </tr>
         </template>
