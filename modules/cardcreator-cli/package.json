@@ -1,0 +1,19 @@
+{
+  "name": "cardcreator-cli",
+  "version": "1.0.0",
+  "bin": {
+    "cardcreator": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "cardcreator-library": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.16",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "cardcreator-library",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.16",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
