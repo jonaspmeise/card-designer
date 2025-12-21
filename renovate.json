@@ -1,0 +1,53 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base", ":dependencyDashboard", ":semanticCommits"],
+  "major": {
+    "enabled": true
+  },
+  "minor": {
+    "enabled": true
+  },
+  "patch": {
+    "enabled": true
+  },
+  "digest": {
+    "enabled": true
+  },
+  "pin": {
+    "enabled": true
+  },
+  "semanticCommits": true,
+  "commitMessagePrefix": "chore(deps):",
+  "commitMessageAction": "update",
+  "prConcurrentLimit": 3,
+  "prCreation": "in-range",
+  "schedule": ["before 3am on Monday"],
+  "timezone": "Europe/Berlin",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  },
+  "packageRules": [
+    {
+      "description": "Disable updates for devDependencies in non-test files",
+      "matchDepTypes": ["devDependencies"],
+      "excludePackageNames": ["@types/bun"],
+      "enabled": true,
+      "automerge": false
+    },
+    {
+      "description": "Auto-merge minor and patch updates for test dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    }
+  ],
+  "npm": {
+    "enabled": true
+  },
+  "bun": {
+    "enabled": true
+  }
+}

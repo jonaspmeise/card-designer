@@ -11,7 +11,7 @@ import { EventBus } from './core/event-bus';
 import { LoggerRegistry } from './core/logger-registry';
 import { CommandDispatcher } from './interaction/command-dispatcher';
 import { InMemoryAssetCache } from './core/cache';
-import type { ILogger, ICardRenderer, IAssetCache } from './types/domain';
+import type { Logger, CardRenderer, AssetCache } from './types/domain';
 import type { CardCreatorEvent, CardCreatorEventTypeMap } from './types/events';
 
 /**
@@ -19,13 +19,13 @@ import type { CardCreatorEvent, CardCreatorEventTypeMap } from './types/events';
  */
 export interface CardCreatorConfig {
   /** Logger instance (optional; uses default if not provided) */
-  logger?: ILogger;
+  logger?: Logger;
 
   /** Card renderer implementation (required) */
-  renderer: ICardRenderer;
+  renderer: CardRenderer;
 
   /** Asset cache implementation (optional; uses InMemoryAssetCache if not provided) */
-  cache?: IAssetCache;
+  cache?: AssetCache;
 }
 
 /**
@@ -64,7 +64,7 @@ export class CardCreatorLibrary {
   private readonly dispatcher: CommandDispatcher;
 
   /** Logger instance */
-  private readonly logger: ILogger;
+  private readonly logger: Logger;
 
   /** Configuration */
   private readonly config: CardCreatorConfig;
@@ -104,55 +104,25 @@ export class CardCreatorLibrary {
   }
 
   /**
-   * Subscribe to events.
-   *
-   * @param eventType - The type of event to listen for (single event)
-   * @param handler - Function to call when event is published
-   * @param options - Subscription options
-   * @returns Unsubscribe function
-   */
-  on<K extends keyof CardCreatorEventTypeMap>(
-    eventType: K,
-    handler: (event: CardCreatorEventTypeMap[K]) => void | Promise<void>,
-    options?: { priority?: number; once?: boolean }
-  ): () => void;
-
-  /**
    * Subscribe to multiple events with a conjunction handler.
+   * Events are processed once all required event types have been published.
    *
    * @param eventTypes - Array of event types to listen for
    * @param handler - Function to call when all events have been published
-   * @param options - Subscription options
    * @returns Unsubscribe function
+   *
+   * @example
+   * ```typescript
+   * library.on(['projectLoaded', 'fileOpened'], (projectEvent, fileEvent) => {
+   *   console.log('Both events occurred');
+   * });
+   * ```
    */
   on(
     eventTypes: (keyof CardCreatorEventTypeMap)[],
-    handler: (...events: CardCreatorEvent[]) => void | Promise<void>,
-    options?: { priority?: number; once?: boolean }
-  ): () => void;
-
-  on(
-    eventTypeOrTypes: any,
-    handler: any,
-    options?: { priority?: number; once?: boolean }
+    handler: (...events: any[]) => void | Promise<void>
   ): () => void {
-    return this.eventBus.on(eventTypeOrTypes, handler, options);
-  }
-
-  /**
-   * Subscribe to one-time event.
-   *
-   * @param eventType - The type of event to listen for
-   * @param handler - Function to call when event is published
-   * @param options - Subscription options
-   * @returns Unsubscribe function to remove the listener before it fires
-   */
-  once<K extends keyof CardCreatorEventTypeMap>(
-    eventType: K,
-    handler: (event: CardCreatorEventTypeMap[K]) => void | Promise<void>,
-    options?: { priority?: number }
-  ): () => void {
-    return this.eventBus.once(eventType, handler, options);
+    return this.eventBus.on(eventTypes, handler);
   }
 
   /**
@@ -231,7 +201,7 @@ export class CardCreatorLibrary {
    *
    * @returns The logger instance
    */
-  getLogger(): ILogger {
+  getLogger(): Logger {
     return this.logger;
   }
 
@@ -240,7 +210,7 @@ export class CardCreatorLibrary {
    *
    * @returns The asset cache instance
    */
-  getCache(): IAssetCache {
+  getCache(): AssetCache {
     return this.config.cache!;
   }
 
@@ -260,9 +230,9 @@ export class CardCreatorLibrary {
 
 export {
   // Types
-  type ILogger,
-  type ICardRenderer,
-  type IAssetCache,
+  type Logger,
+  type CardRenderer,
+  type AssetCache,
   Asset,
   InMemoryAsset,
   RemoteAsset,

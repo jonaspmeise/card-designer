@@ -100,6 +100,26 @@ export interface ErrorEvent extends DomainEvent {
 }
 
 // ============================================================================
+// HISTORY EVENTS
+// ============================================================================
+
+export interface HistoryDoEvent extends DomainEvent {
+  readonly type: 'historyDo';
+  readonly commandId: string;
+  readonly commandType: string;
+  readonly position: number;
+  readonly totalSize: number;
+}
+
+export interface HistoryUndoEvent extends DomainEvent {
+  readonly type: 'historyUndo';
+  readonly commandId: string;
+  readonly commandType: string;
+  readonly position: number;
+  readonly totalSize: number;
+}
+
+// ============================================================================
 // UNION TYPES
 // ============================================================================
 
@@ -116,7 +136,9 @@ export type CardCreatorEvent =
   | CardRenderStartedEvent
   | CardRenderFinishedEvent
   | AssetLoadedEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | HistoryDoEvent
+  | HistoryUndoEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.
@@ -135,6 +157,8 @@ export interface CardCreatorEventTypeMap {
   cardRenderFinished: CardRenderFinishedEvent;
   assetLoaded: AssetLoadedEvent;
   error: ErrorEvent;
+  historyDo: HistoryDoEvent;
+  historyUndo: HistoryUndoEvent;
 }
 
 // Type-level assertion to ensure completeness
@@ -152,5 +176,7 @@ const _assertEventTypeCompleteness: {
   cardRenderFinished: true,
   assetLoaded: true,
   error: true,
+  historyDo: true,
+  historyUndo: true,
 };
 

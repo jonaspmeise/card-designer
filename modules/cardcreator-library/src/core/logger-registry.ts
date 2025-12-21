@@ -8,14 +8,14 @@
  * @module LoggerRegistry
  */
 
-import type { ILogger } from '../types/domain';
+import type { Logger } from '../types/domain';
 
 /**
  * Console-based logger implementation.
  * Used as the default logger when no custom implementation is registered.
  * Suitable for development but should be replaced with a production logger.
  */
-class DefaultLogger implements ILogger {
+class DefaultLogger implements Logger {
   debug(message: string, context?: Record<string, unknown>): void {
     console.debug(`[DEBUG] ${message}`, context ?? {});
   }
@@ -61,7 +61,7 @@ class DefaultLogger implements ILogger {
  */
 export class LoggerRegistry {
   /** Global logger instance */
-  private static instance: ILogger = new DefaultLogger();
+  private static instance: Logger = new DefaultLogger();
 
   /**
    * Set the logger instance for the entire library.
@@ -73,7 +73,7 @@ export class LoggerRegistry {
    * LoggerRegistry.setLogger(myWinstonLogger);
    * ```
    */
-  static setLogger(logger: ILogger): void {
+  static setLogger(logger: Logger): void {
     if (!logger) {
       throw new Error('Logger cannot be null or undefined');
     }
@@ -91,7 +91,7 @@ export class LoggerRegistry {
    * logger.info('This is an info message');
    * ```
    */
-  static getLogger(): ILogger {
+  static getLogger(): Logger {
     return LoggerRegistry.instance;
   }
 

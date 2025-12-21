@@ -21,7 +21,8 @@ import type {
   RenderCardResult,
 } from './commands';
 import type { EventBus } from '../core/event-bus';
-import type { ILogger, ICardRenderer, IAssetCache } from '../types/domain';
+import type { Logger, CardRenderer, AssetCache } from '../types/domain';
+import { RemoteAsset, FileAsset } from '../types/domain';
 import { LoggerRegistry } from '../core/logger-registry';
 
 /**
@@ -52,7 +53,7 @@ export abstract class CommandHandler<
   R = unknown
 > {
   /** Logger instance for diagnostic output */
-  protected logger: ILogger;
+  protected logger: Logger;
 
   /** Event bus for publishing domain events */
   protected eventBus: EventBus;
@@ -63,7 +64,7 @@ export abstract class CommandHandler<
    * @param eventBus - The event bus for publishing events
    * @param logger - Optional logger instance (uses default if not provided)
    */
-  constructor(eventBus: EventBus, logger?: ILogger) {
+  constructor(eventBus: EventBus, logger?: Logger) {
     this.eventBus = eventBus;
     this.logger = logger ?? LoggerRegistry.getLogger();
   }
@@ -308,7 +309,7 @@ export class LoadProjectHandler extends CommandHandler<
  */
 export class LoadAssetHandler extends CommandHandler<LoadAssetCommand, LoadAssetResult> {
   /** Asset cache for storing loaded assets */
-  private cache: IAssetCache;
+  private cache: AssetCache;
 
   /**
    * Create a new LoadAsset handler.
@@ -317,7 +318,7 @@ export class LoadAssetHandler extends CommandHandler<LoadAssetCommand, LoadAsset
    * @param cache - The asset cache
    * @param logger - Optional logger instance
    */
-  constructor(eventBus: any, cache: IAssetCache, logger?: ILogger) {
+  constructor(eventBus: any, cache: AssetCache, logger?: Logger) {
     super(eventBus, logger);
     this.cache = cache;
   }
@@ -345,10 +346,17 @@ export class LoadAssetHandler extends CommandHandler<LoadAssetCommand, LoadAsset
       // Store in cache
       await this.cache.set(asset);
 
+      // Determine source type
+      let source: 'memory' | 'remote' | 'file' = 'memory';
+      if (asset instanceof RemoteAsset) {
+        source = 'remote';
+      } else if (asset instanceof FileAsset) {
+        source = 'file';
+      }
+
       const result: LoadAssetResult = {
         assetId: asset.id,
         mimeType: asset.mimeType,
-        location: asset.getLocation(),
         loadedAt: new Date(),
       };
 
@@ -357,14 +365,14 @@ export class LoadAssetHandler extends CommandHandler<LoadAssetCommand, LoadAsset
         type: 'assetLoaded',
         assetId: asset.id,
         assetType: asset.name,
-        source: asset.getLocation().split('://')[0] as 'memory' | 'remote' | 'file',
+        source,
         timestamp: new Date(),
         correlationId: command.correlationId,
       });
 
       this.logger.info('Asset loaded successfully', {
         assetId: asset.id,
-        location: asset.getLocation(),
+        source,
         size: assetData.length,
       });
 
@@ -380,7 +388,7 @@ export class LoadAssetHandler extends CommandHandler<LoadAssetCommand, LoadAsset
         source: 'asset',
         sourceId: asset.id,
         message: `Failed to load asset: ${asset.name}`,
-        suggestion: `Check that the asset location is accessible: ${asset.getLocation()}`,
+        suggestion: `Check that the asset ${asset.name} can be loaded from its source`,
         error: err,
         timestamp: new Date(),
         correlationId: command.correlationId,
@@ -480,7 +488,7 @@ export class RenderCardHandler extends CommandHandler<
   RenderCardResult
 > {
   /** Card renderer for converting SVG to output formats */
-  private renderer: ICardRenderer;
+  private renderer: CardRenderer;
 
   /**
    * Create a new RenderCard handler.
@@ -489,7 +497,7 @@ export class RenderCardHandler extends CommandHandler<
    * @param renderer - The card renderer implementation
    * @param logger - Optional logger instance
    */
-  constructor(eventBus: any, renderer: ICardRenderer, logger?: ILogger) {
+  constructor(eventBus: any, renderer: CardRenderer, logger?: Logger) {
     super(eventBus, logger);
     this.renderer = renderer;
   }

@@ -1,4 +1,4 @@
-@startuml CardCreator Architecture
+ @startuml CardCreator Architecture
 
 !define ACCENT #FF6B6B
 !define PRIMARY #4ECDC4
@@ -14,17 +14,17 @@ skinparam packageBorderColor DARK
 skinparam arrowColor DARK
 
 package "CardCreator Ecosystem" {
-  
+
   package "CLI Module" {
     component [CLI] as CLI
   }
-  
+
   package "WebApp Module" {
     component [WebApp] as WEBAPP
   }
-  
+
   package "CardCreator Library" {
-    
+
     package "Public API Layer" {
       component [CardCreatorLibrary] as MAIN_API
       note on link MAIN_API
@@ -32,12 +32,12 @@ package "CardCreator Ecosystem" {
         Orchestrates all components
       end note
     }
-    
+
     package "Interaction Layer" {
       component [CommandDispatcher] as DISPATCHER
       component [CommandHandlers] as HANDLERS
       component [Commands] as COMMANDS
-      
+
       DISPATCHER --> HANDLERS: routes
       HANDLERS --> COMMANDS: processes
       note on link DISPATCHER
@@ -46,43 +46,43 @@ package "CardCreator Ecosystem" {
         Correlation tracking
       end note
     }
-    
+
     package "Core Components" {
       component [EventBus] as EVENTBUS
       component [LoggerRegistry] as LOGGER
       component [Asset Cache] as CACHE
-      
+
       note on link EVENTBUS
         Event publishing/subscription
         Multi-event (conjunction) handlers
         Priority-based execution
       end note
-      
+
       note on link LOGGER
         Singleton pattern
         Custom logger injection
       end note
-      
+
       note on link CACHE
         Multiple implementations
         InMemory, LRU, NoOp
       end note
     }
-    
+
     package "Domain Types" {
       component [Events] as EVENTS
       component [Domain Interfaces] as DOMAIN
-      
+
       note on link EVENTS
         JobStarted/Finished
         ProjectLoaded/FileOpened
         CardRenderStarted/Finished
         AssetLoaded, Error
       end note
-      
+
       note on link DOMAIN
-        ILogger, ICardRenderer
-        IAssetCache, Asset classes
+        Logger, CardRenderer
+        AssetCache, Asset classes
       end note
     }
   }
@@ -111,9 +111,9 @@ CLI -.->|subscribes to| EVENTBUS
 WEBAPP -.->|subscribes to| EVENTBUS
 
 legend right
-  Event Flow -----> 
-  Dependency ....-> 
-  Usage -----> 
+  Event Flow ----->
+  Dependency ....->
+  Usage ----->
 end legend
 
 @enduml

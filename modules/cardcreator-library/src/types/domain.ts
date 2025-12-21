@@ -4,17 +4,14 @@
  */
 
 // ============================================================================
-// HANDLER OPTIONS
+// OUTPUT FORMAT TYPE
 // ============================================================================
 
 /**
- * Common options for event handler registration.
- * Abstracted to avoid repetition across the codebase.
+ * Union type for supported output formats.
+ * Used for rendering cards and assets to various file types.
  */
-export interface HandlerOptions {
-  readonly priority?: number;
-  readonly once?: boolean;
-}
+export type OutputFormat = 'png' | 'jpg' | 'pdf' | 'xlsx' | 'json' | 'csv' | 'yml' | 'yaml';
 
 // ============================================================================
 // LOGGER INTERFACE
@@ -25,12 +22,39 @@ export interface HandlerOptions {
  * Implementations can route logs to file, console, cloud services, etc.
  * Follows common logging patterns (debug, info, warn, error, fatal).
  */
-export interface ILogger {
+export interface Logger {
   debug(message: string, context?: Record<string, unknown>): void;
   info(message: string, context?: Record<string, unknown>): void;
   warn(message: string, context?: Record<string, unknown>): void;
   error(message: string, error?: Error, context?: Record<string, unknown>): void;
   fatal(message: string, error?: Error, context?: Record<string, unknown>): void;
+}
+
+// ============================================================================
+// FILE HANDLER INTERFACE
+// ============================================================================
+
+/**
+ * File handler interface for loading files from various sources.
+ * Allows different implementations for CLI (native fs) and webapp (File API).
+ */
+export interface FileHandler {
+  /**
+   * Load a file from a given path or file reference.
+   *
+   * @param path - File path or identifier (depends on implementation)
+   * @returns Promise resolving to the file contents as bytes
+   * @throws Error if file cannot be read
+   */
+  loadFile(path: string): Promise<Uint8Array>;
+
+  /**
+   * Check if a file exists at the given path.
+   *
+   * @param path - File path to check
+   * @returns True if the file exists, false otherwise
+   */
+  fileExists(path: string): Promise<boolean>;
 }
 
 // ============================================================================
@@ -41,7 +65,7 @@ export interface ILogger {
  * Card renderer interface for converting SVG content to rendered output.
  * Implementations might use Puppeteer, Skia, or other rendering engines.
  */
-export interface ICardRenderer {
+export interface CardRenderer {
   /**
    * Renders an SVG string to a byte array in the specified format.
    *
@@ -50,7 +74,7 @@ export interface ICardRenderer {
    * @returns Promise resolving to the rendered bytes
    * @throws Error if rendering fails
    */
-  render(svg: string, format: string): Promise<Uint8Array>;
+  render(svg: string, format: OutputFormat): Promise<Uint8Array>;
 
   /**
    * Checks if this renderer supports the given output format.
@@ -59,7 +83,7 @@ export interface ICardRenderer {
    * @param format - The desired output format
    * @returns True if supported, false otherwise
    */
-  supports(format: string): boolean;
+  supports(format: OutputFormat): boolean;
 }
 
 // ============================================================================
@@ -91,12 +115,6 @@ export abstract class Asset {
    * @returns Promise resolving to the asset bytes
    */
   abstract load(): Promise<Uint8Array>;
-
-  /**
-   * Get a string representation of the asset location.
-   * Used for logging and debugging.
-   */
-  abstract getLocation(): string;
 }
 
 /**
@@ -116,10 +134,6 @@ export class InMemoryAsset extends Asset {
     return new Uint8Array(
       binaryString.split('').map((char: string) => char.charCodeAt(0))
     );
-  }
-
-  getLocation(): string {
-    return `memory://${this.id}`;
   }
 }
 
@@ -141,10 +155,6 @@ export class RemoteAsset extends Asset {
       throw new Error(`Failed to fetch asset from ${this.url}: ${response.statusText}`);
     }
     return new Uint8Array(await response.arrayBuffer());
-  }
-
-  getLocation(): string {
-    return this.url;
   }
 }
 
@@ -168,10 +178,6 @@ export class FileAsset extends Asset {
     const fs = await import('fs/promises');
     return new Uint8Array(await fs.readFile(this.filePath));
   }
-
-  getLocation(): string {
-    return `file://${this.filePath}`;
-  }
 }
 
 // ============================================================================
@@ -183,7 +189,7 @@ export class FileAsset extends Asset {
  * Implementations can use memory, disk, Redis, or other backends.
  * Enables performance optimization through asset reuse.
  */
-export interface IAssetCache {
+export interface AssetCache {
   /**
    * Store an asset in the cache.
    *
@@ -217,7 +223,9 @@ export interface IAssetCache {
   delete(assetId: string): Promise<void>;
 
   /**
-   * Clear all assets from the cache.
+   * Clear assets from the cache.
+   * If eventType is provided, only clear handlers for that event type.
+   * If not provided, clear all handlers.
    */
   clear(): void;
 

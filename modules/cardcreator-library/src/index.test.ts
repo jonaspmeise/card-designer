@@ -5,16 +5,16 @@
  * @module Tests
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { EventBus } from './core/event-bus';
 import { LoggerRegistry } from './core/logger-registry';
 import { InMemoryAssetCache, LRUAssetCache, NoOpAssetCache } from './core/cache';
 import { CommandDispatcher } from './interaction/command-dispatcher';
 import { CardCreatorLibrary } from './index';
 import type {
-  ILogger,
-  ICardRenderer,
-  IAssetCache,
+  Logger,
+  CardRenderer,
+  AssetCache,
   Asset,
 } from './types/domain';
 import type { CardCreatorEvent, CardCreatorEventTypeMap } from './types/events';
@@ -26,7 +26,7 @@ import type { CardCreatorEvent, CardCreatorEventTypeMap } from './types/events';
 /**
  * Mock logger for testing.
  */
-const createMockLogger = (): ILogger => ({
+const createMockLogger = (): Logger => ({
   info: () => {},
   debug: () => {},
   warn: () => {},
@@ -37,7 +37,7 @@ const createMockLogger = (): ILogger => ({
 /**
  * Mock card renderer for testing.
  */
-const createMockRenderer = (): ICardRenderer => ({
+const createMockRenderer = (): CardRenderer => ({
   render: async () => Buffer.from('mocked-svg'),
   supports: () => true,
 });
@@ -73,7 +73,7 @@ describe('EventBus', () => {
     eventBus.clear();
   });
 
-  it('should register and execute single event handlers', async () => {
+  test('should register and execute single event handlers', async () => {
     let handlerCalled = false;
 
     eventBus.on('projectLoaded', () => {
@@ -91,7 +91,7 @@ describe('EventBus', () => {
     expect(handlerCalled).toBe(true);
   });
 
-  it('should execute handlers in priority order', async () => {
+  test('should execute handlers in priority order', async () => {
     const executionOrder: number[] = [];
 
     eventBus.on(
@@ -129,7 +129,7 @@ describe('EventBus', () => {
     expect(executionOrder).toEqual([3, 2, 1]);
   });
 
-  it('should support once option for single-fire handlers', async () => {
+  test('should support once option for single-fire handlers', async () => {
     let callCount = 0;
 
     eventBus.on(
@@ -159,7 +159,7 @@ describe('EventBus', () => {
     expect(callCount).toBe(1);
   });
 
-  it('should support unsubscribe function', async () => {
+  test('should support unsubscribe function', async () => {
     let callCount = 0;
 
     const unsubscribe = eventBus.on('projectLoaded', () => {
@@ -189,7 +189,7 @@ describe('EventBus', () => {
     expect(callCount).toBe(1);
   });
 
-  it('should support multi-event conjunction handlers', async () => {
+  test('should support multi-event conjunction handlers', async () => {
     let conjunctionFired = false;
 
     eventBus.on(['projectLoaded', 'fileOpened'], () => {
@@ -218,7 +218,7 @@ describe('EventBus', () => {
     expect(conjunctionFired).toBe(true);
   });
 
-  it('should handle errors in event handlers', async () => {
+  test('should handle errors in event handlers', async () => {
     let errorHandlerCalled = false;
     let capturedError: Error | undefined;
 
@@ -240,17 +240,18 @@ describe('EventBus', () => {
     });
 
     expect(errorHandlerCalled).toBe(true);
-    expect(capturedError?.message).toBe('Handler error');
+    expect(capturedError).toBeDefined();
+    expect(capturedError!.message).toBe('Handler error');
   });
 
-  it('should get handler count for event type', () => {
+  test('should get handler count for event type', () => {
     eventBus.on('projectLoaded', () => {});
     eventBus.on('projectLoaded', () => {});
 
     expect(eventBus.getHandlerCount('projectLoaded')).toBe(2);
   });
 
-  it('should clear all handlers and error listeners', async () => {
+  test('should clear all handlers and error listeners', async () => {
     let handlerCalled = false;
 
     eventBus.on('projectLoaded', () => {
@@ -270,7 +271,7 @@ describe('EventBus', () => {
     expect(handlerCalled).toBe(false);
   });
 
-  it('should support async event handlers', async () => {
+  test('should support async event handlers', async () => {
     let asyncHandlerCalled = false;
 
     eventBus.on('projectLoaded', async () => {
@@ -298,12 +299,12 @@ describe('LoggerRegistry', () => {
     LoggerRegistry.setLogger(createMockLogger());
   });
 
-  it('should return default logger if none set', () => {
+  test('should return default logger if none set', () => {
     const logger = LoggerRegistry.getLogger();
     expect(logger).toBeDefined();
   });
 
-  it('should set and retrieve custom logger', () => {
+  test('should set and retrieve custom logger', () => {
     const customLogger = createMockLogger();
     LoggerRegistry.setLogger(customLogger);
 
@@ -323,7 +324,7 @@ describe('InMemoryAssetCache', () => {
     cache = new InMemoryAssetCache();
   });
 
-  it('should set and get assets', async () => {
+  test('should set and get assets', async () => {
     const asset = createMockAsset('asset-1');
     await cache.set(asset);
 
@@ -331,7 +332,7 @@ describe('InMemoryAssetCache', () => {
     expect(retrieved).toBe(asset);
   });
 
-  it('should check asset existence', async () => {
+  test('should check asset existence', async () => {
     const asset = createMockAsset('asset-1');
     await cache.set(asset);
 
@@ -339,7 +340,7 @@ describe('InMemoryAssetCache', () => {
     expect(cache.has('non-existent')).toBe(false);
   });
 
-  it('should delete assets', async () => {
+  test('should delete assets', async () => {
     const asset = createMockAsset('asset-1');
     await cache.set(asset);
 
@@ -348,14 +349,14 @@ describe('InMemoryAssetCache', () => {
     expect(cache.has('asset-1')).toBe(false);
   });
 
-  it('should return cache size', async () => {
+  test('should return cache size', async () => {
     await cache.set(createMockAsset('asset-1'));
     await cache.set(createMockAsset('asset-2'));
 
     expect(cache.size()).toBe(2);
   });
 
-  it('should clear all assets', async () => {
+  test('should clear all assets', async () => {
     await cache.set(createMockAsset('asset-1'));
     await cache.set(createMockAsset('asset-2'));
 
@@ -372,7 +373,7 @@ describe('LRUAssetCache', () => {
     cache = new LRUAssetCache(3);
   });
 
-  it('should evict least recently used items when full', async () => {
+  test('should evict least recently used items when full', async () => {
     await cache.set(createMockAsset('asset-1'));
     await cache.set(createMockAsset('asset-2'));
     await cache.set(createMockAsset('asset-3'));
@@ -387,12 +388,12 @@ describe('LRUAssetCache', () => {
     expect(cache.has('asset-1')).toBe(true);
   });
 
-  it('should throw error if maxSize is invalid', () => {
+  test('should throw error if maxSize is invalid', () => {
     expect(() => new LRUAssetCache(0)).toThrow();
     expect(() => new LRUAssetCache(-1)).toThrow();
   });
 
-  it('should mark items as recently used on get', async () => {
+  test('should mark items as recently used on get', async () => {
     await cache.set(createMockAsset('asset-1'));
     await cache.set(createMockAsset('asset-2'));
     await cache.set(createMockAsset('asset-3'));
@@ -415,7 +416,7 @@ describe('NoOpAssetCache', () => {
     cache = new NoOpAssetCache();
   });
 
-  it('should not cache any assets', async () => {
+  test('should not cache any assets', async () => {
     const asset = createMockAsset('asset-1');
     await cache.set(asset);
 
@@ -423,7 +424,7 @@ describe('NoOpAssetCache', () => {
     expect(retrieved).toBeUndefined();
   });
 
-  it('should always report no assets cached', async () => {
+  test('should always report no assets cached', async () => {
     const asset = createMockAsset('asset-1');
     await cache.set(asset);
 
@@ -457,7 +458,7 @@ describe('CommandDispatcher', () => {
     eventBus.clear();
   });
 
-  it('should dispatch loadFile commands', async () => {
+  test('should dispatch loadFile commands', async () => {
     try {
       await dispatcher.dispatch({
         type: 'loadFile',
@@ -474,7 +475,7 @@ describe('CommandDispatcher', () => {
     }
   });
 
-  it('should dispatch loadProject commands', async () => {
+  test('should dispatch loadProject commands', async () => {
     try {
       await dispatcher.dispatch({
         type: 'loadProject',
@@ -490,7 +491,7 @@ describe('CommandDispatcher', () => {
     }
   });
 
-  it('should create command context with correlation ID', () => {
+  test('should create command context with correlation ID', () => {
     const context = dispatcher.createContext();
     const correlationId = context.getCorrelationId();
 
@@ -498,7 +499,7 @@ describe('CommandDispatcher', () => {
     expect(correlationId.length).toBeGreaterThan(0);
   });
 
-  it('should create loadFile command from context', () => {
+  test('should create loadFile command from context', () => {
     const context = dispatcher.createContext();
     const command = context.loadFile('/path/to/file', 'proj-1');
 
@@ -508,7 +509,7 @@ describe('CommandDispatcher', () => {
     expect(command.correlationId).toBe(context.getCorrelationId());
   });
 
-  it('should throw error for unknown command type', async () => {
+  test('should throw error for unknown command type', async () => {
     let errorThrown = false;
     try {
       await dispatcher.dispatch({
@@ -541,7 +542,7 @@ describe('CardCreatorLibrary', () => {
     });
   });
 
-  it('should require renderer in configuration', () => {
+  test('should require renderer in configuration', () => {
     expect(() => {
       new CardCreatorLibrary({
         renderer: null as any,
@@ -549,7 +550,7 @@ describe('CardCreatorLibrary', () => {
     }).toThrow();
   });
 
-  it('should use default cache if not provided', () => {
+  test('should use default cache if not provided', () => {
     const lib = new CardCreatorLibrary({
       renderer,
     });
@@ -558,7 +559,7 @@ describe('CardCreatorLibrary', () => {
     expect(cache).toBeDefined();
   });
 
-  it('should accept custom cache in configuration', () => {
+  test('should accept custom cache in configuration', () => {
     const customCache = new LRUAssetCache(100);
     const lib = new CardCreatorLibrary({
       renderer,
@@ -568,7 +569,7 @@ describe('CardCreatorLibrary', () => {
     expect(lib.getCache()).toBe(customCache);
   });
 
-  it('should register event handlers', async () => {
+  test('should register event handlers', async () => {
     let handlerCalled = false;
 
     library.on('jobStarted', () => {
@@ -589,7 +590,7 @@ describe('CardCreatorLibrary', () => {
     expect(handlerCalled).toBe(true);
   });
 
-  it('should support once event subscriptions', async () => {
+  test('should support once event subscriptions', async () => {
     let callCount = 0;
 
     library.once('jobStarted', () => {
@@ -601,7 +602,7 @@ describe('CardCreatorLibrary', () => {
     expect(callCount).toBe(0);
   });
 
-  it('should subscribe to error events', async () => {
+  test('should subscribe to error events', async () => {
     let errorHandlerCalled = false;
 
     library.onError(() => {
@@ -623,27 +624,27 @@ describe('CardCreatorLibrary', () => {
     expect(errorHandlerCalled).toBe(true);
   });
 
-  it('should create command context with correlation ID', () => {
+  test('should create command context with correlation ID', () => {
     const context = library.createContext();
     expect(context.getCorrelationId()).toBeDefined();
   });
 
-  it('should provide access to event bus', () => {
+  test('should provide access to event bus', () => {
     const eventBus = library.getEventBus();
     expect(eventBus).toBeDefined();
   });
 
-  it('should provide access to logger', () => {
+  test('should provide access to logger', () => {
     const logger = library.getLogger();
     expect(logger).toBeDefined();
   });
 
-  it('should provide access to cache', () => {
+  test('should provide access to cache', () => {
     const cache = library.getCache();
     expect(cache).toBeDefined();
   });
 
-  it('should execute loadFile command', async () => {
+  test('should execute loadFile command', async () => {
     const context = library.createContext();
     try {
       await library.execute(
@@ -655,7 +656,7 @@ describe('CardCreatorLibrary', () => {
     }
   });
 
-  it('should execute loadProject command', async () => {
+  test('should execute loadProject command', async () => {
     const context = library.createContext();
     try {
       await library.execute(context.loadProject('/path/to/project'));
@@ -665,7 +666,7 @@ describe('CardCreatorLibrary', () => {
     }
   });
 
-  it('should support multi-event conjunction subscriptions', async () => {
+  test('should support multi-event conjunction subscriptions', async () => {
     let conjunctionFired = false;
 
     library.on(['projectLoaded', 'fileOpened'], () => {
@@ -684,7 +685,7 @@ describe('CardCreatorLibrary', () => {
 // ============================================================================
 
 describe('Edge Cases and Error Handling', () => {
-  it('should handle rapid fire events', async () => {
+  test('should handle rapid fire events', async () => {
     const eventBus = new EventBus(createMockLogger());
     let callCount = 0;
 
@@ -711,7 +712,7 @@ describe('Edge Cases and Error Handling', () => {
     eventBus.clear();
   });
 
-  it('should handle handlers that throw', async () => {
+  test('should handle handlers that throw', async () => {
     const eventBus = new EventBus(createMockLogger());
     let errorCount = 0;
 
@@ -739,7 +740,7 @@ describe('Edge Cases and Error Handling', () => {
     eventBus.clear();
   });
 
-  it('should handle very large event data', async () => {
+  test('should handle very large event data', async () => {
     const eventBus = new EventBus(createMockLogger());
     let received = false;
 

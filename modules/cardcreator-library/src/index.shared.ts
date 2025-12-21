@@ -7,9 +7,9 @@
 
 export {
   // Domain interfaces
-  type ILogger,
-  type ICardRenderer,
-  type IAssetCache,
+  type Logger,
+  type CardRenderer,
+  type AssetCache,
   Asset,
   InMemoryAsset,
   RemoteAsset,

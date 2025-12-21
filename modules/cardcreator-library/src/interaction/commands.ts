@@ -5,7 +5,7 @@
  * @module Commands
  */
 
-import type { Asset } from '../types/domain';
+import type { Asset, OutputFormat } from '../types/domain';
 
 /**
  * Base interface for all commands.
@@ -13,8 +13,9 @@ import type { Asset } from '../types/domain';
  */
 export interface Command {
   readonly id: string;
-  readonly timestamp: Date;
   readonly correlationId: string;
+  readonly do: () => Promise<void>;
+  readonly undo: () => Promise<void>;
 }
 
 // ============================================================================
@@ -80,7 +81,6 @@ export interface LoadAssetCommand extends Command {
 export interface LoadAssetResult {
   readonly assetId: string;
   readonly mimeType: string;
-  readonly location: string;
   readonly loadedAt: Date;
 }
 
@@ -119,7 +119,7 @@ export interface RenderCardCommand extends Command {
   readonly type: 'renderCard';
   readonly cardId: string;
   readonly svg: string;
-  readonly format: string; // 'png', 'jpg', 'pdf', etc
+  readonly format: OutputFormat;
 }
 
 /**

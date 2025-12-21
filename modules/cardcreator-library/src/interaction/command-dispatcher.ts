@@ -23,7 +23,7 @@ import {
   RenderCardHandler,
 } from './command-handler';
 import type { EventBus } from '../core/event-bus';
-import type { ILogger, ICardRenderer, IAssetCache } from '../types/domain';
+import type { Logger, CardRenderer, AssetCache } from '../types/domain';
 import { LoggerRegistry } from '../core/logger-registry';
 
 /**
@@ -75,13 +75,13 @@ export class CommandDispatcher {
   private readonly eventBus: EventBus;
 
   /** Logger instance */
-  private readonly logger: ILogger;
+  private readonly logger: Logger;
 
   /** Card renderer */
-  private readonly renderer: ICardRenderer;
+  private readonly renderer: CardRenderer;
 
   /** Asset cache */
-  private readonly cache: IAssetCache;
+  private readonly cache: AssetCache;
 
   /** Handler instances */
   private readonly loadFileHandler: LoadFileHandler;
@@ -107,9 +107,9 @@ export class CommandDispatcher {
    */
   constructor(options: {
     eventBus: EventBus;
-    renderer: ICardRenderer;
-    cache: IAssetCache;
-    logger?: ILogger;
+    renderer: CardRenderer;
+    cache: AssetCache;
+    logger?: Logger;
   }) {
     this.eventBus = options.eventBus;
     this.renderer = options.renderer;
@@ -209,10 +209,11 @@ export class CommandDispatcher {
       loadFile: (filePath: string, projectId: string): LoadFileCommand => ({
         type: 'loadFile',
         id: generateId(),
-        timestamp: new Date(),
         correlationId,
         filePath,
         projectId,
+        do: async () => {},
+        undo: async () => {},
       }),
 
       /**
@@ -221,9 +222,10 @@ export class CommandDispatcher {
       loadProject: (projectPath: string): LoadProjectCommand => ({
         type: 'loadProject',
         id: generateId(),
-        timestamp: new Date(),
         correlationId,
         projectPath,
+        do: async () => {},
+        undo: async () => {},
       }),
 
       /**
@@ -232,9 +234,10 @@ export class CommandDispatcher {
       loadAsset: (asset: any) => ({
         type: 'loadAsset' as const,
         id: generateId(),
-        timestamp: new Date(),
         correlationId,
         asset,
+        do: async () => {},
+        undo: async () => {},
       }),
 
       /**
@@ -248,12 +251,13 @@ export class CommandDispatcher {
       ): UpdateSourceCommand => ({
         type: 'updateSource',
         id: generateId(),
-        timestamp: new Date(),
         correlationId,
         sourceId,
         sourceType,
         newContent,
         previousContent,
+        do: async () => {},
+        undo: async () => {},
       }),
 
       /**
@@ -262,11 +266,12 @@ export class CommandDispatcher {
       renderCard: (cardId: string, svg: string, format: string): RenderCardCommand => ({
         type: 'renderCard',
         id: generateId(),
-        timestamp: new Date(),
         correlationId,
         cardId,
         svg,
-        format,
+        format: format as any, // TODO: validate this is a valid OutputFormat
+        do: async () => {},
+        undo: async () => {},
       }),
 
       /**

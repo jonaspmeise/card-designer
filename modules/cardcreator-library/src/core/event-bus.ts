@@ -25,25 +25,10 @@ function generateId(): string {
 }
 
 /**
- * Handler function that processes a single event type.
- */
-type EventHandler<T extends DomainEvent> = (event: T) => void | Promise<void>;
-
-/**
  * Handler function that processes multiple event types (conjunction).
  * This allows reacting to a specific combination of events.
  */
 type ConjunctionHandler = (...events: DomainEvent[]) => void | Promise<void>;
-
-/**
- * Internal handler registration for a single event type.
- */
-interface HandlerRegistration<T extends DomainEvent> {
-  id: string;
-  handler: EventHandler<T>;
-  priority: number;
-  once: boolean;
-}
 
 /**
  * Internal registration for conjunction handlers (multiple event types).
@@ -52,7 +37,6 @@ interface ConjunctionRegistration {
   id: string;
   eventTypes: string[];
   handler: ConjunctionHandler;
-  priority: number;
   collectedEvents: Map<string, DomainEvent>;
 }
 
@@ -62,18 +46,11 @@ interface ConjunctionRegistration {
  * Features:
  * - Type-safe event publishing and subscription
  * - Multi-event handlers with automatic conjunction resolution
- * - Handler priorities for execution ordering
- * - One-time handlers with automatic cleanup
  * - Error handling and propagation to error listeners
  *
  * @example
  * ```typescript
  * const eventBus = new EventBus(logger);
- *
- * // Single event handler
- * eventBus.on('projectLoaded', (event) => {
- *   console.log(`Project ${event.projectName} loaded`);
- * });
  *
  * // Multi-event handler (conjunction)
  * eventBus.on(['projectLoaded', 'fileOpened'], (projectEvent, fileEvent) => {
@@ -91,14 +68,12 @@ interface ConjunctionRegistration {
  * ```
  */
 export class EventBus {
-  /** Single-event handlers mapped by event type */
-  private readonly handlers = new Map<string, HandlerRegistration<any>[]>();
-
-  /** Conjunction handlers for multi-event subscriptions */
-  private readonly conjunctionHandlers: ConjunctionRegistration[] = [];
+  /** Handles for all kind of events. */
+  private readonly handlerRegistry: Map<DomainEvent['type'], Set<ConjunctionRegistration>> =
+    new Map();
 
   /** Logger instance for event bus operations */
-  private readonly logger: any; // ILogger interface
+  private readonly logger: any;
 
   /** Handlers for unhandled errors in listeners */
   private readonly errorHandlers: ((error: Error, event?: CardCreatorEvent) => void)[] = [];
@@ -113,145 +88,53 @@ export class EventBus {
   }
 
   /**
-   * Subscribe to an event or multiple events.
+   * Subscribe to multiple events at the same time.
    *
-   * For single event:
-   * @param eventType - The type of event to listen for
-   * @param handler - Function to call when event is published
-   * @param options - Subscription options
-   * @returns Unsubscribe function to remove the handler
-   *
-   * For multiple events (conjunction):
-   * @param eventTypes - Array of event types to listen for
-   * @param handler - Function to call when all events have been published
-   * @param options - Subscription options
-   * @returns Unsubscribe function to remove the handler
+   * @param eventTypes - Array of event types to listen for.
+   * @param handler - Function to call when any of the specified events is called.
+   * @returns Unsubscribe function to remove the handler.
    *
    * @example
    * ```typescript
-   * // Single event
-   * const unsubscribe = eventBus.on('projectLoaded', (event) => {
-   *   console.log(event);
-   * });
-   *
-   * // Multiple events (conjunction)
    * eventBus.on(
    *   ['projectLoaded', 'fileOpened'],
    *   (projectEvent, fileEvent) => {
-   *     console.log('Both events occurred');
+   *     console.log('Project was loaded or file was loaded!');
    *   }
    * );
    * ```
    */
-  on<K extends keyof CardCreatorEventTypeMap>(
-    eventType: K,
-    handler: EventHandler<CardCreatorEventTypeMap[K]>,
-    options?: { priority?: number; once?: boolean }
-  ): () => void;
-
-  on(
-    eventTypes: (keyof CardCreatorEventTypeMap)[],
-    handler: ConjunctionHandler,
-    options?: { priority?: number; once?: boolean }
-  ): () => void;
-
-  on(
-    eventTypeOrTypes: any,
-    handler: any,
-    options?: { priority?: number; once?: boolean }
+  on<E extends keyof CardCreatorEventTypeMap>(
+    eventTypes: E[],
+    handler: CardCreatorEventTypeMap[E]
   ): () => void {
-    // Handle multi-event (conjunction) case
-    if (Array.isArray(eventTypeOrTypes)) {
-      const eventTypes = eventTypeOrTypes as string[];
-      const registrationId = generateId();
-      const priority = options?.priority ?? 0;
-      const once = options?.once ?? false;
+    const eventTypeStrings = eventTypes as string[];
+    const registrationId = generateId();
 
-      const registration: ConjunctionRegistration = {
-        id: registrationId,
-        eventTypes,
-        handler,
-        priority,
-        collectedEvents: new Map(),
-      };
-
-      this.conjunctionHandlers.push(registration);
-      // Sort by priority
-      this.conjunctionHandlers.sort((a, b) => b.priority - a.priority);
-
-      this.logger?.debug(`Conjunction handler registered for events: ${eventTypes.join(', ')}`, {
-        registrationId,
-        priority,
-        once,
-      });
-
-      // Return unsubscribe function
-      return () => {
-        const index = this.conjunctionHandlers.findIndex((h) => h.id === registrationId);
-        if (index >= 0) {
-          this.conjunctionHandlers.splice(index, 1);
-          this.logger?.debug(`Conjunction handler unsubscribed`, { registrationId });
-        }
-      };
-    }
-
-    // Handle single-event case
-    const handlerId = generateId();
-    const priority = options?.priority ?? 0;
-    const once = options?.once ?? false;
-
-    const registration: HandlerRegistration<any> = {
-      id: handlerId,
+    const registration: ConjunctionRegistration = {
+      id: registrationId,
+      eventTypes: eventTypeStrings,
       handler,
-      priority,
-      once,
+      collectedEvents: new Map(),
     };
 
-    const eventHandlers = this.handlers.get(eventTypeOrTypes as string) ?? [];
-    eventHandlers.push(registration);
-    // Sort by priority (higher priority first)
-    eventHandlers.sort((a, b) => b.priority - a.priority);
-    this.handlers.set(eventTypeOrTypes as string, eventHandlers);
+    this.conjunctionHandlers.push(registration);
 
-    this.logger?.debug(`Handler registered for event: ${eventTypeOrTypes as string}`, {
-      handlerId,
-      priority,
-      once,
-    });
+    this.logger?.debug(
+      `Conjunction handler registered for events: ${eventTypeStrings.join(', ')}`,
+      {
+        registrationId,
+      }
+    );
 
     // Return unsubscribe function
     return () => {
-      const handlers = this.handlers.get(eventTypeOrTypes as string);
-      if (handlers) {
-        const index = handlers.findIndex((h) => h.id === handlerId);
-        if (index >= 0) {
-          handlers.splice(index, 1);
-          this.logger?.debug(`Handler unsubscribed from event: ${eventTypeOrTypes as string}`, {
-            handlerId,
-          });
-        }
+      const index = this.conjunctionHandlers.findIndex((h) => h.id === registrationId);
+      if (index >= 0) {
+        this.conjunctionHandlers.splice(index, 1);
+        this.logger?.debug(`Conjunction handler unsubscribed`, { registrationId });
       }
     };
-  }
-
-  /**
-   * Subscribe to an event that fires only once, then automatically unsubscribes.
-   *
-   * @param eventType - The type of event to listen for
-   * @param handler - Function to call when event is published
-   * @param options - Subscription options
-   * @returns Unsubscribe function to remove the handler before it fires
-   */
-  once<K extends keyof CardCreatorEventTypeMap>(
-    eventType: K,
-    handler: EventHandler<CardCreatorEventTypeMap[K]>,
-    options?: { priority?: number }
-  ): () => void {
-    const unsubscribe = this.on(eventType, handler, {
-      ...options,
-      once: true,
-    });
-    return unsubscribe;
   }
 
   /**
@@ -272,7 +155,7 @@ export class EventBus {
 
   /**
    * Publish an event to all registered handlers.
-   * Executes handlers in priority order and handles errors gracefully.
+   * Executes handlers in registration order and handles errors gracefully.
    *
    * @param event - The event to publish
    * @throws Never throws; errors are passed to error handlers
@@ -296,24 +179,6 @@ export class EventBus {
     });
 
     try {
-      // Execute single-event handlers
-      const handlers = this.handlers.get(eventType) ?? [];
-      for (const registration of handlers) {
-        try {
-          await registration.handler(event);
-
-          // Remove one-time handlers
-          if (registration.once) {
-            const index = handlers.indexOf(registration);
-            if (index >= 0) {
-              handlers.splice(index, 1);
-            }
-          }
-        } catch (error) {
-          this._emitError(error as Error, event);
-        }
-      }
-
       // Process conjunction handlers
       for (const registration of this.conjunctionHandlers) {
         registration.collectedEvents.set(eventType, event);
@@ -343,24 +208,36 @@ export class EventBus {
   }
 
   /**
-   * Get the number of handlers registered for a specific event type.
-   *
-   * @param eventType - The event type to check
-   * @returns Number of handlers
-   */
-  getHandlerCount(eventType: keyof CardCreatorEventTypeMap): number {
-    return this.handlers.get(eventType as string)?.length ?? 0;
-  }
-
-  /**
-   * Clear all handlers and error listeners.
+   * Clear all handlers and error listeners, optionally for a specific event type.
    * Useful for testing and cleanup.
+   *
+   * @param eventType - Optional event type to clear handlers for. If not provided, clears all handlers.
    */
-  clear(): void {
-    this.handlers.clear();
-    this.conjunctionHandlers.length = 0;
-    this.errorHandlers.length = 0;
-    this.logger?.debug('EventBus cleared');
+  clear(eventType?: keyof CardCreatorEventTypeMap): void {
+    if (eventType) {
+      const eventTypeStr = eventType as string;
+      // Filter to keep only registrations that don't have this event type
+      const remainingHandlers = this.conjunctionHandlers.filter((registration) => {
+        const index = registration.eventTypes.indexOf(eventTypeStr);
+        if (index >= 0) {
+          // Remove the event type from this registration
+          registration.eventTypes.splice(index, 1);
+          registration.collectedEvents.delete(eventTypeStr);
+          // If no event types left, don't keep this registration
+          return registration.eventTypes.length > 0;
+        }
+        return true; // Keep registrations that don't have this event type
+      });
+
+      // Truncate the array and add back the remaining handlers
+      this.conjunctionHandlers.length = 0;
+      this.conjunctionHandlers.push(...remainingHandlers);
+      this.logger?.debug(`EventBus cleared for event type: ${eventTypeStr}`);
+    } else {
+      this.conjunctionHandlers.length = 0;
+      this.errorHandlers.length = 0;
+      this.logger?.debug('EventBus cleared');
+    }
   }
 
   /**

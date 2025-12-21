@@ -4,7 +4,7 @@
  * @module Cache
  */
 
-import type { Asset, IAssetCache } from '../types/domain';
+import type { Asset, AssetCache } from '../types/domain';
 
 /**
  * In-memory asset cache implementation.
@@ -14,7 +14,7 @@ import type { Asset, IAssetCache } from '../types/domain';
  * - No persistence (data lost on shutdown)
  * - Suitable for single-process applications or development
  */
-export class InMemoryAssetCache implements IAssetCache {
+export class InMemoryAssetCache implements AssetCache {
   private readonly store = new Map<string, Asset>();
 
   async set(asset: Asset): Promise<void> {
@@ -58,7 +58,7 @@ export class InMemoryAssetCache implements IAssetCache {
  * const asset = await cache.get('asset-123'); // Marks as recently used
  * ```
  */
-export class LRUAssetCache implements IAssetCache {
+export class LRUAssetCache implements AssetCache {
   private readonly maxSize: number;
   private readonly store = new Map<string, Asset>();
   private readonly accessOrder: string[] = [];
@@ -137,7 +137,7 @@ export class LRUAssetCache implements IAssetCache {
  * - Scenarios where caching is disabled
  * - Memory-critical environments
  */
-export class NoOpAssetCache implements IAssetCache {
+export class NoOpAssetCache implements AssetCache {
   async set(): Promise<void> {
     // No-op
   }
