@@ -138,19 +138,19 @@ export class LRUAssetCache implements AssetCache {
  * - Memory-critical environments
  */
 export class NoOpAssetCache implements AssetCache {
-  async set(): Promise<void> {
+  async set(asset: Asset): Promise<void> {
     // No-op
   }
 
-  async get(): Promise<undefined> {
+  async get(assetId: string): Promise<undefined> {
     return undefined;
   }
 
-  has(): boolean {
+  has(assetId: string): boolean {
     return false;
   }
 
-  async delete(): Promise<void> {
+  async delete(assetId: string): Promise<void> {
     // No-op
   }
 

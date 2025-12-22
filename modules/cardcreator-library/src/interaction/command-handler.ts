@@ -23,7 +23,7 @@ import type {
 import type { EventBus } from '../core/event-bus';
 import type { Logger, CardRenderer, AssetCache } from '../types/domain';
 import { RemoteAsset, FileAsset } from '../types/domain';
-import { LoggerRegistry } from '../core/logger-registry';
+import { NO_OP_LOGGER } from '../index.shared';
 
 /**
  * Generate a UUID v4 string.
@@ -48,10 +48,7 @@ function generateId(): string {
  * @template T - The specific command type this handler processes
  * @template R - The result type returned by this handler
  */
-export abstract class CommandHandler<
-  T extends Command = Command,
-  R = unknown
-> {
+export abstract class CommandHandler<T extends Command = Command, R = unknown> {
   /** Logger instance for diagnostic output */
   protected logger: Logger;
 
@@ -66,7 +63,7 @@ export abstract class CommandHandler<
    */
   constructor(eventBus: EventBus, logger?: Logger) {
     this.eventBus = eventBus;
-    this.logger = logger ?? LoggerRegistry.getLogger();
+    this.logger = logger ?? NO_OP_LOGGER;
   }
 
   /**
@@ -192,10 +189,7 @@ export class LoadFileHandler extends CommandHandler<LoadFileCommand, LoadFileRes
  * Handles LoadProject commands.
  * Responsible for discovering and loading entire projects.
  */
-export class LoadProjectHandler extends CommandHandler<
-  LoadProjectCommand,
-  LoadProjectResult
-> {
+export class LoadProjectHandler extends CommandHandler<LoadProjectCommand, LoadProjectResult> {
   /**
    * Execute a LoadProject command.
    *
@@ -403,10 +397,7 @@ export class LoadAssetHandler extends CommandHandler<LoadAssetCommand, LoadAsset
  * Handles UpdateSource commands.
  * Responsible for tracking and publishing source code/config changes.
  */
-export class UpdateSourceHandler extends CommandHandler<
-  UpdateSourceCommand,
-  UpdateSourceResult
-> {
+export class UpdateSourceHandler extends CommandHandler<UpdateSourceCommand, UpdateSourceResult> {
   /**
    * Execute an UpdateSource command.
    *
@@ -483,10 +474,7 @@ export class UpdateSourceHandler extends CommandHandler<
  * Handles RenderCard commands.
  * Responsible for orchestrating card rendering operations.
  */
-export class RenderCardHandler extends CommandHandler<
-  RenderCardCommand,
-  RenderCardResult
-> {
+export class RenderCardHandler extends CommandHandler<RenderCardCommand, RenderCardResult> {
   /** Card renderer for converting SVG to output formats */
   private renderer: CardRenderer;
 

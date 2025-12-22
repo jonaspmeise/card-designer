@@ -8,7 +8,6 @@
  */
 
 import { EventBus } from './core/event-bus';
-import { LoggerRegistry } from './core/logger-registry';
 import { CommandDispatcher } from './interaction/command-dispatcher';
 import { InMemoryAssetCache } from './core/cache';
 import type { Logger, CardRenderer, AssetCache } from './types/domain';
@@ -56,6 +55,14 @@ export interface CardCreatorConfig {
  * );
  * ```
  */
+
+export const NO_OP_LOGGER: Logger = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+};
+
 export class CardCreatorLibrary {
   /** Event bus for managing event subscriptions and publications */
   private readonly eventBus: EventBus;
@@ -85,11 +92,7 @@ export class CardCreatorLibrary {
       cache: config.cache ?? new InMemoryAssetCache(),
     };
 
-    // Set up logger if provided
-    if (config.logger) {
-      LoggerRegistry.setLogger(config.logger);
-    }
-    this.logger = LoggerRegistry.getLogger();
+    this.logger = config.logger ?? NO_OP_LOGGER;
 
     // Initialize core components
     this.eventBus = new EventBus(this.logger);
@@ -119,7 +122,7 @@ export class CardCreatorLibrary {
    * ```
    */
   on(
-    eventTypes: (keyof CardCreatorEventTypeMap)[],
+    eventTypes: keyof CardCreatorEventTypeMap | (keyof CardCreatorEventTypeMap)[],
     handler: (...events: any[]) => void | Promise<void>
   ): () => void {
     return this.eventBus.on(eventTypes, handler);
@@ -133,85 +136,6 @@ export class CardCreatorLibrary {
    */
   onError(handler: (error: Error, event?: CardCreatorEvent) => void): () => void {
     return this.eventBus.onError(handler);
-  }
-
-  /**
-   * Execute a command.
-   *
-   * Commands are the primary way users interact with the library.
-   * They encapsulate operations like loading files, rendering cards, etc.
-   *
-   * @param command - The command to execute
-   * @returns Promise resolving to the command result
-   * @throws Error if command execution fails
-   *
-   * @example
-   * ```typescript
-   * const result = await cardCreator.execute({
-   *   type: 'loadFile',
-   *   id: uuidv4(),
-   *   timestamp: new Date(),
-   *   correlationId: 'trace-123',
-   *   filePath: 'src/cards/card.svg',
-   *   projectId: 'project-123',
-   * });
-   * ```
-   */
-  async execute<T extends Parameters<typeof this.dispatcher.dispatch>[0]>(
-    command: T
-  ): Promise<Awaited<ReturnType<typeof this.dispatcher.dispatch>>> {
-    return this.dispatcher.dispatch(command);
-  }
-
-  /**
-   * Create a command context with automatic correlation ID tracking.
-   *
-   * A context groups related commands for tracing and debugging purposes.
-   *
-   * @returns Command context with factory methods
-   *
-   * @example
-   * ```typescript
-   * const ctx = cardCreator.createContext();
-   * const fileResult = await cardCreator.execute(
-   *   ctx.loadFile('path/to/file', 'project-123')
-   * );
-   * const assetResult = await cardCreator.execute(
-   *   ctx.loadAsset(myAsset)
-   * );
-   * // Both commands share the same correlationId for tracing
-   * ```
-   */
-  createContext() {
-    return this.dispatcher.createContext();
-  }
-
-  /**
-   * Get the underlying event bus.
-   * Useful for advanced use cases requiring direct access.
-   *
-   * @returns The event bus instance
-   */
-  getEventBus(): EventBus {
-    return this.eventBus;
-  }
-
-  /**
-   * Get the current logger instance.
-   *
-   * @returns The logger instance
-   */
-  getLogger(): Logger {
-    return this.logger;
-  }
-
-  /**
-   * Get the asset cache instance.
-   *
-   * @returns The asset cache instance
-   */
-  getCache(): AssetCache {
-    return this.config.cache!;
   }
 
   /**
@@ -262,6 +186,4 @@ export {
   type UpdateSourceCommand,
   type RenderCardCommand,
   type AnyCommand,
-  // Utilities
-  LoggerRegistry,
 } from './index.shared';

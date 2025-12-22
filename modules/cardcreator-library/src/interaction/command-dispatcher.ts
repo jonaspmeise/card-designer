@@ -24,7 +24,7 @@ import {
 } from './command-handler';
 import type { EventBus } from '../core/event-bus';
 import type { Logger, CardRenderer, AssetCache } from '../types/domain';
-import { LoggerRegistry } from '../core/logger-registry';
+import { NO_OP_LOGGER } from '../index.shared';
 
 /**
  * Generate a UUID v4 string.
@@ -91,10 +91,7 @@ export class CommandDispatcher {
   private readonly renderCardHandler: RenderCardHandler;
 
   /** Handler lookup map for command dispatching */
-  private readonly handlers: Record<
-    string,
-    (command: AnyCommand) => Promise<unknown>
-  >;
+  private readonly handlers: Record<string, (command: AnyCommand) => Promise<unknown>>;
 
   /**
    * Create a new command dispatcher.
@@ -114,7 +111,7 @@ export class CommandDispatcher {
     this.eventBus = options.eventBus;
     this.renderer = options.renderer;
     this.cache = options.cache;
-    this.logger = options.logger ?? LoggerRegistry.getLogger();
+    this.logger = options.logger ?? NO_OP_LOGGER;
 
     // Initialize handlers
     this.loadFileHandler = new LoadFileHandler(this.eventBus, this.logger);
@@ -125,16 +122,11 @@ export class CommandDispatcher {
 
     // Initialize handler lookup map
     this.handlers = {
-      loadFile: (command) =>
-        this.loadFileHandler.execute(command as LoadFileCommand),
-      loadProject: (command) =>
-        this.loadProjectHandler.execute(command as LoadProjectCommand),
-      loadAsset: (command) =>
-        this.loadAssetHandler.execute(command as LoadAssetCommand),
-      updateSource: (command) =>
-        this.updateSourceHandler.execute(command as UpdateSourceCommand),
-      renderCard: (command) =>
-        this.renderCardHandler.execute(command as RenderCardCommand),
+      loadFile: (command) => this.loadFileHandler.execute(command as LoadFileCommand),
+      loadProject: (command) => this.loadProjectHandler.execute(command as LoadProjectCommand),
+      loadAsset: (command) => this.loadAssetHandler.execute(command as LoadAssetCommand),
+      updateSource: (command) => this.updateSourceHandler.execute(command as UpdateSourceCommand),
+      renderCard: (command) => this.renderCardHandler.execute(command as RenderCardCommand),
     };
   }
 
@@ -158,9 +150,7 @@ export class CommandDispatcher {
    * });
    * ```
    */
-  async dispatch<T extends AnyCommand>(
-    command: T
-  ): Promise<CommandResultMap[T['type']]> {
+  async dispatch<T extends AnyCommand>(command: T): Promise<CommandResultMap[T['type']]> {
     const commandType = command.type;
 
     this.logger.debug(`Dispatching command: ${commandType}`, {
@@ -183,101 +173,5 @@ export class CommandDispatcher {
       });
       throw err;
     }
-  }
-
-  /**
-   * Create a new command context with a generated correlation ID.
-   * Useful for grouping related commands for tracing.
-   *
-   * @returns An object with command creation utilities
-   *
-   * @example
-   * ```typescript
-   * const context = dispatcher.createContext();
-   * const result = await dispatcher.dispatch(
-   *   context.loadFile('/path/to/file', 'project-123')
-   * );
-   * ```
-   */
-  createContext() {
-    const correlationId = generateId();
-
-    return {
-      /**
-       * Create a LoadFile command.
-       */
-      loadFile: (filePath: string, projectId: string): LoadFileCommand => ({
-        type: 'loadFile',
-        id: generateId(),
-        correlationId,
-        filePath,
-        projectId,
-        do: async () => {},
-        undo: async () => {},
-      }),
-
-      /**
-       * Create a LoadProject command.
-       */
-      loadProject: (projectPath: string): LoadProjectCommand => ({
-        type: 'loadProject',
-        id: generateId(),
-        correlationId,
-        projectPath,
-        do: async () => {},
-        undo: async () => {},
-      }),
-
-      /**
-       * Create a LoadAsset command.
-       */
-      loadAsset: (asset: any) => ({
-        type: 'loadAsset' as const,
-        id: generateId(),
-        correlationId,
-        asset,
-        do: async () => {},
-        undo: async () => {},
-      }),
-
-      /**
-       * Create an UpdateSource command.
-       */
-      updateSource: (
-        sourceId: string,
-        sourceType: 'code' | 'config' | 'asset',
-        newContent: unknown,
-        previousContent: unknown
-      ): UpdateSourceCommand => ({
-        type: 'updateSource',
-        id: generateId(),
-        correlationId,
-        sourceId,
-        sourceType,
-        newContent,
-        previousContent,
-        do: async () => {},
-        undo: async () => {},
-      }),
-
-      /**
-       * Create a RenderCard command.
-       */
-      renderCard: (cardId: string, svg: string, format: string): RenderCardCommand => ({
-        type: 'renderCard',
-        id: generateId(),
-        correlationId,
-        cardId,
-        svg,
-        format: format as any, // TODO: validate this is a valid OutputFormat
-        do: async () => {},
-        undo: async () => {},
-      }),
-
-      /**
-       * Get the correlation ID for this context.
-       */
-      getCorrelationId: () => correlationId,
-    };
   }
 }

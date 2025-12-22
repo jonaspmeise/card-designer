@@ -12,7 +12,6 @@ const createMockLogger = (): Logger => ({
   debug: () => {},
   warn: () => {},
   error: () => {},
-  fatal: () => {},
 });
 
 const createMockRenderer = (): CardRenderer => ({
@@ -39,12 +38,7 @@ describe('CardCreatorLibrary', () => {
   });
 
   afterEach(() => {
-    library.getEventBus().clear();
-  });
-
-  test('should be initialized with configuration', () => {
-    expect(library.getLogger()).toBe(logger);
-    expect(library.getCache()).toBe(cache);
+    library.reset();
   });
 
   test('should subscribe to conjunction events', async () => {
@@ -55,9 +49,7 @@ describe('CardCreatorLibrary', () => {
     });
 
     // Publish events through the library's event bus
-    const eventBus = library.getEventBus();
-
-    await eventBus.publish({
+    await library..publish({
       type: 'projectLoaded',
       projectId: 'test-proj',
       projectName: 'Test Project',

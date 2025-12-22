@@ -1,3 +1,4 @@
+import { NO_OP_LOGGER } from './index';
 /**
  * Shared exports for the card-creator library.
  * This file re-exports all public types and utilities.
@@ -44,10 +45,7 @@ export {
   EventBus,
 } from './core/event-bus';
 
-export {
-  // Logger registry
-  LoggerRegistry,
-} from './core/logger-registry';
+export { NO_OP_LOGGER } from './index';
 
 export {
   // Commands

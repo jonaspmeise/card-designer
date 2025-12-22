@@ -22,12 +22,12 @@ export type OutputFormat = 'png' | 'jpg' | 'pdf' | 'xlsx' | 'json' | 'csv' | 'ym
  * Implementations can route logs to file, console, cloud services, etc.
  * Follows common logging patterns (debug, info, warn, error, fatal).
  */
+
 export interface Logger {
   debug(message: string, context?: Record<string, unknown>): void;
   info(message: string, context?: Record<string, unknown>): void;
   warn(message: string, context?: Record<string, unknown>): void;
   error(message: string, error?: Error, context?: Record<string, unknown>): void;
-  fatal(message: string, error?: Error, context?: Record<string, unknown>): void;
 }
 
 // ============================================================================
@@ -131,9 +131,7 @@ export class InMemoryAsset extends Asset {
 
   async load(): Promise<Uint8Array> {
     const binaryString = Buffer.from(this.data, 'base64').toString('binary');
-    return new Uint8Array(
-      binaryString.split('').map((char: string) => char.charCodeAt(0))
-    );
+    return new Uint8Array(binaryString.split('').map((char: string) => char.charCodeAt(0)));
   }
 }
 

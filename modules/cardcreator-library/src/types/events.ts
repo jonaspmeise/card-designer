@@ -11,6 +11,8 @@ export interface DomainEvent {
   readonly correlationId: string;
 }
 
+export type EventOfType<U extends DomainEvent, T extends U['type']> = Extract<U, { type: T }>;
+
 // ============================================================================
 // LIFECYCLE EVENTS
 // ============================================================================
@@ -163,9 +165,7 @@ export interface CardCreatorEventTypeMap {
 
 // Type-level assertion to ensure completeness
 const _assertEventTypeCompleteness: {
-  [K in CardCreatorEvent['type']]: K extends keyof CardCreatorEventTypeMap
-    ? true
-    : never;
+  [K in CardCreatorEvent['type']]: K extends keyof CardCreatorEventTypeMap ? true : never;
 } = {
   jobStarted: true,
   jobFinished: true,
@@ -179,4 +179,3 @@ const _assertEventTypeCompleteness: {
   historyDo: true,
   historyUndo: true,
 };
-

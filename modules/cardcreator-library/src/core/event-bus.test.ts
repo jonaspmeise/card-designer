@@ -29,11 +29,11 @@ describe('EventBus', () => {
     let projectEventReceived = false;
     let fileEventReceived = false;
 
-    eventBus.on(['projectLoaded', 'fileOpened'], (projectEvent, fileEvent) => {
-      projectEventReceived = projectEvent.type === 'projectLoaded';
-      fileEventReceived = fileEvent.type === 'fileOpened';
+    eventBus.on(['projectLoaded', 'fileOpened'], (event) => {
+      projectEventReceived = event.type === 'projectLoaded';
+      fileEventReceived = event.type === 'fileOpened';
 
-      if (projectEvent) {
+      if (projectEventReceived && fileEventReceived) {
         done();
       }
     });
@@ -60,9 +60,9 @@ describe('EventBus', () => {
     timeout(done);
   });
 
-  test('should allow unsubscribing from handlers', async (done) => {
+  test('should allow unsubscribing from handlers', async () => {
     const unsubscribe = eventBus.on(['projectLoaded', 'fileOpened'], () => {
-      done('Handler should not be called after unsubscribe');
+      throw new Error('should not be called!');
     });
 
     unsubscribe();
@@ -121,7 +121,7 @@ describe('EventBus', () => {
     let fileOpenedEventTriggered = false;
 
     eventBus.on(['projectLoaded', 'fileOpened'], (event) => {
-      if (event.type === '') {
+      if (event.type === 'projectLoaded') {
         projectLoadedEventTriggered = true;
       } else if (event.type === 'fileOpened') {
         fileOpenedEventTriggered = true;
