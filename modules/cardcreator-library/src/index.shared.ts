@@ -1,4 +1,5 @@
 import { NO_OP_LOGGER } from './index';
+import { ProjectLoadedEvent } from './events/events';
 /**
  * Shared exports for the card-creator library.
  * This file re-exports all public types and utilities.
@@ -22,28 +23,21 @@ export {
   InMemoryAssetCache,
   LRUAssetCache,
   NoOpAssetCache,
-} from './core/cache';
+} from './cache/cache';
 
 export {
   // Event types
   type DomainEvent,
   type CardCreatorEvent,
   type CardCreatorEventTypeMap,
-  type JobStartedEvent,
-  type JobFinishedEvent,
   type ProjectLoadedEvent,
   type FileOpenedEvent,
-  type SourceUpdatedEvent,
-  type CardRenderStartedEvent,
-  type CardRenderFinishedEvent,
-  type AssetLoadedEvent,
-  type ErrorEvent,
 } from './types/events';
 
 export {
   // Event bus
   EventBus,
-} from './core/event-bus';
+} from './events/event-bus';
 
 export { NO_OP_LOGGER } from './index';
 
@@ -63,18 +57,3 @@ export {
   type AnyCommand,
   type CommandResultMap,
 } from './interaction/commands';
-
-export {
-  // Command handlers
-  CommandHandler,
-  LoadFileHandler,
-  LoadProjectHandler,
-  LoadAssetHandler,
-  UpdateSourceHandler,
-  RenderCardHandler,
-} from './interaction/command-handler';
-
-export {
-  // Command dispatcher
-  CommandDispatcher,
-} from './interaction/command-dispatcher';

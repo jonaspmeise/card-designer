@@ -232,3 +232,10 @@ export interface AssetCache {
    */
   size(): number;
 }
+
+/**
+ * Job information type used in job-related events.
+ */
+export type JobInfo = {
+  jobId: string;
+};

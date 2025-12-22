@@ -6,35 +6,29 @@
  * @module EventBus
  */
 
+import e from 'express';
+import { generateId } from '../cross-cutting-concerns';
 import { Logger } from '../index.shared';
-import type { CardCreatorEvent, CardCreatorEventTypeMap, DomainEvent } from '../types/events';
-
-/**
- * Generate a UUID v4 string.
- * Simple implementation that works in both Node.js and browser environments.
- */
-function generateId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback implementation
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import type {
+  CardCreatorEvent,
+  CardCreatorEventTypeMap,
+  DomainEvent,
+} from '../types/events';
 
 /**
  * Handler function that processes one or multiple event types.
  */
-type EventHandler<DOMAIN extends DomainEvent> = (event: DOMAIN) => void | Promise<void>;
+type EventHandler<DOMAIN extends DomainEvent> = (
+  event: DOMAIN,
+) => void | Promise<void>;
 
 /**
  * Internal representation of an handler method.
  * Maintains type relationship between event types, handler, and collected events.
  */
-interface EventRegistryEntry<DOMAINS extends readonly DomainEvent[] = readonly DomainEvent[]> {
+interface EventRegistryEntry<
+  DOMAINS extends readonly DomainEvent[] = readonly DomainEvent[],
+> {
   id: string;
   eventTypes: ReadonlyArray<DOMAINS[number]['type']>;
   handler: EventHandler<DOMAINS[number]>;
@@ -70,14 +64,19 @@ interface EventRegistryEntry<DOMAINS extends readonly DomainEvent[] = readonly D
  */
 export class EventBus {
   /** Handles for all kind of events. */
-  private readonly handlerRegistry: Map<string, Set<EventRegistryEntry<readonly DomainEvent[]>>> =
-    new Map();
+  private readonly handlerRegistry: Map<
+    string,
+    Set<EventRegistryEntry<readonly DomainEvent[]>>
+  > = new Map();
 
   /** Logger instance for event bus operations */
   private readonly logger?: Logger;
 
   /** Handlers for unhandled errors in listeners */
-  private readonly errorHandlers: ((error: Error, event?: CardCreatorEvent) => void)[] = [];
+  private readonly errorHandlers: ((
+    error: Error,
+    event?: CardCreatorEvent,
+  ) => void)[] = [];
 
   /**
    * Create a new EventBus instance.
@@ -105,17 +104,26 @@ export class EventBus {
    * );
    * ```
    */
-  on<E extends keyof CardCreatorEventTypeMap>(
-    eventTypes: E | E[],
-    handler: EventHandler<CardCreatorEventTypeMap[E]>
+  on(
+    eventTypes:
+      | keyof CardCreatorEventTypeMap
+      | Array<keyof CardCreatorEventTypeMap>,
+    handler: EventHandler<
+      CardCreatorEventTypeMap[keyof CardCreatorEventTypeMap]
+    >,
   ): () => void {
     const registrationId = generateId();
-    const resolvedEventTypes = Array.isArray(eventTypes) ? eventTypes : [eventTypes];
+    const resolvedEventTypes = Array.isArray(eventTypes)
+      ? eventTypes
+      : [eventTypes];
 
-    type EventTypes = DomainEvent | CardCreatorEventTypeMap[E];
-    const populatedHandler: EventRegistryEntry<readonly EventTypes[]> = {
-      eventTypes: eventTypes as ReadonlyArray<EventTypes['type']>,
-      handler: handler as EventHandler<EventTypes>,
+    const populatedHandler: EventRegistryEntry<
+      readonly DomainEvent[]
+    > = {
+      eventTypes: eventTypes as ReadonlyArray<
+        DomainEvent['type']
+      >,
+      handler: handler as EventHandler<DomainEvent>,
       collectedEvents: [],
       id: registrationId,
     };
@@ -126,8 +134,8 @@ export class EventBus {
 
     this.logger?.debug(
       `Conjunction handler (#${registrationId}) registered for events: ${resolvedEventTypes.join(
-        ', '
-      )}`
+        ', ',
+      )}`,
     );
 
     // Return unsubscribe function
@@ -138,8 +146,8 @@ export class EventBus {
 
       this.logger?.debug(
         `Conjunction handler (#${registrationId}) unregistered from events: ${resolvedEventTypes.join(
-          ', '
-        )}`
+          ', ',
+        )}`,
       );
     };
   }
@@ -150,7 +158,12 @@ export class EventBus {
    * @param handler - Function to call when an error occurs
    * @returns Unsubscribe function
    */
-  onError(handler: (error: Error, event?: CardCreatorEvent) => void): () => void {
+  onError(
+    handler: (
+      error: Error,
+      event?: CardCreatorEvent,
+    ) => void,
+  ): () => void {
     this.errorHandlers.push(handler);
     return () => {
       const index = this.errorHandlers.indexOf(handler);
@@ -181,19 +194,24 @@ export class EventBus {
   async publish(event: CardCreatorEvent): Promise<void> {
     const eventType = event.type;
 
-    this.logger?.debug(`Publishing event: ${eventType}`, {
-      correlationId: event.correlationId,
-    });
+    this.logger?.debug(`Publishing event: ${eventType}...`);
 
     try {
-      // Process conjunction handlers
-      this.handlerRegistry.get(eventType)?.forEach((handler) => {
-        this.logger?.debug(`Invoking handler (#${handler.id}) for event: ${eventType}`, {
-          correlationId: event.correlationId,
-        });
+      // Process conjunction handlers; isolate errors per handler so one failing
+      // listener doesn't prevent other listeners from running.
+      this.handlerRegistry
+        .get(eventType)
+        ?.forEach((handler) => {
+          this.logger?.debug(
+            `Invoking handler (#${handler.id}) for event: ${eventType}`,
+          );
 
-        handler.handler(event);
-      });
+          try {
+            handler.handler(event);
+          } catch (err) {
+            this._emitError(err as Error, event);
+          }
+        });
     } catch (error) {
       this._emitError(error as Error, event);
     }
@@ -208,27 +226,38 @@ export class EventBus {
   clear(eventType?: keyof CardCreatorEventTypeMap): void {
     if (eventType) {
       this.handlerRegistry.delete(eventType);
-      this.logger?.debug(`EventBus cleared for event type: ${eventType}`);
+      this.logger?.debug(
+        `EventBus cleared for event type: ${eventType}`,
+      );
     } else {
       this.handlerRegistry.clear();
       this.errorHandlers.length = 0;
-      this.logger?.debug('EventBus cleared for all event types and error handlers');
+      this.logger?.debug(
+        'EventBus cleared for all event types and error handlers',
+      );
     }
   }
 
   private _registerHandler<E extends DomainEvent>(
     eventType: E['type'],
-    registration: EventRegistryEntry<readonly DomainEvent[]>
+    registration: EventRegistryEntry<
+      readonly DomainEvent[]
+    >,
   ): void {
     if (!this.handlerRegistry.has(eventType)) {
-      this.logger?.debug(`Creating new handler set for event type: ${eventType}`);
+      this.logger?.debug(
+        `Creating new handler set for event type: ${eventType}`,
+      );
       this.handlerRegistry.set(eventType, new Set());
     }
 
     this.handlerRegistry.get(eventType)!.add(registration);
-    this.logger?.debug(`Handler registered for event type: ${eventType}`, {
-      registrationId: registration.id,
-    });
+    this.logger?.debug(
+      `Handler registered for event type: ${eventType}`,
+      {
+        registrationId: registration.id,
+      },
+    );
   }
 
   /**
@@ -237,18 +266,23 @@ export class EventBus {
    * @param error - The error that occurred
    * @param event - The event that was being processed (optional)
    */
-  private _emitError(error: Error, event?: CardCreatorEvent): void {
-    this.logger?.error('Error in event handler', error, {
-      eventType: event?.type,
-      correlationId: event?.correlationId,
-    });
+  private _emitError(
+    error: Error,
+    event?: CardCreatorEvent,
+  ): void {
+    this.logger?.error(
+      `Error in event handler of type "${event?.type}"`,
+      error,
+    );
 
     for (const handler of this.errorHandlers) {
       try {
         handler(error, event);
       } catch (err) {
-        // Prevent error handlers from breaking the system
-        this.logger?.error('Error in error handler', err as Error);
+        this.logger?.error(
+          'Error in error handler...?',
+          err as Error,
+        );
       }
     }
   }

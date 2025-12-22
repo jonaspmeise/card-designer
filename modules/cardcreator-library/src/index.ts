@@ -7,24 +7,27 @@
  * @module CardCreatorLibrary
  */
 
-import { EventBus } from './core/event-bus';
-import { CommandDispatcher } from './interaction/command-dispatcher';
-import { InMemoryAssetCache } from './core/cache';
-import type { Logger, CardRenderer, AssetCache } from './types/domain';
-import type { CardCreatorEvent, CardCreatorEventTypeMap } from './types/events';
+import { EventBus } from './events/event-bus';
+import { InMemoryAssetCache } from './cache/cache';
+import type {
+  Logger,
+  CardRenderer,
+  AssetCache,
+} from './types/domain';
+import type {
+  CardCreatorEvent,
+  CardCreatorEventTypeMap,
+} from './types/events';
+import { FileProvider } from './files/file-provider';
 
 /**
  * Card creator library configuration.
  */
 export interface CardCreatorConfig {
-  /** Logger instance (optional; uses default if not provided) */
-  logger?: Logger;
-
-  /** Card renderer implementation (required) */
+  logger: Logger;
   renderer: CardRenderer;
-
-  /** Asset cache implementation (optional; uses InMemoryAssetCache if not provided) */
-  cache?: AssetCache;
+  cache: AssetCache;
+  fileProvider: FileProvider;
 }
 
 /**
@@ -67,12 +70,6 @@ export class CardCreatorLibrary {
   /** Event bus for managing event subscriptions and publications */
   private readonly eventBus: EventBus;
 
-  /** Command dispatcher for executing user commands */
-  private readonly dispatcher: CommandDispatcher;
-
-  /** Logger instance */
-  private readonly logger: Logger;
-
   /** Configuration */
   private readonly config: CardCreatorConfig;
 
@@ -82,28 +79,32 @@ export class CardCreatorLibrary {
    * @param config - Library configuration
    * @throws Error if required configuration is missing
    */
-  constructor(config: CardCreatorConfig) {
-    if (!config.renderer) {
-      throw new Error('Card renderer is required in configuration');
+  constructor(config: Partial<CardCreatorConfig>) {
+    if (config.renderer === undefined) {
+      throw new Error(
+        'Card renderer is required in configuration!',
+      );
+    }
+
+    if (config.fileProvider === undefined) {
+      throw new Error(
+        'File provider is required in configuration!',
+      );
     }
 
     this.config = {
-      ...config,
       cache: config.cache ?? new InMemoryAssetCache(),
+      logger: config.logger ?? NO_OP_LOGGER,
+      renderer: config.renderer,
+      fileProvider: config.fileProvider,
     };
 
-    this.logger = config.logger ?? NO_OP_LOGGER;
-
     // Initialize core components
-    this.eventBus = new EventBus(this.logger);
-    this.dispatcher = new CommandDispatcher({
-      eventBus: this.eventBus,
-      renderer: config.renderer,
-      cache: this.config.cache!,
-      logger: this.logger,
-    });
+    this.eventBus = new EventBus(this.config.logger);
 
-    this.logger.info('CardCreator library initialized');
+    this.config.logger.info(
+      'CardCreator library initialized',
+    );
   }
 
   /**
@@ -121,21 +122,38 @@ export class CardCreatorLibrary {
    * });
    * ```
    */
-  on(
-    eventTypes: keyof CardCreatorEventTypeMap | (keyof CardCreatorEventTypeMap)[],
-    handler: (...events: any[]) => void | Promise<void>
+  on<E extends keyof CardCreatorEventTypeMap>(
+    eventTypes: E | E[],
+    handler: (
+      event: CardCreatorEventTypeMap[E],
+    ) => void | Promise<void>,
   ): () => void {
     return this.eventBus.on(eventTypes, handler);
   }
 
   /**
    * Subscribe to error events.
-   *
-   * @param handler - Function to call when an error occurs
-   * @returns Unsubscribe function
    */
-  onError(handler: (error: Error, event?: CardCreatorEvent) => void): () => void {
+  public onError(
+    handler: (
+      error: Error,
+      event?: CardCreatorEvent,
+    ) => void,
+  ): () => void {
     return this.eventBus.onError(handler);
+  }
+
+  /**
+   * Top-level accessor: trigger a project load event.
+   * Publishes a `projectLoaded` event on the internal event bus.
+   */
+  public async loadProject(): Promise<void> {
+    await this.eventBus.publish({
+      type: 'projectLoaded',
+      data: {
+        projectName: 'Demo Project',
+      },
+    });
   }
 
   /**
@@ -144,46 +162,6 @@ export class CardCreatorLibrary {
    */
   reset(): void {
     this.eventBus.clear();
-    this.logger.debug('CardCreator library reset');
+    this.config.logger.debug('CardCreator library reset');
   }
 }
-
-// ============================================================================
-// PUBLIC EXPORTS
-// ============================================================================
-
-export {
-  // Types
-  type Logger,
-  type CardRenderer,
-  type AssetCache,
-  Asset,
-  InMemoryAsset,
-  RemoteAsset,
-  FileAsset,
-  // Cache implementations
-  InMemoryAssetCache,
-  LRUAssetCache,
-  NoOpAssetCache,
-  // Event types
-  type DomainEvent,
-  type CardCreatorEvent,
-  type CardCreatorEventTypeMap,
-  type JobStartedEvent,
-  type JobFinishedEvent,
-  type ProjectLoadedEvent,
-  type FileOpenedEvent,
-  type SourceUpdatedEvent,
-  type CardRenderStartedEvent,
-  type CardRenderFinishedEvent,
-  type AssetLoadedEvent,
-  type ErrorEvent,
-  // Command types
-  type Command,
-  type LoadFileCommand,
-  type LoadProjectCommand,
-  type LoadAssetCommand,
-  type UpdateSourceCommand,
-  type RenderCardCommand,
-  type AnyCommand,
-} from './index.shared';

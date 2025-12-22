@@ -37,25 +37,25 @@ describe('InMemoryAssetCache', () => {
 
   test('should check asset existence', async () => {
     const asset = createTestAsset('test-2');
-    await cache.set(asset);
+    cache.set(asset);
 
-    expect(await cache.has('test-2')).toBe(true);
-    expect(await cache.has('non-existent')).toBe(false);
+    expect(cache.has('test-2')).toBe(true);
+    expect(cache.has('non-existent')).toBe(false);
   });
 
   test('should get cache size', async () => {
-    await cache.set(createTestAsset('test-3'));
-    await cache.set(createTestAsset('test-4'));
+    cache.set(createTestAsset('test-3'));
+    cache.set(createTestAsset('test-4'));
 
-    expect(await cache.size()).toBe(2);
+    expect(cache.size()).toBe(2);
   });
 
   test('should clear all assets', async () => {
-    await cache.set(createTestAsset('test-5'));
-    await cache.set(createTestAsset('test-6'));
+    cache.set(createTestAsset('test-5'));
+    cache.set(createTestAsset('test-6'));
 
-    await cache.clear();
-    expect(await cache.size()).toBe(0);
+    cache.clear();
+    expect(cache.size()).toBe(0);
   });
 });
 
@@ -104,22 +104,22 @@ describe('NoOpAssetCache', () => {
 
   test('should not store assets', async () => {
     const asset = createTestAsset('noop-1');
-    await cache.set(asset);
+    cache.set(asset);
 
     expect(await cache.get('noop-1')).toBeUndefined();
   });
 
   test('should always return false for has', async () => {
     const asset = createTestAsset('noop-2');
-    await cache.set(asset);
+    cache.set(asset);
 
-    expect(await cache.has('noop-2')).toBe(false);
+    expect(cache.has('noop-2')).toBe(false);
   });
 
   test('should return 0 for size', async () => {
     const asset = createTestAsset('noop-3');
-    await cache.set(asset);
+    cache.set(asset);
 
-    expect(await cache.size()).toBe(0);
+    expect(cache.size()).toBe(0);
   });
 });
