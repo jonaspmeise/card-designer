@@ -7,7 +7,7 @@
  */
 
 import { generateId } from '../cross-cutting-concerns';
-import { Logger } from '../index.shared';
+import { Logger } from '../types/domain';
 import type {
   CardCreatorEvent,
   EventKeys,
@@ -43,14 +43,14 @@ interface EventRegistryEntry<
  *
  * // Event handler
  * eventBus.on('projectLoaded', event => {
- *   console.log(`Loaded project "${event.data.projectName}"!`);
+ *   console.log(`Loaded project "${event.data.name}"!`);
  * });
  *
  * // Publish an event
  * await eventBus.publish({
  *   type: 'projectLoaded',
  *   projectId: '123',
- *   projectName: 'My Project',
+ *   name: 'My Project',
  *   timestamp: new Date(),
  *   correlationId: 'abc-123',
  * });

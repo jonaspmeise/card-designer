@@ -45,7 +45,7 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        projectName: 'Test Project'
+        name: 'Test Project'
       }
     });
 
@@ -68,7 +68,7 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        projectName: 'Test Project'
+        name: 'Test Project'
       }
     });
   });
@@ -93,7 +93,7 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        projectName: 'Test Project'
+        name: 'Test Project'
       }
     });
 
@@ -126,7 +126,7 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        projectName: 'Test Project'
+        name: 'Test Project'
       }
     });
     expect(handler1Called).toBe(false);

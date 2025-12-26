@@ -12,17 +12,10 @@ import type {
   Logger,
   CardRenderer,
   AssetCache,
-  ProjectData,
 } from './types/domain';
-import type {
-  CardCreatorEvent,
-  EventKeys,
-  SingleEvent,
-} from './types/events';
 import { FileProvider } from './files/file-provider';
-import { objectsIdentical } from './cross-cutting-concerns';
 import { ProjectService } from './project/project-service';
-import { EventBus, InternalEventBus } from './events/events';
+import { EventBus, ExternalEventBus, InternalEventBus } from './events/events';
 import { EventService } from './events/event-service';
 
 /**
@@ -54,7 +47,7 @@ export interface CardCreatorDependencies {
  *
  * // Subscribe to events
  * cardCreator.on('projectLoaded', (event) => {
- *   console.log(`Project loaded: ${event.projectName}`);
+ *   console.log(`Project loaded: ${event.name}`);
  * });
  *
  * // Execute operations via commands
@@ -107,7 +100,7 @@ export class CardCreatorLibrary {
 
     // Register services for each concern.
     this.project = new ProjectService(this.dependencies);
-    this.events = this.dependencies.eventBus;
+    this.events = this.dependencies.eventBus as EventBus;
 
     this.dependencies.logger.info(
       'CardCreator library initialized',
@@ -115,5 +108,5 @@ export class CardCreatorLibrary {
   };
 
   public readonly project: Readonly<ProjectService>;
-  public readonly events: Readonly<EventBus>;
+  public readonly events: Readonly<ExternalEventBus>;
 }

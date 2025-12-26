@@ -28,12 +28,6 @@ export interface Logger {
   error(message: string, error?: Error, context?: Record<string, unknown>): Promise<void>;
 }
 
-/**
- * Encapsulates the project data, which can be be loaded from or saved to an external resource.
- */
-export type ProjectData = {
-  projectName: string
-};
 
 // ============================================================================
 // FILE HANDLER INTERFACE

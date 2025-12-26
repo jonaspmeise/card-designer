@@ -8,6 +8,7 @@ import {
   DialogEvent,
   FileOpenedEvent,
   ProjectLoadedEvent,
+  ProjectResetEvent,
 } from '../events/event-types';
 
 /** Base event interface that all domain events extend */
@@ -31,7 +32,8 @@ export type EventKeys = CardCreatorEvent['type'];
 export type CardCreatorEvent =
   | ProjectLoadedEvent
   | FileOpenedEvent
-  | DialogEvent;
+  | DialogEvent
+  | ProjectResetEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.

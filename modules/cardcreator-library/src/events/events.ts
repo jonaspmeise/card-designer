@@ -3,10 +3,11 @@
  * and internal concerns (developer perspective; issuing events).
  */
 
-import { CardCreatorEvent } from "../index.shared";
-import { DomainEvent, EventKeys, SingleEvent } from "../types/events";
+import { CardCreatorEvent, DomainEvent, EventKeys, SingleEvent } from "../types/events";
 
-export interface InternalEventBus extends EventBus {
+export interface EventBus extends InternalEventBus, ExternalEventBus {};
+
+export interface InternalEventBus {
   /**
    * Publish an event to all registered handlers.
    * Executes handlers in registration order and handles errors gracefully.
@@ -19,7 +20,7 @@ export interface InternalEventBus extends EventBus {
    * await eventBus.publish({
    *   type: 'projectLoaded',
    *   projectId: '123',
-   *   projectName: 'My Project',
+   *   name: 'My Project',
    *   timestamp: new Date(),
    *   correlationId: 'abc-123',
    * });
@@ -28,7 +29,7 @@ export interface InternalEventBus extends EventBus {
   publish(event: CardCreatorEvent): Promise<void>;
 };
 
-export interface EventBus {
+export interface ExternalEventBus {
     /**
    * Subscribe to error events that occur during event handling.
    *

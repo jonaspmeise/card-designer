@@ -16,7 +16,7 @@ import type {
   Logger,
 } from './types/domain';
 import { FileProvider } from './files/file-provider';
-import { timeout } from './utility';
+import { timeout } from './test-utility';
 
 describe('CardcreatorLibrary', () => {
   // Mocks.
@@ -40,6 +40,7 @@ describe('CardcreatorLibrary', () => {
   afterEach(() => {
     // Reset all mocked states to original mocks.
     library.events.clear();
+    library.project.reset(true);
 
     logger.info = async () => {};
     logger.debug = async () => {};
@@ -53,6 +54,13 @@ describe('CardcreatorLibrary', () => {
     renderer.supports = (_: string) => true;
   });
 
+  test('an initial project is always loaded.', () => {
+    // WHEN / THEN
+    expect(library.project.data()).toEqual({
+      name: 'New Project'
+    });
+  });
+
   describe('load project', () => {
     test('issues "loaded project" event when a project is loaded', (done) => {
       // THEN: Event is fired.
@@ -63,7 +71,7 @@ describe('CardcreatorLibrary', () => {
 
       // GIVEN / WHEN
       library.project.load({
-        projectName: 'test'
+        name: 'test'
       });
 
       timeout(done);
@@ -79,20 +87,175 @@ describe('CardcreatorLibrary', () => {
 
       // GIVEN: project is already loaded
       library.project.load({
-        projectName: 'test'
+        name: 'test'
       });
 
       // WHEN: another project is loaded
       library.project.load({
-        projectName: 'test2'
+        name: 'test2'
       });
 
       timeout(done);
     });
 
-    test.todo('issue no "confirmation" event when the same project is loaded two times (without modifications.', () => {});
-    test.todo('the project status can be tracked via the sync API.', () => {});
-    test.todo('if a new project is loaded and the dialog is confirmed, that project is loaded.', () => {});
-    test.todo('if a new project is loaded and the dialog is confirmed, that project is not loaded.', () => {});
+    test('issue no "confirmation" event when the same project is loaded two times (without modifications.', () => {
+      // THEN
+      library.events.on('dialog', _ => {
+        throw new Error('No dialog should be issued!');
+      });
+
+      // GIVEN / WHEN
+      library.project.load({
+        name: 'test1'
+      });
+      // Same data is loaded twice!
+      library.project.load({
+        name: 'test1'
+      });
+    });
+
+    test('the project status can be tracked via the sync API.', () => {
+      // GIVEN
+      library.project.load({
+        name: 'test'
+      });
+
+      // WHEN / THEN
+      expect(library.project.data()).toEqual({
+        name: 'test'
+      });
+    });
+
+    test('if a new project is loaded and the dialog is confirmed, that project is loaded.', (done) => {
+      library.events.on('dialog', async event => {
+        // WHEN: This event should exist!
+        await event.data.callbacks.Confirm();
+
+        // THEN: The project should be overwritten with the second setting!
+        expect(library.project.data().name).toEqual('test2');
+        done();
+      });
+
+      // GIVEN
+      library.project.load({
+        name: 'test1'
+      });
+      // Project is overwritten...
+      library.project.load({
+        name: 'test2'
+      });
+
+      timeout(done);
+    });
+
+    test('if a new project is loaded and the dialog is cancelled, that project is not loaded.', (done) => {
+      library.events.on('dialog', async event => {
+        // WHEN: This event should exist!
+        await event.data.callbacks.Cancel();
+
+        // THEN: The first loaded project (not the second one) should be loaded.
+        expect(library.project.data().name).toEqual('test1');
+        done();
+      });
+
+      // GIVEN
+      library.project.load({
+        name: 'test1'
+      });
+      // Project is overwritten...
+      library.project.load({
+        name: 'test2'
+      });
+
+      timeout(done);
+    });
+  });
+
+  describe('reset', () => {
+    test('prompts a dialog if the project was already modified.', (done) => {
+      // THEN
+      library.events.on('dialog', event => {
+        expect(event.data.text).toMatch(/reset/gi);
+
+        done();
+      });
+
+      // GIVEN
+      library.project.load({
+        name: 'test'
+      });
+
+      // WHEN
+      library.project.reset();
+
+      // ERROR
+      timeout(done);
+    });
+
+    test('sends an event when the project reset is confirmed and resets the project.', (done) => {
+      // GIVEN / WHEN
+      library.events.on('dialog', event => {
+        event.data.callbacks.Confirm();
+      });
+      // GIVEN / THEN
+      library.events.on('projectReset', _ => {
+        expect(library.project.data().name).toEqual('New Project');
+
+        done();
+      });
+
+      // GIVEN
+      library.project.load({
+        name: 'test'
+      });
+
+      // WHEN
+      library.project.reset();
+
+      // ERROR
+      timeout(done);
+    });
+
+    test('sends no event when the project reset is cancelled and does not reset the project.', (done) => {
+      // GIVEN / WHEN
+      library.events.on('dialog', async event => {
+        await event.data.callbacks.Cancel();
+
+        expect(library.project.data().name).toEqual('test');
+        done();
+      });
+      library.events.on('projectReset', _ => {
+        throw new Error('reset was cancelled, should not call this event!');
+      });
+
+      // GIVEN
+      library.project.load({
+        name: 'test'
+      });
+
+      // WHEN
+      library.project.reset();
+
+      // ERROR
+      timeout(done);
+    });
+
+    test('can be forced, so the dialog confirm option is always skipped.', (done) => {
+      // THEN
+      library.events.on('projectReset', _ => {
+        expect(library.project.data().name).toEqual('New Project');
+        done();
+      });
+
+      // GIVEN
+      library.project.load({
+        name: 'test'
+      });
+
+      // WHEN
+      library.project.reset(true);
+
+      timeout(done);
+    });
   });
 });

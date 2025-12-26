@@ -58,7 +58,7 @@ export interface load(Command extends Command {
  */
 export interface load(Result {
   readonly projectId: string;
-  readonly projectName: string;
+  readonly name: string;
   readonly files: string[];
   readonly loadedAt: Date;
 }
