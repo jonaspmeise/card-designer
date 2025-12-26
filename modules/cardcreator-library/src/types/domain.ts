@@ -18,17 +18,22 @@ export type OutputFormat = 'png' | 'jpg' | 'pdf' | 'xlsx' | 'json' | 'csv' | 'ym
 // ============================================================================
 
 /**
- * Logger interface for structured logging across the library.
- * Implementations can route logs to file, console, cloud services, etc.
- * Follows common logging patterns (debug, info, warn, error, fatal).
+ * Logger interface for structured logging across the library to abstract away different logging implementations.
  */
 
 export interface Logger {
-  debug(message: string, context?: Record<string, unknown>): void;
-  info(message: string, context?: Record<string, unknown>): void;
-  warn(message: string, context?: Record<string, unknown>): void;
-  error(message: string, error?: Error, context?: Record<string, unknown>): void;
+  debug(message: string, context?: Record<string, unknown>): Promise<void>;
+  info(message: string, context?: Record<string, unknown>): Promise<void>;
+  warn(message: string, context?: Record<string, unknown>): Promise<void>;
+  error(message: string, error?: Error, context?: Record<string, unknown>): Promise<void>;
 }
+
+/**
+ * Encapsulates the project data, which can be be loaded from or saved to an external resource.
+ */
+export type ProjectData = {
+  projectName: string
+};
 
 // ============================================================================
 // FILE HANDLER INTERFACE

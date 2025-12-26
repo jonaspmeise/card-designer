@@ -1,6 +1,5 @@
 /**
- * Comprehensive test suite for the card-creator library.
- * Tests the event-driven architecture, command dispatching, and all integrations.
+ * Test from the consumer perspective.
  *
  * @module Tests
  */
@@ -9,25 +8,15 @@ import {
   describe,
   test,
   expect,
-  beforeEach,
   afterEach,
 } from 'bun:test';
-import { EventBus } from './events/event-bus';
-import {
-  InMemoryAssetCache,
-  LRUAssetCache,
-  NoOpAssetCache,
-} from './cache/cache';
-import { CommandDispatcher } from './interaction/command-dispatcher';
 import { CardCreatorLibrary, NO_OP_LOGGER } from './index';
 import type {
   CardRenderer,
-  Asset,
-  AssetCache,
   Logger,
 } from './types/domain';
 import { FileProvider } from './files/file-provider';
-import { timeout } from './test-utility';
+import { timeout } from './utility';
 
 describe('CardcreatorLibrary', () => {
   // Mocks.
@@ -49,13 +38,13 @@ describe('CardcreatorLibrary', () => {
     });
 
   afterEach(() => {
-    // Reset all mocked states.
-    library!.reset();
+    // Reset all mocked states to original mocks.
+    library.events.clear();
 
-    logger.info = () => {};
-    logger.debug = () => {};
-    logger.warn = () => {};
-    logger.error = () => {};
+    logger.info = async () => {};
+    logger.debug = async () => {};
+    logger.warn = async () => {};
+    logger.error = async () => {};
 
     fileProvider.load = async (_: string) =>
       new Uint8Array();
@@ -64,14 +53,46 @@ describe('CardcreatorLibrary', () => {
     renderer.supports = (_: string) => true;
   });
 
-  test('issues an event when a project is loaded.', (done) => {
-    library.on('projectLoaded', (event) => {
-      expect(event.type).toBe('projectLoaded');
-      done();
+  describe('load project', () => {
+    test('issues "loaded project" event when a project is loaded', (done) => {
+      // THEN: Event is fired.
+      library.events.on('projectLoaded', (event) => {
+        expect(event.type).toBe('projectLoaded');
+        done();
+      });
+
+      // GIVEN / WHEN
+      library.project.load({
+        projectName: 'test'
+      });
+
+      timeout(done);
     });
 
-    library.loadProject();
+    test('issues a "confirmation" event when a new project is loaded, while another project is already loaded', (done) => {
+      // THEN: a confirmation is sent.
+      library.events.on('dialog', event => {
+        expect(event.data.text).toMatch(/project/gi);
+        expect(event.data.level)
+        done();
+      });
 
-    timeout(done);
+      // GIVEN: project is already loaded
+      library.project.load({
+        projectName: 'test'
+      });
+
+      // WHEN: another project is loaded
+      library.project.load({
+        projectName: 'test2'
+      });
+
+      timeout(done);
+    });
+
+    test.todo('issue no "confirmation" event when the same project is loaded two times (without modifications.', () => {});
+    test.todo('the project status can be tracked via the sync API.', () => {});
+    test.todo('if a new project is loaded and the dialog is confirmed, that project is loaded.', () => {});
+    test.todo('if a new project is loaded and the dialog is confirmed, that project is not loaded.', () => {});
   });
 });

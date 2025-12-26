@@ -6,34 +6,28 @@
  * @module EventBus
  */
 
-import e from 'express';
 import { generateId } from '../cross-cutting-concerns';
 import { Logger } from '../index.shared';
 import type {
   CardCreatorEvent,
-  CardCreatorEventTypeMap,
-  DomainEvent,
+  EventKeys,
+  SingleEvent,
 } from '../types/events';
-
-/**
- * Handler function that processes one or multiple event types.
- */
-type EventHandler<DOMAIN extends DomainEvent> = (
-  event: DOMAIN,
-) => void | Promise<void>;
+import { EventHandler, InternalEventBus } from './events';
 
 /**
  * Internal representation of an handler method.
  * Maintains type relationship between event types, handler, and collected events.
  */
 interface EventRegistryEntry<
-  DOMAINS extends readonly DomainEvent[] = readonly DomainEvent[],
+  DOMAIN extends SingleEvent<EventKeys>
 > {
   id: string;
-  eventTypes: ReadonlyArray<DOMAINS[number]['type']>;
-  handler: EventHandler<DOMAINS[number]>;
-  collectedEvents: DOMAINS[number][];
-}
+  type: DOMAIN['type'];
+  handler: EventHandler<DOMAIN>;
+  collectedEvents: Array<DOMAIN['data']>;
+};
+
 
 /**
  * Event bus for managing event subscriptions and publications.
@@ -47,9 +41,9 @@ interface EventRegistryEntry<
  * ```typescript
  * const eventBus = new EventBus(logger);
  *
- * // Multi-event handler (conjunction)
- * eventBus.on(['projectLoaded', 'fileOpened'], (projectEvent, fileEvent) => {
- *   console.log('Both events occurred');
+ * // Event handler
+ * eventBus.on('projectLoaded', event => {
+ *   console.log(`Loaded project "${event.data.projectName}"!`);
  * });
  *
  * // Publish an event
@@ -62,12 +56,11 @@ interface EventRegistryEntry<
  * });
  * ```
  */
-export class EventBus {
+export class EventService implements InternalEventBus {
   /** Handles for all kind of events. */
-  private readonly handlerRegistry: Map<
-    string,
-    Set<EventRegistryEntry<readonly DomainEvent[]>>
-  > = new Map();
+  private handlerRegistry: Partial<{
+    [K in EventKeys]: Set<EventRegistryEntry<SingleEvent<K>>>
+  }> = {};
 
   /** Logger instance for event bus operations */
   private readonly logger?: Logger;
@@ -87,77 +80,39 @@ export class EventBus {
     this.logger = logger;
   }
 
-  /**
-   * Subscribe to multiple events at the same time.
-   *
-   * @param eventTypes - Array of event types to listen for.
-   * @param handler - Function to call when any of the specified events is called.
-   * @returns Unsubscribe function to remove the handler.
-   *
-   * @example
-   * ```typescript
-   * eventBus.on(
-   *   ['projectLoaded', 'fileOpened'],
-   *   (projectEvent, fileEvent) => {
-   *     console.log('Project was loaded or file was loaded!');
-   *   }
-   * );
-   * ```
-   */
-  on(
-    eventTypes:
-      | keyof CardCreatorEventTypeMap
-      | Array<keyof CardCreatorEventTypeMap>,
+  on<K extends EventKeys>(
+    type: K,
     handler: EventHandler<
-      CardCreatorEventTypeMap[keyof CardCreatorEventTypeMap]
+      SingleEvent<K>
     >,
   ): () => void {
     const registrationId = generateId();
-    const resolvedEventTypes = Array.isArray(eventTypes)
-      ? eventTypes
-      : [eventTypes];
 
-    const populatedHandler: EventRegistryEntry<
-      readonly DomainEvent[]
+    const entry: EventRegistryEntry<
+      SingleEvent<K>
     > = {
-      eventTypes: eventTypes as ReadonlyArray<
-        DomainEvent['type']
-      >,
-      handler: handler as EventHandler<DomainEvent>,
+      type,
+      handler: handler,
       collectedEvents: [],
       id: registrationId,
     };
 
-    resolvedEventTypes.forEach((eventType) => {
-      this._registerHandler(eventType, populatedHandler);
-    });
+    this._registerHandler(type, entry);
 
     this.logger?.debug(
-      `Conjunction handler (#${registrationId}) registered for events: ${resolvedEventTypes.join(
-        ', ',
-      )}`,
+      `Handler (#${registrationId}) registered for event "${type}".`
     );
 
     // Return unsubscribe function
     return () => {
-      resolvedEventTypes
-        .map((t) => this.handlerRegistry.get(t)!)
-        .forEach((set) => set.delete(populatedHandler));
+      this.handlerRegistry[type]?.delete(entry);
 
       this.logger?.debug(
-        `Conjunction handler (#${registrationId}) unregistered from events: ${resolvedEventTypes.join(
-          ', ',
-        )}`,
+        `Handler (#${registrationId}) unregistered for event "${type}".`
       );
     };
   }
 
-  /**
-   * Subscribe to error events that occur during event handling.
-   *
-   * @param handler - Function to call when an error occurs
-   * @returns Unsubscribe function
-   */
   onError(
     handler: (
       error: Error,
@@ -173,24 +128,6 @@ export class EventBus {
     };
   }
 
-  /**
-   * Publish an event to all registered handlers.
-   * Executes handlers in registration order and handles errors gracefully.
-   *
-   * @param event - The event to publish
-   * @throws Never throws; errors are passed to error handlers
-   *
-   * @example
-   * ```typescript
-   * await eventBus.publish({
-   *   type: 'projectLoaded',
-   *   projectId: '123',
-   *   projectName: 'My Project',
-   *   timestamp: new Date(),
-   *   correlationId: 'abc-123',
-   * });
-   * ```
-   */
   async publish(event: CardCreatorEvent): Promise<void> {
     const eventType = event.type;
 
@@ -199,9 +136,8 @@ export class EventBus {
     try {
       // Process conjunction handlers; isolate errors per handler so one failing
       // listener doesn't prevent other listeners from running.
-      this.handlerRegistry
-        .get(eventType)
-        ?.forEach((handler) => {
+      (this.handlerRegistry[eventType])
+        ?.forEach(handler => {
           this.logger?.debug(
             `Invoking handler (#${handler.id}) for event: ${eventType}`,
           );
@@ -217,20 +153,16 @@ export class EventBus {
     }
   }
 
-  /**
-   * Clear all handlers and error listeners, optionally for a specific event type.
-   * Useful for testing and cleanup.
-   *
-   * @param eventType - Optional event type to clear handlers for. If not provided, clears all handlers.
-   */
-  clear(eventType?: keyof CardCreatorEventTypeMap): void {
-    if (eventType) {
-      this.handlerRegistry.delete(eventType);
+  public clear(eventType?: EventKeys): void {
+    if (eventType !== undefined) {
+      delete this.handlerRegistry[eventType];
+
       this.logger?.debug(
         `EventBus cleared for event type: ${eventType}`,
       );
     } else {
-      this.handlerRegistry.clear();
+      this.handlerRegistry = {};
+
       this.errorHandlers.length = 0;
       this.logger?.debug(
         'EventBus cleared for all event types and error handlers',
@@ -238,27 +170,28 @@ export class EventBus {
     }
   }
 
-  private _registerHandler<E extends DomainEvent>(
-    eventType: E['type'],
+  private _registerHandler<T extends EventKeys>(
+    eventType: T,
     registration: EventRegistryEntry<
-      readonly DomainEvent[]
+      SingleEvent<T>
     >,
   ): void {
-    if (!this.handlerRegistry.has(eventType)) {
+    if (!(eventType in this.handlerRegistry)) {
       this.logger?.debug(
         `Creating new handler set for event type: ${eventType}`,
       );
-      this.handlerRegistry.set(eventType, new Set());
+      this.handlerRegistry[eventType] = new Set<EventRegistryEntry<SingleEvent<T>>>();
     }
 
-    this.handlerRegistry.get(eventType)!.add(registration);
+    this.handlerRegistry[eventType]?.add(registration);
+
     this.logger?.debug(
       `Handler registered for event type: ${eventType}`,
       {
         registrationId: registration.id,
       },
     );
-  }
+  };
 
   /**
    * Internal method to emit errors to registered error handlers.

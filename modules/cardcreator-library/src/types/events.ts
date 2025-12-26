@@ -5,31 +5,33 @@
  */
 
 import {
+  DialogEvent,
   FileOpenedEvent,
   ProjectLoadedEvent,
-} from '../events/events';
+} from '../events/event-types';
 
 /** Base event interface that all domain events extend */
-export abstract class DomainEvent<
+export type DomainEvent<
+  TYPE extends string = string,
   DATA extends Readonly<Record<string, unknown>> = {},
-> {
-  constructor(
-    public readonly type: string,
-    public readonly data: DATA,
-  ) {}
-}
+> = {
+  type: TYPE,
+  data: DATA
+};
 
-export type EventOfType<
-  U extends DomainEvent,
-  T extends U['type'],
-> = Extract<U, { type: T }>;
+export type SingleEvent<KEY extends EventKeys> = Extract<CardCreatorEvent, {
+  type: KEY
+}>;
+
+export type EventKeys = CardCreatorEvent['type'];
 
 /**
  * All possible events in the CardCreator system.
  */
 export type CardCreatorEvent =
   | ProjectLoadedEvent
-  | FileOpenedEvent;
+  | FileOpenedEvent
+  | DialogEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.
@@ -38,7 +40,8 @@ export type CardCreatorEvent =
  * This is a strict type that ensures every event type has a corresponding event interface.
  * If a new event is added to CardCreatorEvent, it must also be added here.
  */
-export interface CardCreatorEventTypeMap {
-  projectLoaded: ProjectLoadedEvent;
-  fileOpened: FileOpenedEvent;
-}
+export type CardCreatorEventTypeMap = {
+  [KEY in CardCreatorEvent['type'][number]]: Extract<CardCreatorEvent, {
+    type: KEY
+  }>
+};

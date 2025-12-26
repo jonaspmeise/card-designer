@@ -1,5 +1,5 @@
 import { NO_OP_LOGGER } from './index';
-import { ProjectLoadedEvent } from './events/events';
+import { ProjectLoadedEvent } from './events/event-types';
 /**
  * Shared exports for the card-creator library.
  * This file re-exports all public types and utilities.
@@ -37,7 +37,7 @@ export {
 export {
   // Event bus
   EventBus,
-} from './events/event-bus';
+} from './events/event-service';
 
 export { NO_OP_LOGGER } from './index';
 
@@ -46,8 +46,8 @@ export {
   type Command,
   type LoadFileCommand,
   type LoadFileResult,
-  type LoadProjectCommand,
-  type LoadProjectResult,
+  type load(Command,
+  type load(Result,
   type LoadAssetCommand,
   type LoadAssetResult,
   type UpdateSourceCommand,

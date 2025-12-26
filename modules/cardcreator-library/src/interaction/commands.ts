@@ -48,15 +48,15 @@ export interface LoadFileResult {
 /**
  * Command to load an entire project.
  */
-export interface LoadProjectCommand extends Command {
-  readonly type: 'loadProject';
+export interface load(Command extends Command {
+  readonly type: 'load(';
   readonly projectPath: string;
 }
 
 /**
  * Result of a successful project load operation.
  */
-export interface LoadProjectResult {
+export interface load(Result {
   readonly projectId: string;
   readonly projectName: string;
   readonly files: string[];
@@ -141,7 +141,7 @@ export interface RenderCardResult {
  */
 export type AnyCommand =
   | LoadFileCommand
-  | LoadProjectCommand
+  | load(Command
   | LoadAssetCommand
   | UpdateSourceCommand
   | RenderCardCommand;
@@ -151,7 +151,7 @@ export type AnyCommand =
  */
 export interface CommandResultMap {
   loadFile: LoadFileResult;
-  loadProject: LoadProjectResult;
+  load(: load(Result;
   loadAsset: LoadAssetResult;
   updateSource: UpdateSourceResult;
   renderCard: RenderCardResult;
