@@ -2,30 +2,35 @@
  * Core library API providing the public interface for card-creator.
  *
  * This is the main entry point for consumers (CLI, webapp, etc).
- * It provides a clean, type-safe API for all library operations.
+ * The library is agnostic to special implementations of external dependencies, such as UI, file system, etc.
  *
  * @module CardCreatorLibrary
  */
 
-import { CardCreatorDependencies } from '..';
+import { DependableService } from '../architecture/types';
 import { objectsIdentical } from '../cross-cutting-concerns';
-import { initProjectData, ProjectData } from './project-types';
+import {
+  initProjectData,
+  ProjectData,
+  ProjectServiceDependencies,
+} from './project-types';
 
 /**
  * Service-class for interactions with anything related to "projects".
  */
-export class ProjectService {
-
+export class ProjectService extends DependableService<ProjectServiceDependencies> {
   // A reference to the loaded project data.
   private _project: ProjectData = initProjectData();
   private _modified: boolean = false;
 
-  constructor(
-    private readonly _dependencies: CardCreatorDependencies
-  ) {}
+  constructor(_dependencies: ProjectServiceDependencies) {
+    super(_dependencies);
+  }
 
   public data(): Readonly<ProjectData> {
-    this._dependencies.logger.debug(`Fetching project data...`);
+    this._dependencies.logger.debug(
+      `Fetching project data...`,
+    );
 
     return this._project;
   }
@@ -39,13 +44,15 @@ export class ProjectService {
    * - If denied, the new project will be cancelled.
    */
   public async load(data: ProjectData): Promise<void> {
-    if(!this._modified) {
+    if (!this._modified) {
       this._doLoad(data);
       return;
     }
 
-    if(objectsIdentical(this._project, data)) {
-      this._dependencies.logger.debug('Identical project data loaded, do nothing...');
+    if (objectsIdentical(this._project, data)) {
+      this._dependencies.logger.debug(
+        'Identical project data loaded, do nothing...',
+      );
       return;
     }
 
@@ -56,14 +63,18 @@ export class ProjectService {
         text: `A project "${this._project.name}" was already loaded.\nOverwrite it with new project "${data.name}"?`,
         callbacks: {
           Confirm: async () => {
-            this._dependencies.logger.info(`Overwriting current project "${this._project?.name}" with new project "${data.name}"...`);
+            this._dependencies.logger.info(
+              `Overwriting current project "${this._project?.name}" with new project "${data.name}"...`,
+            );
             this._doLoad(data);
           },
           Cancel: async () => {
-            this._dependencies.logger.info(`Loading of project "${data.name} cancelled."`);
-          }
-        }
-      }
+            this._dependencies.logger.info(
+              `Loading of project "${data.name} cancelled."`,
+            );
+          },
+        },
+      },
     });
   }
 
@@ -75,11 +86,47 @@ export class ProjectService {
     this._project = data;
     this._modified = true;
 
-    this._dependencies.logger.info(`Project "${data.name}" loaded.`);
+    this._dependencies.logger.info(
+      `Project "${data.name}" loaded.`,
+    );
     this._dependencies.eventBus.publish({
       type: 'projectLoaded',
-      data
+      data,
     });
+  }
+
+  public async save(path?: string): Promise<void> {
+    this._dependencies.logger.debug(
+      `Saving project "${this._project.name}"...`,
+    );
+
+    const target =
+      path ?? `${this._project.name}.cardcreator.json`;
+    await this._dependencies.fileProvider.save(
+      target,
+      new TextEncoder().encode(
+        JSON.stringify(this._project),
+      ),
+    );
+    this._modified = false;
+    this._dependencies.eventBus.publish({
+      type: 'projectSaved',
+      data: {
+        path: target,
+      },
+    });
+
+    this._dependencies.logger.info(
+      `Project "${this._project.name}" saved.`,
+    );
+  }
+
+  public isModified(): boolean {
+    this._dependencies.logger.debug(
+      `Checking if project "${this._project.name}" is modified...`,
+    );
+
+    return this._modified;
   }
 
   /**
@@ -91,9 +138,11 @@ export class ProjectService {
    * @returns nothing.
    */
   reset(force: boolean = false): void {
-    this._dependencies.logger.debug('Resetting project settings...');
+    this._dependencies.logger.debug(
+      'Resetting project settings...',
+    );
 
-    if(!this._modified || force) {
+    if (!this._modified || force) {
       this._doReset();
       return;
     }
@@ -108,10 +157,12 @@ export class ProjectService {
             this._doReset();
           },
           Cancel: async () => {
-            this._dependencies.logger.info(`Project reset was cancelled.`);
-          }
-        }
-      }
+            this._dependencies.logger.info(
+              `Project reset was cancelled.`,
+            );
+          },
+        },
+      },
     });
   }
 
@@ -122,10 +173,12 @@ export class ProjectService {
     this._modified = false;
     this._project = initProjectData();
 
-    this._dependencies.logger.info('Project settings were reset.');
+    this._dependencies.logger.info(
+      'Project settings were reset.',
+    );
     this._dependencies.eventBus.publish({
       type: 'projectReset',
-      data: {}
+      data: {},
     });
   }
 }

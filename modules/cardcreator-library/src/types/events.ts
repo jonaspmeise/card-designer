@@ -9,6 +9,7 @@ import {
   FileOpenedEvent,
   ProjectLoadedEvent,
   ProjectResetEvent,
+  ProjectSavedEvent,
 } from '../events/event-types';
 
 /** Base event interface that all domain events extend */
@@ -16,13 +17,16 @@ export type DomainEvent<
   TYPE extends string = string,
   DATA extends Readonly<Record<string, unknown>> = {},
 > = {
-  type: TYPE,
-  data: DATA
+  type: TYPE;
+  data: DATA;
 };
 
-export type SingleEvent<KEY extends EventKeys> = Extract<CardCreatorEvent, {
-  type: KEY
-}>;
+export type SingleEvent<KEY extends EventKeys> = Extract<
+  CardCreatorEvent,
+  {
+    type: KEY;
+  }
+>;
 
 export type EventKeys = CardCreatorEvent['type'];
 
@@ -33,7 +37,8 @@ export type CardCreatorEvent =
   | ProjectLoadedEvent
   | FileOpenedEvent
   | DialogEvent
-  | ProjectResetEvent;
+  | ProjectResetEvent
+  | ProjectSavedEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.
@@ -43,7 +48,10 @@ export type CardCreatorEvent =
  * If a new event is added to CardCreatorEvent, it must also be added here.
  */
 export type CardCreatorEventTypeMap = {
-  [KEY in CardCreatorEvent['type'][number]]: Extract<CardCreatorEvent, {
-    type: KEY
-  }>
+  [KEY in CardCreatorEvent['type'][number]]: Extract<
+    CardCreatorEvent,
+    {
+      type: KEY;
+    }
+  >;
 };

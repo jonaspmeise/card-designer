@@ -6,22 +6,27 @@ export type ProjectLoadedEvent = DomainEvent<
   ProjectData
 >;
 
-export type ProjectResetEvent = DomainEvent<
-  'projectReset'
+export type ProjectSavedEvent = DomainEvent<
+  'projectSaved',
+  {
+    path: string;
+  }
 >;
+
+export type ProjectResetEvent = DomainEvent<'projectReset'>;
 
 export type FileOpenedEvent = DomainEvent<
   'fileOpened',
   {
-    filePath: string
+    path: string;
   }
 >;
 
 export type DialogEvent = DomainEvent<
   'dialog',
   {
-    text: string,
-    level: 'question' | 'info' | 'warning' | 'error',
-    callbacks: Record<string, () => Promise<void>>
+    text: string;
+    level: 'question' | 'info' | 'warning' | 'error';
+    callbacks: Record<string, () => Promise<void>>;
   }
 >;

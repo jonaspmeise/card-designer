@@ -11,6 +11,7 @@ import {
   afterEach,
 } from 'bun:test';
 import { EventService } from './event-service';
+import { file } from 'bun';
 
 describe('EventService', () => {
   let eventService: EventService;
@@ -35,9 +36,12 @@ describe('EventService', () => {
 
   test('should allow unsubscribing from handlers', async () => {
     // GIVEN
-    const unsubscribe = eventService.on('projectLoaded', () => {
-      throw new Error('should not be called!');
-    });
+    const unsubscribe = eventService.on(
+      'projectLoaded',
+      () => {
+        throw new Error('should not be called!');
+      },
+    );
 
     // WHEN
     unsubscribe();
@@ -45,8 +49,8 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        name: 'Test Project'
-      }
+        name: 'Test Project',
+      },
     });
 
     // THEN
@@ -68,24 +72,18 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        name: 'Test Project'
-      }
+        name: 'Test Project',
+      },
     });
   });
 
   test('should clear all handlers and error listeners', async () => {
-    eventService.on(
-      'projectLoaded',
-      _ => {
-        throw new Error('should not be called!');
-      },
-    );
-    eventService.on(
-      'fileOpened',
-      _ => {
-        throw new Error('should not be called!');
-      }
-    )
+    eventService.on('projectLoaded', (_) => {
+      throw new Error('should not be called!');
+    });
+    eventService.on('fileOpened', (_) => {
+      throw new Error('should not be called!');
+    });
 
     eventService.clear();
 
@@ -93,15 +91,15 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        name: 'Test Project'
-      }
+        name: 'Test Project',
+      },
     });
 
     await eventService.publish({
       type: 'fileOpened',
       data: {
-        filePath: '/my/file/path'
-      }
+        path: '/my/file/path',
+      },
     });
   });
 
@@ -126,8 +124,8 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'projectLoaded',
       data: {
-        name: 'Test Project'
-      }
+        name: 'Test Project',
+      },
     });
     expect(handler1Called).toBe(false);
 
@@ -135,8 +133,8 @@ describe('EventService', () => {
     await eventService.publish({
       type: 'fileOpened',
       data: {
-        filePath: '/my/file/path'
-      }
+        path: '/my/file/path',
+      },
     });
     expect(handler2Called).toBe(true);
   });
