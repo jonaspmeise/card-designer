@@ -2,7 +2,8 @@
  * Generate a UUID v4 string.
  * Simple implementation that works in both Node.js and browser environments.
  */
-export const generateId = (): string => {
+export type ID = string;
+export const generateId = (): ID => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
@@ -25,6 +26,9 @@ export const generateId = (): string => {
  * @param b The second object.
  * @returns whether these two objects are identical (pretty much).
  */
-export const objectsIdentical = (a: unknown, b: unknown): boolean => {
+export const objectsIdentical = (
+  a: unknown,
+  b: unknown,
+): boolean => {
   return JSON.stringify(a) == JSON.stringify(b);
-}
+};

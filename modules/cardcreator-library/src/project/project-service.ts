@@ -7,11 +7,18 @@
  * @module CardCreatorLibrary
  */
 
-import { DependableService } from '../architecture/types';
+import {
+  DependableService,
+  PopulatedCommand,
+} from '../architecture/types';
 import { objectsIdentical } from '../cross-cutting-concerns';
+import { LoadProjectCommand } from './commands/load-project';
+import {
+  ProjectData,
+  ProjectServiceState,
+} from './project-types';
 import {
   initProjectData,
-  ProjectData,
   ProjectServiceDependencies,
 } from './project-types';
 
@@ -20,8 +27,10 @@ import {
  */
 export class ProjectService extends DependableService<ProjectServiceDependencies> {
   // A reference to the loaded project data.
-  private _project: ProjectData = initProjectData();
-  private _modified: boolean = false;
+  private _state: ProjectServiceState = {
+    project: initProjectData(),
+    isModified: false,
+  };
 
   constructor(_dependencies: ProjectServiceDependencies) {
     super(_dependencies);
@@ -32,7 +41,7 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
       `Fetching project data...`,
     );
 
-    return this._project;
+    return this._state.project;
   }
 
   /**
@@ -43,30 +52,44 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
    * - If confirmed, the new project will load.
    * - If denied, the new project will be cancelled.
    */
-  public async load(data: ProjectData): Promise<void> {
-    if (!this._modified) {
-      this._doLoad(data);
-      return;
-    }
-
-    if (objectsIdentical(this._project, data)) {
+  public async load(
+    data: ProjectData,
+  ): Promise<
+    PopulatedCommand<LoadProjectCommand> | undefined
+  > {
+    if (objectsIdentical(this._state.project, data)) {
       this._dependencies.logger.debug(
         'Identical project data loaded, do nothing...',
       );
       return;
     }
 
-    this._dependencies.eventBus.publish({
+    const command: LoadProjectCommand =
+      new LoadProjectCommand(
+        {
+          prior: { ...this._state },
+          next: { project: data, isModified: true },
+        },
+        this._state,
+      );
+
+    if (!this._state.isModified) {
+      return this._dependencies.historyService.push(
+        command,
+      );
+    }
+
+    this._dependencies.eventService.publish({
       type: 'dialog',
       data: {
         level: 'question',
-        text: `A project "${this._project.name}" was already loaded.\nOverwrite it with new project "${data.name}"?`,
+        text: `A project "${this._state.project.name}" was already loaded.\nOverwrite it with new project "${data.name}"?`,
         callbacks: {
           Confirm: async () => {
             this._dependencies.logger.info(
-              `Overwriting current project "${this._project?.name}" with new project "${data.name}"...`,
+              `Overwriting current project "${this._state.project?.name}" with new project "${data.name}"...`,
             );
-            this._doLoad(data);
+            this._dependencies.historyService.push(command);
           },
           Cancel: async () => {
             this._dependencies.logger.info(
@@ -78,38 +101,22 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
     });
   }
 
-  /**
-   * Loads project data without checking anything.
-   * @param data The project data to load.
-   */
-  private _doLoad(data: ProjectData) {
-    this._project = data;
-    this._modified = true;
-
-    this._dependencies.logger.info(
-      `Project "${data.name}" loaded.`,
-    );
-    this._dependencies.eventBus.publish({
-      type: 'projectLoaded',
-      data,
-    });
-  }
-
   public async save(path?: string): Promise<void> {
     this._dependencies.logger.debug(
-      `Saving project "${this._project.name}"...`,
+      `Saving project "${this._state.project.name}"...`,
     );
 
     const target =
-      path ?? `${this._project.name}.cardcreator.json`;
+      path ??
+      `${this._state.project.name}.cardcreator.json`;
     await this._dependencies.fileProvider.save(
       target,
       new TextEncoder().encode(
-        JSON.stringify(this._project),
+        JSON.stringify(this._state.project),
       ),
     );
-    this._modified = false;
-    this._dependencies.eventBus.publish({
+    this._state.isModified = false;
+    this._dependencies.eventService.publish({
       type: 'projectSaved',
       data: {
         path: target,
@@ -117,16 +124,16 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
     });
 
     this._dependencies.logger.info(
-      `Project "${this._project.name}" saved.`,
+      `Project "${this._state.project.name}" saved.`,
     );
   }
 
   public isModified(): boolean {
     this._dependencies.logger.debug(
-      `Checking if project "${this._project.name}" is modified...`,
+      `Checking if project "${this._state.project.name}" is modified...`,
     );
 
-    return this._modified;
+    return this._state.isModified;
   }
 
   /**
@@ -142,12 +149,12 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
       'Resetting project settings...',
     );
 
-    if (!this._modified || force) {
+    if (!this._state.isModified || force) {
       this._doReset();
       return;
     }
 
-    this._dependencies.eventBus.publish({
+    this._dependencies.eventService.publish({
       type: 'dialog',
       data: {
         level: 'question',
@@ -170,13 +177,13 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
    * Executes a reset.
    */
   private _doReset() {
-    this._modified = false;
-    this._project = initProjectData();
+    this._state.isModified = false;
+    this._state.project = initProjectData();
 
     this._dependencies.logger.info(
       'Project settings were reset.',
     );
-    this._dependencies.eventBus.publish({
+    this._dependencies.eventService.publish({
       type: 'projectReset',
       data: {},
     });

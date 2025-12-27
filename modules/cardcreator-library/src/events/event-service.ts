@@ -6,13 +6,17 @@
  * @module EventBus
  */
 
+import {
+  Clearable,
+  DependableService,
+} from '../architecture/types';
 import { generateId } from '../cross-cutting-concerns';
-import { Logger } from '../types/domain';
 import type {
   CardCreatorEvent,
   EventKeys,
   SingleEvent,
 } from '../types/events';
+import { EventServiceDependencies } from './event-types';
 import { EventHandler, InternalEventBus } from './events';
 
 /**
@@ -20,14 +24,13 @@ import { EventHandler, InternalEventBus } from './events';
  * Maintains type relationship between event types, handler, and collected events.
  */
 interface EventRegistryEntry<
-  DOMAIN extends SingleEvent<EventKeys>
+  DOMAIN extends SingleEvent<EventKeys>,
 > {
   id: string;
   type: DOMAIN['type'];
   handler: EventHandler<DOMAIN>;
   collectedEvents: Array<DOMAIN['data']>;
-};
-
+}
 
 /**
  * Event bus for managing event subscriptions and publications.
@@ -39,31 +42,31 @@ interface EventRegistryEntry<
  *
  * @example
  * ```typescript
- * const eventBus = new EventBus(logger);
+ * const eventService = new EventBus(logger);
  *
  * // Event handler
- * eventBus.on('projectLoaded', event => {
+ * eventService.on('projectLoaded', event => {
  *   console.log(`Loaded project "${event.data.name}"!`);
  * });
  *
  * // Publish an event
- * await eventBus.publish({
+ * await eventService.publish({
  *   type: 'projectLoaded',
  *   projectId: '123',
- *   name: 'My Project',
- *   timestamp: new Date(),
- *   correlationId: 'abc-123',
+ *   name: 'My Project'
  * });
  * ```
  */
-export class EventService implements InternalEventBus {
+export class EventService
+  extends DependableService<EventServiceDependencies>
+  implements InternalEventBus, Clearable
+{
   /** Handles for all kind of events. */
   private handlerRegistry: Partial<{
-    [K in EventKeys]: Set<EventRegistryEntry<SingleEvent<K>>>
+    [K in EventKeys]: Set<
+      EventRegistryEntry<SingleEvent<K>>
+    >;
   }> = {};
-
-  /** Logger instance for event bus operations */
-  private readonly logger?: Logger;
 
   /** Handlers for unhandled errors in listeners */
   private readonly errorHandlers: ((
@@ -71,26 +74,17 @@ export class EventService implements InternalEventBus {
     event?: CardCreatorEvent,
   ) => void)[] = [];
 
-  /**
-   * Create a new EventBus instance.
-   *
-   * @param logger - Logger instance for diagnostic output
-   */
-  constructor(logger?: Logger) {
-    this.logger = logger;
+  constructor(_dependencies: EventServiceDependencies) {
+    super(_dependencies);
   }
 
   on<K extends EventKeys>(
     type: K,
-    handler: EventHandler<
-      SingleEvent<K>
-    >,
+    handler: EventHandler<SingleEvent<K>>,
   ): () => void {
     const registrationId = generateId();
 
-    const entry: EventRegistryEntry<
-      SingleEvent<K>
-    > = {
+    const entry: EventRegistryEntry<SingleEvent<K>> = {
       type,
       handler: handler,
       collectedEvents: [],
@@ -99,16 +93,16 @@ export class EventService implements InternalEventBus {
 
     this._registerHandler(type, entry);
 
-    this.logger?.debug(
-      `Handler (#${registrationId}) registered for event "${type}".`
+    this._dependencies.logger.debug(
+      `Handler (#${registrationId}) registered for event "${type}".`,
     );
 
     // Return unsubscribe function
     return () => {
       this.handlerRegistry[type]?.delete(entry);
 
-      this.logger?.debug(
-        `Handler (#${registrationId}) unregistered for event "${type}".`
+      this._dependencies.logger.debug(
+        `Handler (#${registrationId}) unregistered for event "${type}".`,
       );
     };
   }
@@ -131,14 +125,16 @@ export class EventService implements InternalEventBus {
   async publish(event: CardCreatorEvent): Promise<void> {
     const eventType = event.type;
 
-    this.logger?.debug(`Publishing event: ${eventType}...`);
+    this._dependencies.logger.debug(
+      `Publishing event: ${eventType}...`,
+    );
 
     try {
       // Process conjunction handlers; isolate errors per handler so one failing
       // listener doesn't prevent other listeners from running.
-      (this.handlerRegistry[eventType])
-        ?.forEach(handler => {
-          this.logger?.debug(
+      this.handlerRegistry[eventType]?.forEach(
+        (handler) => {
+          this._dependencies.logger.debug(
             `Invoking handler (#${handler.id}) for event: ${eventType}`,
           );
 
@@ -147,7 +143,8 @@ export class EventService implements InternalEventBus {
           } catch (err) {
             this._emitError(err as Error, event);
           }
-        });
+        },
+      );
     } catch (error) {
       this._emitError(error as Error, event);
     }
@@ -157,14 +154,14 @@ export class EventService implements InternalEventBus {
     if (eventType !== undefined) {
       delete this.handlerRegistry[eventType];
 
-      this.logger?.debug(
+      this._dependencies.logger.debug(
         `EventBus cleared for event type: ${eventType}`,
       );
     } else {
       this.handlerRegistry = {};
 
       this.errorHandlers.length = 0;
-      this.logger?.debug(
+      this._dependencies.logger.debug(
         'EventBus cleared for all event types and error handlers',
       );
     }
@@ -172,26 +169,26 @@ export class EventService implements InternalEventBus {
 
   private _registerHandler<T extends EventKeys>(
     eventType: T,
-    registration: EventRegistryEntry<
-      SingleEvent<T>
-    >,
+    registration: EventRegistryEntry<SingleEvent<T>>,
   ): void {
     if (!(eventType in this.handlerRegistry)) {
-      this.logger?.debug(
+      this._dependencies.logger.debug(
         `Creating new handler set for event type: ${eventType}`,
       );
-      this.handlerRegistry[eventType] = new Set<EventRegistryEntry<SingleEvent<T>>>();
+      this.handlerRegistry[eventType] = new Set<
+        EventRegistryEntry<SingleEvent<T>>
+      >();
     }
 
     this.handlerRegistry[eventType]?.add(registration);
 
-    this.logger?.debug(
+    this._dependencies.logger.debug(
       `Handler registered for event type: ${eventType}`,
       {
         registrationId: registration.id,
       },
     );
-  };
+  }
 
   /**
    * Internal method to emit errors to registered error handlers.
@@ -203,7 +200,7 @@ export class EventService implements InternalEventBus {
     error: Error,
     event?: CardCreatorEvent,
   ): void {
-    this.logger?.error(
+    this._dependencies.logger.error(
       `Error in event handler of type "${event?.type}"`,
       error,
     );
@@ -212,7 +209,7 @@ export class EventService implements InternalEventBus {
       try {
         handler(error, event);
       } catch (err) {
-        this.logger?.error(
+        this._dependencies.logger.error(
           'Error in error handler...?',
           err as Error,
         );

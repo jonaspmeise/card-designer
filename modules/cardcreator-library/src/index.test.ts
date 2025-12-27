@@ -18,12 +18,12 @@ import { timeout } from './test-utility';
 describe('CardcreatorLibrary', () => {
   // Mocks.
   const fileProvider: FileProvider = {
-    load: async (_: string) => new Uint8Array(),
-    save: async (_: string, __: Uint8Array) => {},
+    load: async (_) => new Uint8Array(),
+    save: async (_, __) => {},
   };
   const renderer: CardRenderer = {
     render: async () => new Uint8Array(),
-    supports: (_: string) => true,
+    supports: (_) => true,
   };
   const logger: Logger = NO_OP_LOGGER;
 
@@ -45,14 +45,10 @@ describe('CardcreatorLibrary', () => {
     logger.warn = async () => {};
     logger.error = async () => {};
 
-    fileProvider.load = async (_: string) =>
-      new Uint8Array();
-    fileProvider.save = async (
-      _: string,
-      __: Uint8Array,
-    ) => {};
+    fileProvider.load = async (_) => new Uint8Array();
+    fileProvider.save = async (_, __) => {};
 
     renderer.render = async () => new Uint8Array();
-    renderer.supports = (_: string) => true;
+    renderer.supports = (_) => true;
   });
 });

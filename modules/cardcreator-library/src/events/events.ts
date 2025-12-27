@@ -3,9 +3,16 @@
  * and internal concerns (developer perspective; issuing events).
  */
 
-import { CardCreatorEvent, DomainEvent, EventKeys, SingleEvent } from "../types/events";
+import {
+  CardCreatorEvent,
+  DomainEvent,
+  EventKeys,
+  SingleEvent,
+} from '../types/events';
 
-export interface EventBus extends InternalEventBus, ExternalEventBus {};
+export interface EventBus
+  extends InternalEventBus,
+    ExternalEventBus {}
 
 export interface InternalEventBus {
   /**
@@ -17,7 +24,7 @@ export interface InternalEventBus {
    *
    * @example
    * ```typescript
-   * await eventBus.publish({
+   * await eventService.publish({
    *   type: 'projectLoaded',
    *   projectId: '123',
    *   name: 'My Project',
@@ -27,10 +34,10 @@ export interface InternalEventBus {
    * ```
    */
   publish(event: CardCreatorEvent): Promise<void>;
-};
+}
 
 export interface ExternalEventBus {
-    /**
+  /**
    * Subscribe to error events that occur during event handling.
    *
    * @param handler - Function to call when an error occurs
@@ -52,7 +59,7 @@ export interface ExternalEventBus {
    *
    * @example
    * ```typescript
-   * eventBus.on(
+   * eventService.on(
    *   'projectLoaded',
    *   event => {
    *     console.log('Project was loaded or file was loaded!');
@@ -62,11 +69,8 @@ export interface ExternalEventBus {
    */
   on<K extends EventKeys>(
     type: K,
-    handler: EventHandler<
-      SingleEvent<K>
-    >,
+    handler: EventHandler<SingleEvent<K>>,
   ): () => void;
-
 
   /**
    * Clear all handlers and error listeners, optionally for only a specific event type.
@@ -74,10 +78,8 @@ export interface ExternalEventBus {
    *
    * @param eventType - Optional event type to clear handlers for. If not provided, clears all registered handlers.
    */
-  clear(
-    eventType?: EventKeys
-  ): void;
-};
+  clear(eventType?: EventKeys): void;
+}
 
 // Event types.
 

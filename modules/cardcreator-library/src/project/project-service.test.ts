@@ -11,51 +11,63 @@ import { Logger } from '../types/domain';
 import { ProjectService } from './project-service';
 import { EventBus } from '../events/events';
 import { EventService } from '../events/event-service';
+import { HistoryService } from '../history/history-service';
 
+/**
+ * Tests for the logic of the project service.
+ * Events are mocked.
+ * History is _not_ mocked, as the command executions are our core functionality in this service.
+ */
 describe('ProjectService', () => {
   // Mocks.
   const fileProvider: FileProvider = {
-    load: async (_: string) => new Uint8Array(),
-    save: async (_: string, __: Uint8Array) => {},
+    load: async (_) => new Uint8Array(),
+    save: async (_, __) => {},
   };
   const logger: Logger = NO_OP_LOGGER;
-  const eventService: EventBus = new EventService();
+  const eventService: EventBus = new EventService({
+    logger,
+  });
+  const historyService: HistoryService = new HistoryService(
+    {
+      logger,
+      eventService,
+    },
+  );
 
   // Service.
   const service: ProjectService = new ProjectService({
     logger: logger,
     fileProvider: fileProvider,
-    eventBus: eventService,
+    eventService: eventService,
+    historyService: historyService,
   });
 
   afterEach(() => {
     eventService.clear();
+    historyService.clear();
 
     logger.info = async () => {};
     logger.debug = async () => {};
     logger.warn = async () => {};
     logger.error = async () => {};
 
-    eventService.publish = async (event) => {};
+    eventService.publish = async (_) => {};
 
-    fileProvider.load = async (_: string) =>
-      new Uint8Array();
-    fileProvider.save = async (
-      _: string,
-      __: Uint8Array,
-    ) => {};
+    fileProvider.load = async (_) => new Uint8Array();
+    fileProvider.save = async (_, __) => {};
 
     service.reset(true);
   });
 
-  test('an initial project is always loaded.', () => {
-    // WHEN / THEN
-    expect(service.data()).toEqual({
-      name: 'New Project',
-    });
-  });
-
   describe('load', () => {
+    test('an initial project is always loaded.', () => {
+      // WHEN / THEN
+      expect(service.data()).toEqual({
+        name: 'New Project',
+      });
+    });
+
     test('issues "loaded project" event when a project is loaded', (done) => {
       // THEN: Event is fired.
       eventService.publish = async (event) => {
@@ -73,47 +85,6 @@ describe('ProjectService', () => {
       timeout(done);
     });
 
-    test('issues a "confirmation" event when a new project is loaded, while another project is already loaded', (done) => {
-      // THEN: a confirmation is sent.
-      eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
-          expect(event.data.text).toMatch(/project/gi);
-          expect(event.data.level);
-          done();
-        }
-      };
-
-      // GIVEN: project is already loaded
-      service.load({
-        name: 'test',
-      });
-
-      // WHEN: another project is loaded
-      service.load({
-        name: 'test2',
-      });
-
-      timeout(done);
-    });
-
-    test('issue no "confirmation" event when the same project is loaded two times (without modifications.', () => {
-      // THEN
-      eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
-          throw new Error('No dialog should be issued!');
-        }
-      };
-
-      // GIVEN / WHEN
-      service.load({
-        name: 'test1',
-      });
-      // Same data is loaded twice!
-      service.load({
-        name: 'test1',
-      });
-    });
-
     test('the project status can be tracked via the sync API.', () => {
       // GIVEN
       service.load({
@@ -124,6 +95,64 @@ describe('ProjectService', () => {
       expect(service.data()).toEqual({
         name: 'test',
       });
+    });
+
+    test('issues a "command executed" event when a project is loaded', (done) => {
+      // THEN: Event is fired.
+      eventService.publish = async (event) => {
+        if (event.type === 'commandExecuted') {
+          done();
+        }
+      };
+
+      // GIVEN / WHEN
+      service.load({
+        name: 'test',
+      });
+      timeout(done);
+    });
+
+    test('can be undone, thus going back to the prior project state.', async () => {
+      // GIVEN / WHEN
+      const call = await service.load({
+        name: 'test2',
+      });
+
+      expect(call).toBeDefined();
+      await call!.undo();
+
+      // THEN
+      expect(service.data().name).toEqual('New Project');
+    });
+
+    test('can be undone, then re-done, thus keeping the new state.', async () => {
+      // GIVEN
+      // We accept all incoming project changes.
+      eventService.publish = async (event) => {
+        if (event.type === 'dialog') {
+          await event.data.callbacks.Confirm();
+        }
+      };
+
+      service.load({
+        name: 'test1',
+      });
+
+      // WHEN
+      await service.load({
+        name: 'test2',
+      });
+
+      expect(historyService.history()).toHaveLength(2);
+      const loadCommand = historyService.history()[1];
+
+      // THEN
+      await loadCommand.undo();
+      expect(service.data().name).toEqual('test1');
+
+      // THEN
+      await loadCommand.do();
+      expect(service.data().name).toEqual('test2');
     });
 
     test('if a new project is loaded and the dialog is confirmed, that project is loaded.', (done) => {
@@ -173,6 +202,47 @@ describe('ProjectService', () => {
 
       timeout(done);
     });
+
+    test('issue no "(confirmation) dialog" event when the same project is loaded two times (without modifications.', () => {
+      // THEN
+      eventService.publish = async (event) => {
+        if (event.type === 'dialog') {
+          throw new Error('No dialog should be issued!');
+        }
+      };
+
+      // GIVEN / WHEN
+      service.load({
+        name: 'test1',
+      });
+      // Same data is loaded twice!
+      service.load({
+        name: 'test1',
+      });
+    });
+
+    test('issues a "(confirmation) dialog" event when a new project is loaded, while another project is already loaded', (done) => {
+      // THEN: a confirmation is sent.
+      eventService.publish = async (event) => {
+        if (event.type === 'dialog') {
+          expect(event.data.text).toMatch(/project/gi);
+          expect(event.data.level);
+          done();
+        }
+      };
+
+      // GIVEN: project is already loaded
+      service.load({
+        name: 'test',
+      });
+
+      // WHEN: another project is loaded
+      service.load({
+        name: 'test2',
+      });
+
+      timeout(done);
+    });
   });
 
   describe('is modified', () => {
@@ -205,10 +275,7 @@ describe('ProjectService', () => {
   describe('save', () => {
     test('calls the file provider save method when saving a project.', (done) => {
       // GIVEN
-      fileProvider.save = async (
-        _: string,
-        __: Uint8Array,
-      ) => {
+      fileProvider.save = async (_, __) => {
         done();
       };
 
@@ -224,10 +291,7 @@ describe('ProjectService', () => {
 
     test('saves to the given path when provided.', (done) => {
       // THEN
-      fileProvider.save = async (
-        path: string,
-        __: Uint8Array,
-      ) => {
+      fileProvider.save = async (path: string, __) => {
         expect(path).toBe(
           'my/custom/path.cardcreator.json',
         );
@@ -247,10 +311,7 @@ describe('ProjectService', () => {
 
     test('saves to the default path when no path is provided.', (done) => {
       // THEN
-      fileProvider.save = async (
-        path: string,
-        __: Uint8Array,
-      ) => {
+      fileProvider.save = async (path: string, __) => {
         expect(path).toBe('test.cardcreator.json');
         done();
       };

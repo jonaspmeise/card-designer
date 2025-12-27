@@ -5,6 +5,8 @@
  */
 
 import {
+  CommandExecutedEvent,
+  CommandUndoneEvent,
   DialogEvent,
   FileOpenedEvent,
   ProjectLoadedEvent,
@@ -15,7 +17,7 @@ import {
 /** Base event interface that all domain events extend */
 export type DomainEvent<
   TYPE extends string = string,
-  DATA extends Readonly<Record<string, unknown>> = {},
+  DATA = unknown,
 > = {
   type: TYPE;
   data: DATA;
@@ -34,6 +36,8 @@ export type EventKeys = CardCreatorEvent['type'];
  * All possible events in the CardCreator system.
  */
 export type CardCreatorEvent =
+  | CommandExecutedEvent
+  | CommandUndoneEvent
   | ProjectLoadedEvent
   | FileOpenedEvent
   | DialogEvent

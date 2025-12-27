@@ -1,8 +1,3 @@
-/**
- * Test suite for eventService functionality.
- * Tests the multi-event (conjunction) handler system.
- */
-
 import {
   describe,
   test,
@@ -15,13 +10,26 @@ import { file } from 'bun';
 
 describe('EventService', () => {
   let eventService: EventService;
+  const logger = {
+    debug: async (_msg: string) => {},
+    info: async (_msg: string) => {},
+    warn: async (_msg: string) => {},
+    error: async (_msg: string) => {},
+  };
 
   beforeEach(() => {
-    eventService = new EventService();
+    eventService = new EventService({
+      logger: logger,
+    });
   });
 
   afterEach(() => {
     eventService?.clear();
+
+    logger.debug = async (_msg: string) => {};
+    logger.info = async (_msg: string) => {};
+    logger.warn = async (_msg: string) => {};
+    logger.error = async (_msg: string) => {};
   });
 
   test('should register conjunction handlers', () => {

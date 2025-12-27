@@ -15,8 +15,13 @@ import type {
 } from './types/domain';
 import { FileProvider } from './files/file-provider';
 import { ProjectService } from './project/project-service';
-import { EventBus, ExternalEventBus, InternalEventBus } from './events/events';
+import {
+  EventBus,
+  ExternalEventBus,
+  InternalEventBus,
+} from './events/events';
 import { EventService } from './events/event-service';
+import { HistoryService } from './history/history-service';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
@@ -26,8 +31,9 @@ export interface CardCreatorDependencies {
   renderer: CardRenderer;
   cache: AssetCache;
   fileProvider: FileProvider;
-  eventBus: InternalEventBus;
-};
+  eventService: InternalEventBus;
+  historyService: HistoryService;
+}
 
 /**
  * Core card-creator library API.
@@ -66,7 +72,6 @@ export const NO_OP_LOGGER: Logger = {
 };
 
 export class CardCreatorLibrary {
-
   // Loaded external dependencies.
   private readonly dependencies: CardCreatorDependencies;
 
@@ -90,22 +95,35 @@ export class CardCreatorLibrary {
     }
 
     const logger: Logger = config.logger ?? NO_OP_LOGGER;
+    const eventService: InternalEventBus =
+      config.eventService ??
+      new EventService({
+        logger,
+      });
+
     this.dependencies = {
       cache: config.cache ?? new InMemoryAssetCache(),
       logger: logger,
       renderer: config.renderer,
       fileProvider: config.fileProvider,
-      eventBus: config.eventBus ?? new EventService(logger)
+      eventService: eventService,
+      historyService:
+        config.historyService ??
+        new HistoryService({
+          logger,
+          eventService,
+        }),
     };
 
     // Register services for each concern.
     this.project = new ProjectService(this.dependencies);
-    this.events = this.dependencies.eventBus as EventBus;
+    this.events = this.dependencies
+      .eventService as EventBus;
 
     this.dependencies.logger.info(
       'CardCreator library initialized',
     );
-  };
+  }
 
   public readonly project: Readonly<ProjectService>;
   public readonly events: Readonly<ExternalEventBus>;

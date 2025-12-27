@@ -4,9 +4,17 @@
 
 import { CardCreatorDependencies } from '..';
 
+export type ProjectServiceState = {
+  project: ProjectData;
+  isModified: boolean;
+};
+
 export type ProjectServiceDependencies = Pick<
   CardCreatorDependencies,
-  'fileProvider' | 'eventBus' | 'logger'
+  | 'fileProvider'
+  | 'eventService'
+  | 'logger'
+  | 'historyService'
 >;
 
 export type ProjectData = {
