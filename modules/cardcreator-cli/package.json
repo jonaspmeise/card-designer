@@ -6,9 +6,10 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "bun test"
+    "test": "bun test ./src/**/*.test.ts"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "cardcreator-library": "workspace:*"
   },
   "devDependencies": {

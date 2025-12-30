@@ -3,6 +3,8 @@
  * These represent key abstractions for logging, rendering, and caching.
  */
 
+import { OutputFormat } from '../render/render-types';
+
 // ============================================================================
 // OUTPUT FORMAT TYPE
 // ============================================================================
@@ -11,7 +13,6 @@
  * Union type for supported output formats.
  * Used for rendering cards and assets to various file types.
  */
-export type OutputFormat = 'png' | 'jpg' | 'pdf' | 'xlsx' | 'json' | 'csv' | 'yml' | 'yaml';
 
 // ============================================================================
 // LOGGER INTERFACE
@@ -22,12 +23,15 @@ export type OutputFormat = 'png' | 'jpg' | 'pdf' | 'xlsx' | 'json' | 'csv' | 'ym
  */
 
 export interface Logger {
-  debug(message: string, context?: Record<string, unknown>): Promise<void>;
-  info(message: string, context?: Record<string, unknown>): Promise<void>;
-  warn(message: string, context?: Record<string, unknown>): Promise<void>;
-  error(message: string, error?: Error, context?: Record<string, unknown>): Promise<void>;
+  debug(message: string, context?: any): Promise<void>;
+  info(message: string, context?: any): Promise<void>;
+  warn(message: string, context?: any): Promise<void>;
+  error(
+    message: string,
+    error?: Error,
+    context?: any,
+  ): Promise<void>;
 }
-
 
 // ============================================================================
 // FILE HANDLER INTERFACE
@@ -57,35 +61,6 @@ export interface FileHandler {
 }
 
 // ============================================================================
-// CARD RENDERER INTERFACE
-// ============================================================================
-
-/**
- * Card renderer interface for converting SVG content to rendered output.
- * Implementations might use Puppeteer, Skia, or other rendering engines.
- */
-export interface CardRenderer {
-  /**
-   * Renders an SVG string to a byte array in the specified format.
-   *
-   * @param svg - The SVG content as a string
-   * @param format - Output format (e.g., 'png', 'jpg', 'pdf')
-   * @returns Promise resolving to the rendered bytes
-   * @throws Error if rendering fails
-   */
-  render(svg: string, format: OutputFormat): Promise<Uint8Array>;
-
-  /**
-   * Checks if this renderer supports the given output format.
-   * Called before attempting to render.
-   *
-   * @param format - The desired output format
-   * @returns True if supported, false otherwise
-   */
-  supports(format: OutputFormat): boolean;
-}
-
-// ============================================================================
 // ASSET TYPES
 // ============================================================================
 
@@ -100,7 +75,11 @@ export abstract class Asset {
   readonly mimeType: string;
   readonly createdAt: Date;
 
-  protected constructor(id: string, name: string, mimeType: string) {
+  protected constructor(
+    id: string,
+    name: string,
+    mimeType: string,
+  ) {
     this.id = id;
     this.name = name;
     this.mimeType = mimeType;
@@ -123,14 +102,26 @@ export abstract class Asset {
 export class InMemoryAsset extends Asset {
   private readonly data: string;
 
-  constructor(id: string, name: string, mimeType: string, data: string) {
+  constructor(
+    id: string,
+    name: string,
+    mimeType: string,
+    data: string,
+  ) {
     super(id, name, mimeType);
     this.data = data;
   }
 
   async load(): Promise<Uint8Array> {
-    const binaryString = Buffer.from(this.data, 'base64').toString('binary');
-    return new Uint8Array(binaryString.split('').map((char: string) => char.charCodeAt(0)));
+    const binaryString = Buffer.from(
+      this.data,
+      'base64',
+    ).toString('binary');
+    return new Uint8Array(
+      binaryString
+        .split('')
+        .map((char: string) => char.charCodeAt(0)),
+    );
   }
 }
 
@@ -141,7 +132,12 @@ export class InMemoryAsset extends Asset {
 export class RemoteAsset extends Asset {
   private readonly url: string;
 
-  constructor(id: string, name: string, mimeType: string, url: string) {
+  constructor(
+    id: string,
+    name: string,
+    mimeType: string,
+    url: string,
+  ) {
     super(id, name, mimeType);
     this.url = url;
   }
@@ -149,7 +145,9 @@ export class RemoteAsset extends Asset {
   async load(): Promise<Uint8Array> {
     const response = await fetch(this.url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch asset from ${this.url}: ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch asset from ${this.url}: ${response.statusText}`,
+      );
     }
     return new Uint8Array(await response.arrayBuffer());
   }
@@ -162,14 +160,21 @@ export class RemoteAsset extends Asset {
 export class FileAsset extends Asset {
   private readonly filePath: string;
 
-  constructor(id: string, name: string, mimeType: string, filePath: string) {
+  constructor(
+    id: string,
+    name: string,
+    mimeType: string,
+    filePath: string,
+  ) {
     super(id, name, mimeType);
     this.filePath = filePath;
   }
 
   async load(): Promise<Uint8Array> {
     if (typeof window !== 'undefined') {
-      throw new Error('FileAsset cannot be used in browser environment');
+      throw new Error(
+        'FileAsset cannot be used in browser environment',
+      );
     }
 
     const fs = await import('fs/promises');
@@ -231,10 +236,3 @@ export interface AssetCache {
    */
   size(): number;
 }
-
-/**
- * Job information type used in job-related events.
- */
-export type JobInfo = {
-  jobId: string;
-};

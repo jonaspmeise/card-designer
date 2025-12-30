@@ -1,6 +1,8 @@
 import { CardCreatorDependencies } from '..';
 import { Command } from '../architecture/types';
 import { ProjectData } from '../project/project-types';
+import { Card, RenderJob } from '../render/render-types';
+import { Template } from '../template/template-types';
 import { DomainEvent } from '../types/events';
 
 export type EventServiceDependencies = Pick<
@@ -45,5 +47,40 @@ export type DialogEvent = DomainEvent<
     text: string;
     level: 'question' | 'info' | 'warning' | 'error';
     callbacks: Record<string, () => Promise<void>>;
+  }
+>;
+
+export type JobRenderStartedEvent = DomainEvent<
+  'jobRenderStarted',
+  {
+    job: RenderJob;
+  }
+>;
+
+export type JobRenderFinishedEvent = DomainEvent<
+  'jobRenderFinished',
+  {
+    job: RenderJob;
+  }
+>;
+
+export type CardRenderStartedEvent = DomainEvent<
+  'cardRenderStarted',
+  {
+    card: Card;
+  }
+>;
+
+export type CardRenderFinishedEvent = DomainEvent<
+  'cardRenderFinished',
+  {
+    card: Card;
+  }
+>;
+
+export type TemplateLoadedEvent = DomainEvent<
+  'templateLoaded',
+  {
+    template: Template;
   }
 >;

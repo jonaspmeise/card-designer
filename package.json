@@ -2,9 +2,11 @@
   "name": "cardcreator",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["modules/*"],
+  "workspaces": [
+    "modules/*"
+  ],
   "scripts": {
-    "test": "bun test",
+    "test": "bun test ./modules/**/src/**/*.test.ts",
     "build": "bun run --filter \"*\" build",
     "install-all": "bun install"
   },
@@ -12,5 +14,6 @@
   "keywords": [],
   "author": "jonaspmeise",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "dependencies": {}
 }

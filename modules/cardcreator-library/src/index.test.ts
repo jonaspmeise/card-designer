@@ -11,9 +11,10 @@ import {
   afterEach,
 } from 'bun:test';
 import { CardCreatorLibrary, NO_OP_LOGGER } from './index';
-import type { CardRenderer, Logger } from './types/domain';
+import type { Logger } from './types/domain';
 import { FileProvider } from './files/file-provider';
 import { timeout } from './test-utility';
+import { CardRenderer } from './render/render-types';
 
 describe('CardcreatorLibrary', () => {
   // Mocks.
@@ -29,11 +30,15 @@ describe('CardcreatorLibrary', () => {
 
   // Library.
   const library: CardCreatorLibrary =
-    new CardCreatorLibrary({
-      logger: logger,
-      renderer: renderer,
-      fileProvider: fileProvider,
-    });
+    new CardCreatorLibrary(
+      {
+        renderer: renderer,
+        fileProvider: fileProvider,
+      },
+      {
+        logger: logger,
+      },
+    );
 
   afterEach(() => {
     // Reset all mocked states to original mocks.

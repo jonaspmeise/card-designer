@@ -8,11 +8,7 @@
  */
 
 import { InMemoryAssetCache } from './cache/cache';
-import type {
-  Logger,
-  CardRenderer,
-  AssetCache,
-} from './types/domain';
+import type { Logger, AssetCache } from './types/domain';
 import { FileProvider } from './files/file-provider';
 import { ProjectService } from './project/project-service';
 import {
@@ -22,18 +18,28 @@ import {
 } from './events/events';
 import { EventService } from './events/event-service';
 import { HistoryService } from './history/history-service';
+import { CardRenderer } from './render/render-types';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
  */
-export interface CardCreatorDependencies {
+
+export interface CardCreatorProvidedDependencies {
   logger: Logger;
   renderer: CardRenderer;
   cache: AssetCache;
-  fileProvider: FileProvider;
   eventService: InternalEventBus;
   historyService: HistoryService;
 }
+
+export interface CardCreatorRequiredDependencies {
+  renderer: CardRenderer;
+  fileProvider: FileProvider;
+}
+
+export type CardCreatorDependencies =
+  CardCreatorProvidedDependencies &
+    CardCreatorRequiredDependencies;
 
 /**
  * Core card-creator library API.
@@ -81,14 +87,17 @@ export class CardCreatorLibrary {
    * @param config - Library configuration
    * @throws Error if required configuration is missing
    */
-  constructor(config: Partial<CardCreatorDependencies>) {
-    if (config.renderer === undefined) {
+  constructor(
+    dependencies: CardCreatorRequiredDependencies,
+    config: Partial<CardCreatorProvidedDependencies> = {},
+  ) {
+    if (dependencies.renderer === undefined) {
       throw new Error(
         'Card renderer is required in configuration!',
       );
     }
 
-    if (config.fileProvider === undefined) {
+    if (dependencies.fileProvider === undefined) {
       throw new Error(
         'File provider is required in configuration!',
       );
@@ -104,8 +113,8 @@ export class CardCreatorLibrary {
     this.dependencies = {
       cache: config.cache ?? new InMemoryAssetCache(),
       logger: logger,
-      renderer: config.renderer,
-      fileProvider: config.fileProvider,
+      renderer: dependencies.renderer,
+      fileProvider: dependencies.fileProvider,
       eventService: eventService,
       historyService:
         config.historyService ??

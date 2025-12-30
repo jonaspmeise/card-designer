@@ -12,12 +12,18 @@ import { ProjectService } from './project-service';
 import { EventBus } from '../events/events';
 import { EventService } from '../events/event-service';
 import { HistoryService } from '../history/history-service';
+import { ProjectData } from './project-types';
 
 /**
  * Tests for the logic of the project service.
  * Events are mocked.
  * History is _not_ mocked, as the command executions are our core functionality in this service.
  */
+const dummyProjectData: ProjectData = {
+  name: 'Dummy Project',
+  source: '',
+};
+
 describe('ProjectService', () => {
   // Mocks.
   const fileProvider: FileProvider = {
@@ -65,6 +71,7 @@ describe('ProjectService', () => {
       // WHEN / THEN
       expect(service.data()).toEqual({
         name: 'New Project',
+        source: '<svg></svg>',
       });
     });
 
@@ -79,6 +86,7 @@ describe('ProjectService', () => {
 
       // GIVEN / WHEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -88,13 +96,12 @@ describe('ProjectService', () => {
     test('the project status can be tracked via the sync API.', () => {
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
       // WHEN / THEN
-      expect(service.data()).toEqual({
-        name: 'test',
-      });
+      expect(service.data().name).toEqual('test');
     });
 
     test('issues a "command executed" event when a project is loaded', (done) => {
@@ -106,15 +113,14 @@ describe('ProjectService', () => {
       };
 
       // GIVEN / WHEN
-      service.load({
-        name: 'test',
-      });
+      service.load(dummyProjectData);
       timeout(done);
     });
 
     test('can be undone, thus going back to the prior project state.', async () => {
       // GIVEN / WHEN
       const call = await service.load({
+        ...dummyProjectData,
         name: 'test2',
       });
 
@@ -135,11 +141,13 @@ describe('ProjectService', () => {
       };
 
       service.load({
+        ...dummyProjectData,
         name: 'test1',
       });
 
       // WHEN
       await service.load({
+        ...dummyProjectData,
         name: 'test2',
       });
 
@@ -169,10 +177,12 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test1',
       });
       // Project is overwritten...
       service.load({
+        ...dummyProjectData,
         name: 'test2',
       });
 
@@ -193,10 +203,12 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test1',
       });
       // Project is overwritten...
       service.load({
+        ...dummyProjectData,
         name: 'test2',
       });
 
@@ -213,10 +225,12 @@ describe('ProjectService', () => {
 
       // GIVEN / WHEN
       service.load({
+        ...dummyProjectData,
         name: 'test1',
       });
       // Same data is loaded twice!
       service.load({
+        ...dummyProjectData,
         name: 'test1',
       });
     });
@@ -233,11 +247,13 @@ describe('ProjectService', () => {
 
       // GIVEN: project is already loaded
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
       // WHEN: another project is loaded
       service.load({
+        ...dummyProjectData,
         name: 'test2',
       });
 
@@ -254,6 +270,7 @@ describe('ProjectService', () => {
     test('is true when loading a new project.', () => {
       // GIVEN / WHEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -264,6 +281,7 @@ describe('ProjectService', () => {
     test('is false after saving a modified project.', async () => {
       // GIVEN / WHEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
       await service.save();
@@ -280,6 +298,7 @@ describe('ProjectService', () => {
       };
 
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -300,6 +319,7 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -318,6 +338,7 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -338,6 +359,7 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -360,6 +382,7 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -385,6 +408,7 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -412,6 +436,7 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 
@@ -435,6 +460,7 @@ describe('ProjectService', () => {
 
       // GIVEN
       service.load({
+        ...dummyProjectData,
         name: 'test',
       });
 

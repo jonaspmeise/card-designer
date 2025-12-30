@@ -5,13 +5,18 @@
  */
 
 import {
+  CardRenderFinishedEvent,
+  CardRenderStartedEvent,
   CommandExecutedEvent,
   CommandUndoneEvent,
   DialogEvent,
   FileOpenedEvent,
+  JobRenderFinishedEvent,
+  JobRenderStartedEvent,
   ProjectLoadedEvent,
   ProjectResetEvent,
   ProjectSavedEvent,
+  TemplateLoadedEvent,
 } from '../events/event-types';
 
 /** Base event interface that all domain events extend */
@@ -42,7 +47,12 @@ export type CardCreatorEvent =
   | FileOpenedEvent
   | DialogEvent
   | ProjectResetEvent
-  | ProjectSavedEvent;
+  | ProjectSavedEvent
+  | JobRenderStartedEvent
+  | JobRenderFinishedEvent
+  | CardRenderStartedEvent
+  | CardRenderFinishedEvent
+  | TemplateLoadedEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.

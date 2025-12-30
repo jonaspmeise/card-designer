@@ -17,10 +17,17 @@ export type ProjectServiceDependencies = Pick<
   | 'historyService'
 >;
 
+/**
+ * The data structure representing a project.
+ */
 export type ProjectData = {
+  // The name of the project.
   name: string;
+  // The template source used for this project.
+  source: string;
 };
 
 export const initProjectData: () => ProjectData = () => ({
   name: 'New Project',
+  source: '<svg></svg>',
 });
