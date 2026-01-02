@@ -14,7 +14,11 @@ export type Card = Record<string, unknown>;
  */
 export type RenderServiceDependencies = Pick<
   CardCreatorDependencies,
-  'historyService' | 'eventService' | 'logger' | 'renderer'
+  | 'historyService'
+  | 'eventService'
+  | 'logger'
+  | 'renderer'
+  | 'templateService'
 >;
 
 export type OutputFormat =

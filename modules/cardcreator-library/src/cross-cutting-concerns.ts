@@ -3,6 +3,8 @@
  * Simple implementation that works in both Node.js and browser environments.
  */
 export type ID = string;
+export type Identifiable<T> = T & { id: ID };
+
 export const generateId = (): ID => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();

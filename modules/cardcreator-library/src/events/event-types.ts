@@ -1,5 +1,9 @@
 import { CardCreatorDependencies } from '..';
 import { Command } from '../architecture/types';
+import {
+  ID,
+  Identifiable,
+} from '../cross-cutting-concerns';
 import { ProjectData } from '../project/project-types';
 import { Card, RenderJob } from '../render/render-types';
 import { Template } from '../template/template-types';
@@ -52,35 +56,53 @@ export type DialogEvent = DomainEvent<
 
 export type JobRenderStartedEvent = DomainEvent<
   'jobRenderStarted',
-  {
+  Identifiable<{
     job: RenderJob;
-  }
+  }>
 >;
 
 export type JobRenderFinishedEvent = DomainEvent<
   'jobRenderFinished',
-  {
+  Identifiable<{
     job: RenderJob;
-  }
+  }>
 >;
 
 export type CardRenderStartedEvent = DomainEvent<
   'cardRenderStarted',
-  {
+  Identifiable<{
     card: Card;
-  }
+  }>
 >;
 
 export type CardRenderFinishedEvent = DomainEvent<
   'cardRenderFinished',
-  {
+  Identifiable<{
     card: Card;
-  }
+    image: ArrayBufferLike;
+  }>
 >;
+
+export type PreviewRenderStartedEvent =
+  DomainEvent<'previewRenderStarted'>;
+
+export type PreviewRenderFinishedEvent =
+  DomainEvent<'previewRenderFinished'>;
 
 export type TemplateLoadedEvent = DomainEvent<
   'templateLoaded',
   {
     template: Template;
   }
+>;
+
+export type ProjectClosedEvent =
+  DomainEvent<'projectClosed'>;
+
+export type CardCompiledEvent = DomainEvent<
+  'cardCompiled',
+  Identifiable<{
+    card: Card;
+    compiled: string;
+  }>
 >;

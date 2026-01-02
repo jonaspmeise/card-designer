@@ -15,6 +15,10 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
     super(dependencies);
   }
 
+  /**
+   * Loads a template from the given source.
+   * @param source The template source as a raw string.
+   */
   public loadTemplate(source: string): void {
     this._dependencies.logger.debug(
       'Loading template...',
@@ -32,11 +36,52 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
     });
   }
 
+  /**
+   * Gets the current template.
+   * @returns The current template.
+   */
   public template(): Template {
     this._dependencies.logger.debug(
       'Getting current template...',
     );
 
     return this._template;
+  }
+
+  /**
+   * Applies a given template to the given card.
+   * @param template The template to apply.
+   * @param card Tehe card to apply the template to.
+   * @returns The rendered result as a string.
+   */
+  public apply(card: Card): string {
+    // TODO: There should be some caching with passed templates, because calculating each function
+    // is highly expensive...
+    // TODO: We can also hash each function so we deal with dulpicates very easily.
+    const functions = Array.from(
+      this._template.source.matchAll(
+        /{{(?<source>.+?)}}/gm,
+      ),
+    );
+    let rendered = this._template.source;
+    functions.forEach((match) => {
+      rendered = rendered.replace(
+        match[0],
+        new Function(
+          '$card',
+          `${/return/gim.test(match[0]) ? '' : 'return'} ${
+            match.groups?.source
+          }`,
+        )(card) as string,
+      );
+    });
+
+    this._dependencies.logger.debug(
+      'Applying template to card...',
+      this._template,
+      card,
+    );
+
+    return rendered;
   }
 }

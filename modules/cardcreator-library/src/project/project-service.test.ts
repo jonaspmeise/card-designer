@@ -470,4 +470,37 @@ describe('ProjectService', () => {
       timeout(done);
     });
   });
+
+  describe('close', () => {
+    test('resets the project service when closing.', (done) => {
+      let cleared = false;
+      let eventSent = false;
+      // THEN
+      eventService.clear = () => {
+        cleared = true;
+
+        if (eventSent) {
+          done();
+        }
+      };
+
+      eventService.publish = async (event) => {
+        if (event.type === 'projectClosed') {
+          expect(service.data().name).toEqual(
+            'New Project',
+          );
+
+          eventSent = true;
+
+          if (cleared) {
+            done();
+          }
+        }
+      };
+
+      // WHEN
+      service.close();
+      timeout(done);
+    });
+  });
 });

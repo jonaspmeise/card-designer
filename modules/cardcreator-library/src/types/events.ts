@@ -5,6 +5,7 @@
  */
 
 import {
+  CardCompiledEvent,
   CardRenderFinishedEvent,
   CardRenderStartedEvent,
   CommandExecutedEvent,
@@ -13,6 +14,7 @@ import {
   FileOpenedEvent,
   JobRenderFinishedEvent,
   JobRenderStartedEvent,
+  ProjectClosedEvent,
   ProjectLoadedEvent,
   ProjectResetEvent,
   ProjectSavedEvent,
@@ -52,7 +54,9 @@ export type CardCreatorEvent =
   | JobRenderFinishedEvent
   | CardRenderStartedEvent
   | CardRenderFinishedEvent
-  | TemplateLoadedEvent;
+  | TemplateLoadedEvent
+  | ProjectClosedEvent
+  | CardCompiledEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.

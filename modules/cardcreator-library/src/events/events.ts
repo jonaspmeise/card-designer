@@ -34,6 +34,14 @@ export interface InternalEventBus {
    * ```
    */
   publish(event: CardCreatorEvent): Promise<void>;
+
+  /**
+   * Clear all handlers and error listeners, optionally for only a specific event type.
+   * Use this to prevent memory leaks.
+   *
+   * @param eventType - Optional event type to clear handlers for. If not provided, clears all registered handlers.
+   */
+  clear(eventType?: EventKeys): void;
 }
 
 export interface ExternalEventBus {
@@ -71,14 +79,6 @@ export interface ExternalEventBus {
     type: K,
     handler: EventHandler<SingleEvent<K>>,
   ): () => void;
-
-  /**
-   * Clear all handlers and error listeners, optionally for only a specific event type.
-   * Use this to prevent memory leaks.
-   *
-   * @param eventType - Optional event type to clear handlers for. If not provided, clears all registered handlers.
-   */
-  clear(eventType?: EventKeys): void;
 }
 
 // Event types.

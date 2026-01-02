@@ -1,8 +1,5 @@
-import {
-  DependableService,
-  PopulatedCommand,
-} from '../architecture/types';
-import { generateId } from '../cross-cutting-concerns';
+import { DependableService } from '../architecture/types';
+import { generateId, ID } from '../cross-cutting-concerns';
 import {
   Card,
   RenderJob,
@@ -14,30 +11,57 @@ import {
  * Acts as a wrapper around the renderer implementation.
  */
 export class RenderService extends DependableService<RenderServiceDependencies> {
-  private readonly _history: Array<PopulatedCommand> = [];
-
   constructor(dependencies: RenderServiceDependencies) {
     super(dependencies);
   }
 
   // TODO: How to pass render parameters, card data, template, assets, all smoothly into here?
-  public renderCard(card: Card) {
+  /**
+   * Renders a single card.
+   * The resulting card will be published via an event.
+   * The render context will completely be taken from all depending services.
+   * @param card The card to render.
+   */
+  public async renderCard(card: Card): Promise<void> {
     this._dependencies.logger.info(
       'Rendering card...',
       card,
     );
 
+    const id: ID = generateId();
+
     this._dependencies.eventService.publish({
       type: 'cardRenderStarted',
       data: {
         card: card,
+        id: id,
       },
     });
-    // TODO: Render cards.
+
+    const compiled: string =
+      this._dependencies.templateService.apply(card);
+
+    this._dependencies.eventService.publish({
+      type: 'cardCompiled',
+      data: {
+        card: card,
+        compiled: compiled,
+        id: id,
+      },
+    });
+
+    // TODO: Inject the correct output format here.
+    const raw = await this._dependencies.renderer.render(
+      compiled,
+      'png',
+    );
+
     this._dependencies.eventService.publish({
       type: 'cardRenderFinished',
       data: {
         card: card,
+        id: id,
+        image: raw.buffer,
       },
     });
   }
@@ -45,10 +69,13 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
   public renderJob(job: RenderJob) {
     this._dependencies.logger.info('Rendering job...', job);
 
+    const id: ID = generateId();
+
     this._dependencies.eventService.publish({
       type: 'jobRenderStarted',
       data: {
         job: job,
+        id: id,
       },
     });
 
@@ -57,6 +84,7 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
       type: 'jobRenderFinished',
       data: {
         job: job,
+        id: id,
       },
     });
   }

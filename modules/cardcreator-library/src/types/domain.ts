@@ -23,13 +23,13 @@ import { OutputFormat } from '../render/render-types';
  */
 
 export interface Logger {
-  debug(message: string, context?: any): Promise<void>;
-  info(message: string, context?: any): Promise<void>;
-  warn(message: string, context?: any): Promise<void>;
+  debug(message: string, ...context: any): Promise<void>;
+  info(message: string, ...context: any): Promise<void>;
+  warn(message: string, ...context: any): Promise<void>;
   error(
     message: string,
     error?: Error,
-    context?: any,
+    ...context: any
   ): Promise<void>;
 }
 

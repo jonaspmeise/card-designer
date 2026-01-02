@@ -45,6 +45,26 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
   }
 
   /**
+   * Closes the currently loaded project.
+   * This clears up some resources.
+   */
+  public close(): void {
+    this._dependencies.logger.debug(
+      `Closing project "${this._state.project.name}"...`,
+    );
+
+    // TODO: This should be able to access other clearable services.
+    this._dependencies.historyService.clear();
+
+    this._dependencies.eventService.publish({
+      type: 'projectClosed',
+      data: {},
+    });
+
+    this._dependencies.eventService.clear();
+  }
+
+  /**
    * Loads a project.
    * If the project is already loaded, nothing happens.
    * If this is the first loaded project, it is loaded.
