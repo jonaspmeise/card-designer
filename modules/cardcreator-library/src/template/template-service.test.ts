@@ -14,6 +14,8 @@ import { HistoryService } from '../history/history-service';
 import { TemplateService } from './template-service';
 import { Card } from '../render/render-types';
 import { Template } from './template-types';
+import { ConfigService } from '../config/config-service';
+import { config } from 'process';
 
 describe('TemplateService', () => {
   let service: TemplateService;
@@ -27,12 +29,18 @@ describe('TemplateService', () => {
       eventService: eventService,
     },
   );
+  const configService: ConfigService = new ConfigService({
+    logger: logger,
+    eventService: eventService,
+    historyService: historyService,
+  });
 
   beforeEach(() => {
     service = new TemplateService({
       logger: logger,
       eventService: eventService,
       historyService: historyService,
+      configService: configService,
     });
 
     logger.info = async (_msg: string) => {};
@@ -44,6 +52,7 @@ describe('TemplateService', () => {
     historyService.push = (_command: Command) => {
       return _command as any;
     };
+    configService.config = () => ({});
   });
 
   describe('template', () => {
@@ -134,5 +143,71 @@ describe('TemplateService', () => {
         expect(service.apply(card)).toEqual(expected);
       },
     );
+
+    test('configurations are accessible within the template.', () => {
+      // GIVEN
+      configService.config = () => {
+        return {
+          'my-config-key': 'my-config-value',
+        };
+      };
+
+      service.loadTemplate(
+        'Config Value: {{ return $config["my-config-key"]; }}',
+      );
+      const card: Card = {};
+
+      // WHEN / THEN
+      expect(service.apply(card)).toEqual(
+        'Config Value: my-config-value',
+      );
+    });
+
+    test('if a render job is submitted, the job information are accessible within the template.', () => {
+      // GIVEN
+      service.loadTemplate(
+        'Render Job Name: {{ return $job.name; }}',
+      );
+
+      // WHEN / THEN
+      expect(
+        service.apply(
+          {},
+          {
+            name: 'My Render Job',
+            index: 0,
+          },
+        ),
+      ).toEqual('Render Job Name: My Render Job');
+    });
+
+    test('index is accessible within the template when provided in the render job.', () => {
+      // GIVEN
+      service.loadTemplate(
+        'Render Job Index: {{ return $job.index; }}',
+      );
+
+      // WHEN / THEN
+      expect(
+        service.apply(
+          {},
+          {
+            name: 'My Render Job',
+            index: 5,
+          },
+        ),
+      ).toEqual('Render Job Index: 5');
+    });
+
+    test('index defaults to 0 within the template when no render job is provided.', () => {
+      // GIVEN
+      service.loadTemplate(
+        'Render Job Index: {{ return $job.index; }}',
+      );
+      // WHEN / THEN
+      expect(service.apply({})).toEqual(
+        'Render Job Index: 0',
+      );
+    });
   });
 });

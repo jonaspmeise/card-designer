@@ -20,6 +20,8 @@ import { EventService } from './events/event-service';
 import { HistoryService } from './history/history-service';
 import { CardRenderer } from './render/render-types';
 import { TemplateService } from './template/template-service';
+import { ConfigService } from './config/config-service';
+import { config } from 'process';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
@@ -32,6 +34,7 @@ export interface CardCreatorProvidedDependencies {
   eventService: InternalEventBus;
   historyService: HistoryService;
   templateService: TemplateService;
+  configService: ConfigService;
 }
 
 export interface CardCreatorRequiredDependencies {
@@ -119,12 +122,21 @@ export class CardCreatorLibrary {
         eventService,
       });
 
+    const configService: ConfigService =
+      config.configService ??
+      new ConfigService({
+        logger,
+        eventService,
+        historyService,
+      });
+
     const templateService: TemplateService =
       config.templateService ??
       new TemplateService({
         logger,
         eventService,
         historyService,
+        configService,
       });
 
     this.dependencies = {
@@ -135,6 +147,7 @@ export class CardCreatorLibrary {
       eventService: eventService,
       historyService: historyService,
       templateService: templateService,
+      configService: configService,
     };
 
     // Register services for each concern.

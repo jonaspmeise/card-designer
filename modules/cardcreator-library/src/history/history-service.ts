@@ -17,7 +17,7 @@ export class HistoryService
   private readonly _history: Array<PopulatedCommand> = [];
 
   constructor(dependencies: HistoryServiceDependencies) {
-    super(dependencies);
+    super(dependencies, dependencies.logger);
   }
 
   clear(): void {

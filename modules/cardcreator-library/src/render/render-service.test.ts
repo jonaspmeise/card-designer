@@ -14,6 +14,7 @@ import { RenderService } from './render-service';
 import { HistoryService } from '../history/history-service';
 import { Card, RenderJob } from './render-types';
 import { TemplateService } from '../template/template-service';
+import { ConfigService } from '../config/config-service';
 
 const dummyJob: RenderJob = {
   name: 'Dummy Job',
@@ -35,11 +36,17 @@ describe('RenderService', () => {
       eventService: eventService,
     },
   );
+  const configService: ConfigService = new ConfigService({
+    logger: logger,
+    eventService: eventService,
+    historyService: historyService,
+  });
   const templateService: TemplateService =
     new TemplateService({
       logger: logger,
       eventService: eventService,
       historyService: historyService,
+      configService: configService,
     });
   const renderer = {
     render: async (source: string, format: string) =>
@@ -69,6 +76,7 @@ describe('RenderService', () => {
       return _command as any;
     };
     templateService.loadTemplate = (_source: string) => {};
+    configService.config = () => ({});
   });
 
   describe('renderJob', () => {
@@ -82,7 +90,7 @@ describe('RenderService', () => {
       };
 
       // WHEN
-      service.renderJob(dummyJob);
+      service.renderJob(dummyJob, []);
       timeout(done);
     });
 
@@ -96,7 +104,27 @@ describe('RenderService', () => {
       };
 
       // WHEN
-      service.renderJob(dummyJob);
+      service.renderJob(dummyJob, []);
+      timeout(done);
+    });
+
+    test('issues a card render event when a card is rendered as part of a job', (done) => {
+      // GIVEN
+      let cardRenderEventIssued = false;
+
+      eventService.publish = async (event) => {
+        // THEN
+        if (event.type === 'cardRenderStarted') {
+          cardRenderEventIssued = true;
+        }
+        if (event.type === 'jobRenderFinished') {
+          expect(cardRenderEventIssued).toBe(true);
+          done();
+        }
+      };
+
+      // WHEN
+      service.renderJob(dummyJob, [dummyCard]);
       timeout(done);
     });
   });

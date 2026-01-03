@@ -11,5 +11,8 @@ export interface Template {
  */
 export type TemplateServiceDependencies = Pick<
   CardCreatorDependencies,
-  'historyService' | 'eventService' | 'logger'
+  | 'historyService'
+  | 'eventService'
+  | 'logger'
+  | 'configService'
 >;

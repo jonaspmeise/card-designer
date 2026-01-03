@@ -75,7 +75,7 @@ export class EventService
   ) => void)[] = [];
 
   constructor(_dependencies: EventServiceDependencies) {
-    super(_dependencies);
+    super(_dependencies, _dependencies.logger);
   }
 
   on<K extends EventKeys>(

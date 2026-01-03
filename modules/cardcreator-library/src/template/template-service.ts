@@ -1,6 +1,11 @@
 import { DependableService } from '../architecture/types';
 import { initProjectData } from '../project/project-types';
-import { Card } from '../render/render-types';
+import {
+  Card,
+  RenderContext,
+  RenderJob,
+} from '../render/render-types';
+import { JobInfo } from '../../dist/types/domain';
 import {
   Template,
   TemplateServiceDependencies,
@@ -12,7 +17,7 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
   };
 
   constructor(dependencies: TemplateServiceDependencies) {
-    super(dependencies);
+    super(dependencies, dependencies.logger);
   }
 
   /**
@@ -52,9 +57,15 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
    * Applies a given template to the given card.
    * @param template The template to apply.
    * @param card Tehe card to apply the template to.
+   * @param job Optional render job info, which give context about in what context this render is happening.
    * @returns The rendered result as a string.
    */
-  public apply(card: Card): string {
+  public apply(
+    card: Card,
+    job: RenderContext = {
+      index: 0,
+    },
+  ): string {
     // TODO: There should be some caching with passed templates, because calculating each function
     // is highly expensive...
     // TODO: We can also hash each function so we deal with dulpicates very easily.
@@ -69,10 +80,16 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
         match[0],
         new Function(
           '$card',
+          '$config',
+          '$job',
           `${/return/gim.test(match[0]) ? '' : 'return'} ${
             match.groups?.source
           }`,
-        )(card) as string,
+        )(
+          card,
+          this._dependencies.configService.config(),
+          job,
+        ) as string,
       );
     });
 

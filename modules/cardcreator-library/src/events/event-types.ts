@@ -106,3 +106,8 @@ export type CardCompiledEvent = DomainEvent<
     compiled: string;
   }>
 >;
+
+export type ConfigChangedEvent = DomainEvent<
+  'configChanged',
+  { key: string; value: unknown }
+>;

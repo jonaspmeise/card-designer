@@ -12,7 +12,7 @@ import {
  */
 export class RenderService extends DependableService<RenderServiceDependencies> {
   constructor(dependencies: RenderServiceDependencies) {
-    super(dependencies);
+    super(dependencies, dependencies.logger);
   }
 
   // TODO: How to pass render parameters, card data, template, assets, all smoothly into here?
@@ -66,7 +66,7 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
     });
   }
 
-  public renderJob(job: RenderJob) {
+  public renderJob(job: RenderJob, cards: Card[]): void {
     this._dependencies.logger.info('Rendering job...', job);
 
     const id: ID = generateId();
@@ -80,6 +80,16 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
     });
 
     // TODO: Render job.
+    cards.forEach((card) => {
+      this._dependencies.logger.info(
+        'Rendering card for job...',
+        card,
+        job,
+      );
+
+      this.renderCard(card);
+    });
+
     this._dependencies.eventService.publish({
       type: 'jobRenderFinished',
       data: {

@@ -28,11 +28,11 @@ export class LoadProjectCommand
     ];
   }
 
-  public async do(): Promise<void> {
+  public do(): void {
     Object.assign(this.target, this.data.next);
   }
 
-  public async undo(): Promise<void> {
+  public undo(): void {
     Object.assign(this.target, this.data.prior);
   }
 }

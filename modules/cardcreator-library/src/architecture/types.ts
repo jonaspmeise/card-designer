@@ -1,5 +1,6 @@
 import { CardCreatorDependencies } from '..';
 import { ID } from '../cross-cutting-concerns';
+import { Logger } from '../types/domain';
 import { CardCreatorEvent } from '../types/events';
 
 /**
@@ -8,7 +9,18 @@ import { CardCreatorEvent } from '../types/events';
 export abstract class DependableService<
   T extends Partial<CardCreatorDependencies>,
 > {
-  constructor(protected readonly _dependencies: T) {}
+  constructor(
+    protected readonly _dependencies: T,
+    logger: Logger,
+  ) {
+    logger.debug(
+      `Initialized service "${
+        this.constructor.name
+      }" with dependencies: ${Object.keys(
+        _dependencies,
+      ).join(', ')}`,
+    );
+  }
 }
 
 /**
@@ -35,8 +47,8 @@ export interface Command<
   readonly target: TARGET;
   // The events that are emitted when the command is executed.
   events(): ReadonlyArray<EVENTS[number]>;
-  do(): Promise<void>;
-  undo(): Promise<void>;
+  do(): void;
+  undo(): void;
 }
 
 export type PopulatedCommand<C extends Command = Command> =

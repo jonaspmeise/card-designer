@@ -99,6 +99,8 @@ const library: CardCreatorLibrary = new CardCreatorLibrary({
         width: 1000,
         height: 1000,
       });
+
+      // TODO: How to load external content (fonts, images)?
       await page.setContent(
         `<!doctype html>
         <meta charset="utf-8">

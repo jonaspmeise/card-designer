@@ -7,6 +7,15 @@ export type RenderJob = {
   name: string;
 };
 
+/**
+ * The potential data associated with a single card rendering.
+ */
+// The parent job where this render was issued from.
+export type RenderContext = Partial<RenderJob> & {
+  // The index of the card in the job
+  index: number;
+};
+
 export type Card = Record<string, unknown>;
 
 /**

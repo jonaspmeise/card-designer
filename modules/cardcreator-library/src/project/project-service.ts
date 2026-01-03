@@ -33,7 +33,7 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
   };
 
   constructor(_dependencies: ProjectServiceDependencies) {
-    super(_dependencies);
+    super(_dependencies, _dependencies.logger);
   }
 
   public data(): Readonly<ProjectData> {
