@@ -15,6 +15,7 @@ import {
   FileOpenedEvent,
   JobRenderFinishedEvent,
   JobRenderStartedEvent,
+  PreviewRenderFinishedEvent,
   ProjectClosedEvent,
   ProjectLoadedEvent,
   ProjectResetEvent,
@@ -58,7 +59,8 @@ export type CardCreatorEvent =
   | TemplateLoadedEvent
   | ProjectClosedEvent
   | CardCompiledEvent
-  | ConfigChangedEvent;
+  | ConfigChangedEvent
+  | PreviewRenderFinishedEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.

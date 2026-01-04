@@ -1,0 +1,142 @@
+:root {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #2a2a3e;
+  --bg-tertiary: #353550;
+  --bg-hover: #404060;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0b0;
+  --text-muted: #707080;
+  --accent: #7c3aed;
+  --accent-hover: #8b5cf6;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --border: #404060;
+  --taskbar-width: 48px;
+  --sidebar-width: 300px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+#app { display: flex; height: 100vh; }
+
+/* Taskbar */
+.taskbar {
+  display: flex;
+  flex-direction: column;
+  width: var(--taskbar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  z-index: 100;
+}
+
+.taskbar-btn {
+  width: var(--taskbar-width);
+  height: var(--taskbar-width);
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.taskbar-btn:hover { background: var(--bg-hover); }
+.taskbar-btn.active { background: var(--accent); }
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar[hidden] { display: none; }
+.panel { flex: 1; overflow: auto; display: none; flex-direction: column; }
+.panel:not([hidden]) { display: flex; }
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor-section, .right-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 200px;
+}
+.editor-section { flex: 1; }
+.right-panel { flex: 1; }
+
+/* Resize Handles */
+.resize-handle {
+  background: var(--border);
+  flex-shrink: 0;
+}
+.resize-handle.horizontal { width: 4px; cursor: col-resize; }
+.resize-handle.vertical { height: 4px; cursor: row-resize; }
+.resize-handle:hover { background: var(--accent); }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+
+/* Component base styles */
+cc-file-tree, cc-config, cc-history, cc-settings, cc-render-jobs, cc-render-queue,
+cc-editor, cc-preview, cc-card-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Common styles for components */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+.panel-header h3 { font-size: 14px; font-weight: 600; }
+.panel-content { flex: 1; overflow: auto; padding: 8px; }
+
+button {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+button:hover { background: var(--bg-hover); }
+button.primary { background: var(--accent); }
+button.primary:hover { background: var(--accent-hover); }
+
+input, textarea, select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.error { color: var(--error); font-size: 12px; }
+.success { color: var(--success); }
+.muted { color: var(--text-muted); }

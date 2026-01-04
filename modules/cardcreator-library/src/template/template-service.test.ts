@@ -12,7 +12,10 @@ import { InternalEventBus } from '../events/events';
 import { timeout } from '../test-utility';
 import { HistoryService } from '../history/history-service';
 import { TemplateService } from './template-service';
-import { Card } from '../render/render-types';
+import {
+  Card,
+  RenderContext,
+} from '../render/render-types';
 import { Template } from './template-types';
 import { ConfigService } from '../config/config-service';
 import { config } from 'process';
@@ -152,7 +155,9 @@ describe('TemplateService', () => {
         // GIVEN
         service.loadTemplate(template.source);
         // WHEN / THEN
-        expect(service.apply(card)).toEqual(expected);
+        expect(
+          service.apply(card, {} as RenderContext),
+        ).toEqual(expected);
       },
     );
 
@@ -170,9 +175,9 @@ describe('TemplateService', () => {
       const card: Card = {};
 
       // WHEN / THEN
-      expect(service.apply(card)).toEqual(
-        'Config Value: my-config-value',
-      );
+      expect(
+        service.apply(card, {} as RenderContext),
+      ).toEqual('Config Value: my-config-value');
     });
 
     test('if a render job is submitted, the job information are accessible within the template.', () => {
@@ -188,6 +193,10 @@ describe('TemplateService', () => {
           {
             name: 'My Render Job',
             index: 0,
+            settings: {
+              format: 'png',
+              size: { width: 1000, height: 1000 },
+            },
           },
         ),
       ).toEqual('Render Job Name: My Render Job');
@@ -206,20 +215,13 @@ describe('TemplateService', () => {
           {
             name: 'My Render Job',
             index: 5,
+            settings: {
+              format: 'png',
+              size: { width: 1000, height: 1000 },
+            },
           },
         ),
       ).toEqual('Render Job Index: 5');
-    });
-
-    test('index defaults to 0 within the template when no render job is provided.', () => {
-      // GIVEN
-      service.loadTemplate(
-        'Render Job Index: {{ return $job.index; }}',
-      );
-      // WHEN / THEN
-      expect(service.apply({})).toEqual(
-        'Render Job Index: 0',
-      );
     });
   });
 });

@@ -91,12 +91,7 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
    * @param job Optional render job info, which give context about in what context this render is happening.
    * @returns The rendered result as a string.
    */
-  public apply(
-    card: Card,
-    job: RenderContext = {
-      index: 0,
-    },
-  ): string {
+  public apply(card: Card, job: RenderContext): string {
     let rendered = this._template.source;
     this._functions.forEach((func, source) => {
       const result = func(

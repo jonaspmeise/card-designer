@@ -14,6 +14,8 @@ export type RenderJob = {
 export type RenderContext = Partial<RenderJob> & {
   // The index of the card in the job
   index: number;
+  // The settings used for executing this render.
+  settings: RenderSettings;
 };
 
 export type Card = Record<string, unknown>;

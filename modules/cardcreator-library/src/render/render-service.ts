@@ -21,8 +21,11 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
    * The resulting card will be published via an event.
    * The render context will completely be taken from all depending services.
    * @param card The card to render.
+   * @return A promise that resolves with the rendered image data.
    */
-  public async renderCard(card: Card): Promise<void> {
+  public async renderCard(
+    card: Card,
+  ): Promise<ArrayBufferLike> {
     this._dependencies.logger.info(
       'Rendering card...',
       card,
@@ -50,24 +53,25 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
       },
     });
 
-    const raw = await this._dependencies.renderer.render(
-      compiled,
-      {
+    const raw = (
+      await this._dependencies.renderer.render(compiled, {
         // TODO: Inject the correct output format here.
         format: 'png',
         // TODO: Inject correct size here.
         size: { width: 1000, height: 1000 },
-      },
-    );
+      })
+    ).buffer;
 
     this._dependencies.eventService.publish({
       type: 'cardRenderFinished',
       data: {
         card: card,
         id: id,
-        image: raw.buffer,
+        image: raw,
       },
     });
+
+    return raw;
   }
 
   public renderJob(job: RenderJob, cards: Card[]): void {

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Creator</title>
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Vertical Taskbar -->
+    <nav class="taskbar">
+      <button class="taskbar-btn" data-panel="files" title="Files">📁</button>
+      <button class="taskbar-btn" data-panel="config" title="Config">⚙️</button>
+      <button class="taskbar-btn" data-panel="history" title="History">📜</button>
+      <button class="taskbar-btn" data-panel="settings" title="Settings">🔧</button>
+      <button class="taskbar-btn" data-panel="jobs" title="Render Jobs">🖨️</button>
+      <button class="taskbar-btn" data-panel="queue" title="Render Queue">📋</button>
+    </nav>
+
+    <!-- Off-canvas Sidebar -->
+    <aside id="sidebar" class="sidebar" hidden>
+      <cc-file-tree id="panel-files" class="panel"></cc-file-tree>
+      <cc-config id="panel-config" class="panel" hidden></cc-config>
+      <cc-history id="panel-history" class="panel" hidden></cc-history>
+      <cc-settings id="panel-settings" class="panel" hidden></cc-settings>
+      <cc-render-jobs id="panel-jobs" class="panel" hidden></cc-render-jobs>
+      <cc-render-queue id="panel-queue" class="panel" hidden></cc-render-queue>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <section class="editor-section">
+        <cc-editor></cc-editor>
+      </section>
+      <div class="resize-handle horizontal"></div>
+      <section class="right-panel">
+        <cc-preview></cc-preview>
+        <div class="resize-handle vertical"></div>
+        <cc-card-table></cc-card-table>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./index.js"></script>
+</body>
+</html>
