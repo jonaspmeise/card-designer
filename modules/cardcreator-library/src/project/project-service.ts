@@ -12,6 +12,7 @@ import {
   PopulatedCommand,
 } from '../architecture/types';
 import { objectsIdentical } from '../cross-cutting-concerns';
+import { Card } from '../render/render-types';
 import { LoadProjectCommand } from './commands/load-project';
 import {
   ProjectData,
@@ -30,6 +31,7 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
   private _state: ProjectServiceState = {
     project: initProjectData(),
     isModified: false,
+    loadedCards: [],
   };
 
   constructor(_dependencies: ProjectServiceDependencies) {
@@ -88,7 +90,11 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
       new LoadProjectCommand(
         {
           prior: { ...this._state },
-          next: { project: data, isModified: true },
+          next: {
+            ...this._state,
+            project: data,
+            isModified: true,
+          },
         },
         this._state,
       );
@@ -191,6 +197,14 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
         },
       },
     });
+  }
+
+  public loadCards(cards: Card[]): void {
+    this._dependencies.logger.debug(
+      `Loading ${cards.length} cards into project service...`,
+    );
+
+    this._dependencies.cardService.load(cards);
   }
 
   /**

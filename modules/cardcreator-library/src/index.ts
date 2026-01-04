@@ -22,6 +22,7 @@ import { CardRenderer } from './render/render-types';
 import { TemplateService } from './template/template-service';
 import { ConfigService } from './config/config-service';
 import { config } from 'process';
+import { CardService } from './cards/card-service';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
@@ -35,6 +36,7 @@ export interface CardCreatorProvidedDependencies {
   historyService: HistoryService;
   templateService: TemplateService;
   configService: ConfigService;
+  cardService: CardService;
 }
 
 export interface CardCreatorRequiredDependencies {
@@ -139,6 +141,12 @@ export class CardCreatorLibrary {
         configService,
       });
 
+    const cardService: CardService = new CardService({
+      logger,
+      eventService,
+      historyService,
+    });
+
     this.dependencies = {
       cache: config.cache ?? new InMemoryAssetCache(),
       logger: logger,
@@ -148,6 +156,7 @@ export class CardCreatorLibrary {
       historyService: historyService,
       templateService: templateService,
       configService: configService,
+      cardService: cardService,
     };
 
     // Register services for each concern.

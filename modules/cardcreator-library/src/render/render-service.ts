@@ -2,6 +2,7 @@ import { DependableService } from '../architecture/types';
 import { generateId, ID } from '../cross-cutting-concerns';
 import {
   Card,
+  RenderContext,
   RenderJob,
   RenderServiceDependencies,
 } from './render-types';
@@ -42,7 +43,10 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
     });
 
     const compiled: string =
-      this._dependencies.templateService.apply(card);
+      this._dependencies.templateService.apply(
+        card,
+        {} as RenderContext,
+      );
 
     this._dependencies.eventService.publish({
       type: 'cardCompiled',

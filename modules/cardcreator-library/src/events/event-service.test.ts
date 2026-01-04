@@ -7,6 +7,12 @@ import {
 } from 'bun:test';
 import { EventService } from './event-service';
 import { file } from 'bun';
+import { ProjectLoadedEvent } from './event-types';
+
+const dummyProject: ProjectLoadedEvent['data'] = {
+  name: 'Test Project',
+  source: 'source content',
+};
 
 describe('EventService', () => {
   let eventService: EventService;
@@ -56,9 +62,7 @@ describe('EventService', () => {
 
     await eventService.publish({
       type: 'projectLoaded',
-      data: {
-        name: 'Test Project',
-      },
+      data: dummyProject,
     });
 
     // THEN
@@ -79,9 +83,7 @@ describe('EventService', () => {
     // Publish events
     await eventService.publish({
       type: 'projectLoaded',
-      data: {
-        name: 'Test Project',
-      },
+      data: dummyProject,
     });
   });
 
@@ -100,6 +102,7 @@ describe('EventService', () => {
       type: 'projectLoaded',
       data: {
         name: 'Test Project',
+        source: '',
       },
     });
 
@@ -131,9 +134,7 @@ describe('EventService', () => {
     // Publish projectLoaded - handler1 should not fire
     await eventService.publish({
       type: 'projectLoaded',
-      data: {
-        name: 'Test Project',
-      },
+      data: dummyProject,
     });
     expect(handler1Called).toBe(false);
 

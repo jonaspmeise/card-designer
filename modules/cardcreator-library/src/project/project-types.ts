@@ -3,10 +3,12 @@
  */
 
 import { CardCreatorDependencies } from '..';
+import { Card } from '../render/render-types';
 
 export type ProjectServiceState = {
   project: ProjectData;
   isModified: boolean;
+  loadedCards: Card[];
 };
 
 export type ProjectServiceDependencies = Pick<
@@ -15,6 +17,7 @@ export type ProjectServiceDependencies = Pick<
   | 'eventService'
   | 'logger'
   | 'historyService'
+  | 'cardService'
 >;
 
 /**

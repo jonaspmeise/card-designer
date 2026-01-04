@@ -54,29 +54,21 @@ export class CardTableElement extends CardcreatorHTMLComponent {
   }
 
   init(): void {
-    // TODO: Implement cards loaded.
-    this.library.events.on(
-      'cardsLoaded',
-      (cards: Card[]) => {
-        this.cards = cards.map((c, i) => ({
-          id: c.id || `card-${i}`,
-          ...c,
-        }));
-        this.columns = this.extractColumns();
-        this.selectedId = null;
-        this.render();
-      },
-    );
+    this.library.events.on('cardsLoaded', (event) => {
+      this.cards = event.data.cards;
+      this.columns = this.extractColumns();
+      this.render();
+    });
   }
 
   private extractColumns(): string[] {
     const cols = new Set<string>();
     this.cards.forEach((card) => {
       Object.keys(card).forEach((k) => {
-        if (k !== 'id') cols.add(k);
+        cols.add(k);
       });
     });
-    return Array.from(cols).slice(0, 6); // Limit visible columns
+    return Array.from(cols);
   }
 
   private render(): void {

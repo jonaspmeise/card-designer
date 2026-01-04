@@ -111,3 +111,10 @@ export type ConfigChangedEvent = DomainEvent<
   'configChanged',
   { key: string; value: unknown }
 >;
+
+export type CardsLoadedEvent = DomainEvent<
+  'cardsLoaded',
+  {
+    cards: Card[];
+  }
+>;

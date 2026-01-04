@@ -4,8 +4,8 @@ import { CardCreatorLibrary } from 'cardcreator-library';
  * Base class for Cardcreator Web Components.
  */
 export abstract class CardcreatorHTMLComponent extends HTMLElement {
-  private static readonly REQUEST_LIB =
-    'cc:request-library';
+  public static readonly REQUEST_LIB =
+    'cardcreator:request-library';
   protected library!: CardCreatorLibrary;
 
   /**

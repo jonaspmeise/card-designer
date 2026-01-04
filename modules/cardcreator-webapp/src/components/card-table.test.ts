@@ -5,16 +5,29 @@ import {
   expect,
   beforeEach,
   mock,
+  beforeAll,
 } from 'bun:test';
 import './card-table';
 import { CardTableElement } from './card-table';
 import { nextTick } from '../test-utils';
 import { PreviewElement } from './preview';
 import { CardCreatorLibrary } from 'cardcreator-library';
+import { CardcreatorHTMLComponent } from './cardcreator-component';
 
 describe('CardTableElement', () => {
   let element: ShadowRoot;
   let library: CardCreatorLibrary;
+
+  beforeAll(() => {
+    // Set up filler for library dependency.
+    window.addEventListener(
+      CardcreatorHTMLComponent.REQUEST_LIB,
+      (event: Event) => {
+        const customEvent = event as CustomEvent;
+        customEvent.detail.provide(library);
+      },
+    );
+  });
 
   beforeEach(() => {
     library = new CardCreatorLibrary({
@@ -54,23 +67,31 @@ describe('CardTableElement', () => {
   });
 
   test('renders cards and columns correctly from event', async () => {
-    window.dispatchEvent(
-      new CustomEvent('cc:cards-loaded', {
-        detail: [
-          { name: 'Fireball', cost: 3, type: 'Spell' },
-          { name: 'Ice Bolt', cost: 2, type: 'Spell' },
-        ],
-      }),
-    );
+    // GIVEN / WHEN
+    library.project.loadCards([
+      { name: 'Fireball', cost: 3, type: 'Spell' },
+      { name: 'Ice Bolt', cost: 2, type: 'Spell' },
+    ]);
     await nextTick();
 
-    expect(element.getCards().length).toBe(2);
-    expect(element.getTbody().innerHTML).toContain(
-      'Fireball',
-    );
-    expect(element.getTbody().innerHTML).toContain(
-      'Ice Bolt',
-    );
+    // THEN
+    // Headers are loaded.
+    expect(
+      Array.from(element.querySelectorAll('thead th')).map(
+        (c) => c.textContent,
+      ),
+    ).toContainValues(['name', 'cost', 'type']);
+
+    // Cards are loaded.
+    expect(
+      element.querySelectorAll('tbody tr'),
+    ).toHaveLength(2);
+    expect(
+      element.querySelectorAll('tbody tr')[0].textContent,
+    ).toContain('Fireball');
+    expect(
+      element.querySelectorAll('tbody tr')[1].textContent,
+    ).toContain('Ice Bolt');
   });
 
   test.todo('renders nested card objects correctly.');

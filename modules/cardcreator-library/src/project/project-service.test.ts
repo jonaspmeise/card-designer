@@ -13,6 +13,7 @@ import { EventBus } from '../events/events';
 import { EventService } from '../events/event-service';
 import { HistoryService } from '../history/history-service';
 import { ProjectData } from './project-types';
+import { CardService } from '../cards/card-service';
 
 /**
  * Tests for the logic of the project service.
@@ -40,6 +41,11 @@ describe('ProjectService', () => {
       eventService,
     },
   );
+  const cardService: CardService = new CardService({
+    logger,
+    eventService,
+    historyService,
+  });
 
   // Service.
   const service: ProjectService = new ProjectService({
@@ -47,11 +53,13 @@ describe('ProjectService', () => {
     fileProvider: fileProvider,
     eventService: eventService,
     historyService: historyService,
+    cardService: cardService,
   });
 
   afterEach(() => {
     eventService.clear();
     historyService.clear();
+    cardService.clear();
 
     logger.info = async () => {};
     logger.debug = async () => {};
@@ -62,6 +70,9 @@ describe('ProjectService', () => {
 
     fileProvider.load = async (_) => new Uint8Array();
     fileProvider.save = async (_, __) => {};
+
+    cardService.cards = () => [];
+    cardService.load = async (_cards) => {};
 
     service.reset(true);
   });
