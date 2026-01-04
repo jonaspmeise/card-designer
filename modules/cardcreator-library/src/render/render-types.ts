@@ -40,6 +40,16 @@ export type OutputFormat =
   | 'yml'
   | 'yaml';
 
+export type RenderSize = {
+  width: number;
+  height: number;
+};
+
+export type RenderSettings = {
+  format: OutputFormat;
+  size: RenderSize;
+};
+
 /**
  * Card renderer interface for converting SVG content to rendered output.
  * Implementations might use Puppeteer, Skia, or other rendering engines.
@@ -55,7 +65,7 @@ export interface CardRenderer {
    */
   render(
     svg: string,
-    format: OutputFormat,
+    settings: RenderSettings,
   ): Promise<Uint8Array>;
 
   /**
@@ -66,4 +76,11 @@ export interface CardRenderer {
    * @returns True if supported, false otherwise
    */
   supports(format: OutputFormat): boolean;
+
+  /**
+   * Gets the parallelity level of the renderer.
+   * This indicates how many render operations can be performed in parallel.
+   * @returns The number of parallel render operations supported.
+   */
+  parallelity(): number;
 }

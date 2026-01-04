@@ -12,7 +12,12 @@ import { InternalEventBus } from '../events/events';
 import { timeout } from '../test-utility';
 import { RenderService } from './render-service';
 import { HistoryService } from '../history/history-service';
-import { Card, RenderJob } from './render-types';
+import {
+  Card,
+  CardRenderer,
+  RenderJob,
+  RenderSettings,
+} from './render-types';
 import { TemplateService } from '../template/template-service';
 import { ConfigService } from '../config/config-service';
 
@@ -48,10 +53,13 @@ describe('RenderService', () => {
       historyService: historyService,
       configService: configService,
     });
-  const renderer = {
-    render: async (source: string, format: string) =>
-      new Uint8Array(),
+  const renderer: CardRenderer = {
+    render: async (
+      source: string,
+      settings: RenderSettings,
+    ) => new Uint8Array(),
     supports: (_: string) => true,
+    parallelity: () => 1,
   };
 
   beforeEach(() => {
@@ -204,10 +212,10 @@ describe('RenderService', () => {
       // GIVEN
       renderer.render = async (
         source: string,
-        format: string,
+        settings: RenderSettings,
       ) => {
         expect(source).toBe('<svg></svg>');
-        expect(format).toBe('png');
+        expect(settings.format).toBe('png');
         rendererCalled = true;
         return new Uint8Array([1, 2, 3]);
       };

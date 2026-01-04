@@ -14,7 +14,17 @@ export interface EventBus
   extends InternalEventBus,
     ExternalEventBus {}
 
-export interface InternalEventBus {
+export interface SharedEventBus {
+  /**
+   * Clear all handlers and error listeners, optionally for only a specific event type.
+   * Use this to prevent memory leaks.
+   *
+   * @param eventType - Optional event type to clear handlers for. If not provided, clears all registered handlers.
+   */
+  clear(eventType?: EventKeys): void;
+}
+
+export interface InternalEventBus extends SharedEventBus {
   /**
    * Publish an event to all registered handlers.
    * Executes handlers in registration order and handles errors gracefully.
@@ -34,17 +44,9 @@ export interface InternalEventBus {
    * ```
    */
   publish(event: CardCreatorEvent): Promise<void>;
-
-  /**
-   * Clear all handlers and error listeners, optionally for only a specific event type.
-   * Use this to prevent memory leaks.
-   *
-   * @param eventType - Optional event type to clear handlers for. If not provided, clears all registered handlers.
-   */
-  clear(eventType?: EventKeys): void;
 }
 
-export interface ExternalEventBus {
+export interface ExternalEventBus extends SharedEventBus {
   /**
    * Subscribe to error events that occur during event handling.
    *

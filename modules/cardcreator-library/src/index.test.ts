@@ -25,6 +25,7 @@ describe('CardcreatorLibrary', () => {
   const renderer: CardRenderer = {
     render: async () => new Uint8Array(),
     supports: (_) => true,
+    parallelity: () => 1,
   };
   const logger: Logger = NO_OP_LOGGER;
 

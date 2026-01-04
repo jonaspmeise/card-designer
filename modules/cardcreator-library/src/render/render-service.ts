@@ -50,10 +50,14 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
       },
     });
 
-    // TODO: Inject the correct output format here.
     const raw = await this._dependencies.renderer.render(
       compiled,
-      'png',
+      {
+        // TODO: Inject the correct output format here.
+        format: 'png',
+        // TODO: Inject correct size here.
+        size: { width: 1000, height: 1000 },
+      },
     );
 
     this._dependencies.eventService.publish({

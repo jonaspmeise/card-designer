@@ -15,6 +15,9 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
   private _template: Template = {
     source: initProjectData().source,
   };
+  // The functions extracted from the template.
+  // A mapping between the function source and the actual Function.
+  private _functions: Map<string, Function> = new Map();
 
   constructor(dependencies: TemplateServiceDependencies) {
     super(dependencies, dependencies.logger);
@@ -30,9 +33,37 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
       source,
     );
 
+    // Reset prior state.
     this._template = {
       source: source,
     };
+    this._functions.clear();
+
+    // Extracting functions.
+    const functions = Array.from(
+      this._template.source.matchAll(
+        /{{(?<source>.+?)}}/gms,
+      ),
+    );
+
+    functions.forEach((match) => {
+      this._functions.set(
+        match[0],
+        new Function(
+          '$card',
+          '$config',
+          '$job',
+          `${/return/gim.test(match[0]) ? '' : 'return'} ${
+            match.groups?.source
+          }`,
+        ),
+      );
+    });
+
+    this._dependencies.logger.debug(
+      `Extracted ${this._functions.size} functions from template.`,
+    );
+
     this._dependencies.eventService.publish({
       type: 'templateLoaded',
       data: {
@@ -66,31 +97,14 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
       index: 0,
     },
   ): string {
-    // TODO: There should be some caching with passed templates, because calculating each function
-    // is highly expensive...
-    // TODO: We can also hash each function so we deal with dulpicates very easily.
-    const functions = Array.from(
-      this._template.source.matchAll(
-        /{{(?<source>.+?)}}/gm,
-      ),
-    );
     let rendered = this._template.source;
-    functions.forEach((match) => {
-      rendered = rendered.replace(
-        match[0],
-        new Function(
-          '$card',
-          '$config',
-          '$job',
-          `${/return/gim.test(match[0]) ? '' : 'return'} ${
-            match.groups?.source
-          }`,
-        )(
-          card,
-          this._dependencies.configService.config(),
-          job,
-        ) as string,
+    this._functions.forEach((func, source) => {
+      const result = func(
+        card,
+        this._dependencies.configService.config(),
+        job,
       );
+      rendered = rendered.replaceAll(source, result);
     });
 
     this._dependencies.logger.debug(

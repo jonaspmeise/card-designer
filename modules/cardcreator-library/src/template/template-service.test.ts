@@ -129,6 +129,18 @@ describe('TemplateService', () => {
           source: 'Card Name: {{ return $card.name; }}',
         },
       ],
+      [
+        'multiline function',
+        'Sum is: 15',
+        {},
+        {
+          source: `Sum is: {{
+          const a = 5;
+          const b = 10;
+          return a + b;
+        }}`,
+        },
+      ],
     ])(
       'card can be applied to template: "%s"',
       (

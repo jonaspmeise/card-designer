@@ -92,12 +92,12 @@ const inst = await puppeteer.launch(launchOptions);
 
 const library: CardCreatorLibrary = new CardCreatorLibrary({
   renderer: {
-    render: async (svg: string) => {
+    render: async (svg, settings) => {
       const page = await inst.newPage();
       await page.setViewport({
         // TODO: Image renders should have a size.
-        width: 1000,
-        height: 1000,
+        width: settings.size.width,
+        height: settings.size.height,
       });
 
       // TODO: How to load external content (fonts, images)?
@@ -123,6 +123,7 @@ const library: CardCreatorLibrary = new CardCreatorLibrary({
       );
     },
     supports: (format: string) => format === 'png',
+    parallelity: () => 10,
   },
   fileProvider: {
     load: async (p: string) => {
