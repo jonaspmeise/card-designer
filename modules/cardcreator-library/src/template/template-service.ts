@@ -10,6 +10,8 @@ import {
   Template,
   TemplateServiceDependencies,
 } from './template-types';
+import { Logger, LogLevel } from '../types/domain';
+import { RenderLogger } from './render-logger';
 
 export class TemplateService extends DependableService<TemplateServiceDependencies> {
   private _template: Template = {
@@ -18,6 +20,10 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
   // The functions extracted from the template.
   // A mapping between the function source and the actual Function.
   private _functions: Map<string, Function> = new Map();
+
+  private _renderLogger: Logger = new RenderLogger(
+    this._dependencies.eventService,
+  );
 
   constructor(dependencies: TemplateServiceDependencies) {
     super(dependencies, dependencies.logger);
@@ -53,6 +59,7 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
           '$card',
           '$config',
           '$job',
+          '$console',
           `${/return/gim.test(match[0]) ? '' : 'return'} ${
             match.groups?.source
           }`,
@@ -92,12 +99,32 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
    * @returns The rendered result as a string.
    */
   public apply(card: Card, job: RenderContext): string {
+    this._dependencies.logger.debug(
+      'Applying template to card...',
+      this._template,
+      card,
+    );
+
     let rendered = this._template.source;
     this._functions.forEach((func, source) => {
       const result = func(
         card,
         this._dependencies.configService.config(),
         job,
+        // We delegate all render job logging to the render logger.
+        (
+          ['debug', 'info', 'warn', 'error'] as LogLevel[]
+        ).reduce(
+          (consoleObj, level) => {
+            consoleObj[level] = (msg: string) => {
+              this._renderLogger[level](msg, card);
+            };
+            return consoleObj;
+          },
+          {} as {
+            [key in LogLevel]: (msg: string) => void;
+          },
+        ),
       );
       rendered = rendered.replaceAll(source, result);
     });

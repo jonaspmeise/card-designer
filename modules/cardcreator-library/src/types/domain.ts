@@ -9,29 +9,14 @@ import { OutputFormat } from '../render/render-types';
 // OUTPUT FORMAT TYPE
 // ============================================================================
 
-/**
- * Union type for supported output formats.
- * Used for rendering cards and assets to various file types.
- */
-
-// ============================================================================
-// LOGGER INTERFACE
-// ============================================================================
-
-/**
- * Logger interface for structured logging across the library to abstract away different logging implementations.
- */
-
 export interface Logger {
   debug(message: string, ...context: any): Promise<void>;
   info(message: string, ...context: any): Promise<void>;
   warn(message: string, ...context: any): Promise<void>;
-  error(
-    message: string,
-    error?: Error,
-    ...context: any
-  ): Promise<void>;
+  error(message: string, ...context: any): Promise<void>;
 }
+
+export type LogLevel = keyof Logger;
 
 // ============================================================================
 // FILE HANDLER INTERFACE

@@ -78,6 +78,34 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
     return raw;
   }
 
+  /**
+   * Previews a card.
+   * @param card The card to preview.
+   */
+  public preview(card: Card): void {
+    this._dependencies.logger.info(
+      'Previewing card...',
+      card,
+    );
+
+    this._dependencies.eventService.publish({
+      type: 'previewRenderStarted',
+      data: {
+        card: card,
+      },
+    });
+
+    // Render card.
+
+    this._dependencies.eventService.publish({
+      type: 'previewRenderFinished',
+      data: {
+        card: card,
+        image: new ArrayBuffer(0), // TODO: Replace with actual image data.
+      },
+    });
+  }
+
   public renderJob(job: RenderJob, cards: Card[]): void {
     this._dependencies.logger.info('Rendering job...', job);
 

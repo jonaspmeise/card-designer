@@ -9,10 +9,11 @@ import {
 } from 'bun:test';
 import './card-table';
 import { CardTableElement } from './card-table';
-import { nextTick } from '../test-utils';
+import { nextTick, timeout } from '../test-utils';
 import { PreviewElement } from './preview';
 import { CardCreatorLibrary } from 'cardcreator-library';
 import { CardcreatorHTMLComponent } from './cardcreator-component';
+import { Card } from 'cardcreator-library/render/render-types';
 
 describe('CardTableElement', () => {
   let element: ShadowRoot;
@@ -72,7 +73,6 @@ describe('CardTableElement', () => {
       { name: 'Fireball', cost: 3, type: 'Spell' },
       { name: 'Ice Bolt', cost: 2, type: 'Spell' },
     ]);
-    await nextTick();
 
     // THEN
     // Headers are loaded.
@@ -86,168 +86,244 @@ describe('CardTableElement', () => {
     expect(
       element.querySelectorAll('tbody tr'),
     ).toHaveLength(2);
-    expect(
-      element.querySelectorAll('tbody tr')[0].textContent,
-    ).toContain('Fireball');
-    expect(
-      element.querySelectorAll('tbody tr')[1].textContent,
-    ).toContain('Ice Bolt');
+
+    const firstRow =
+      element.querySelectorAll('tbody tr')[0];
+    expect(firstRow.textContent).toContain('Fireball');
+    expect(firstRow.textContent).toContain('3');
+    expect(firstRow.textContent).toContain('Spell');
+
+    const secondRow =
+      element.querySelectorAll('tbody tr')[1];
+    expect(secondRow.textContent).toContain('Ice Bolt');
+    expect(secondRow.textContent).toContain('2');
+    expect(secondRow.textContent).toContain('Spell');
   });
 
-  test.todo('renders nested card objects correctly.');
-
-  test('clicking row selects card and highlights it', async () => {
-    window.dispatchEvent(
-      new CustomEvent('cc:cards-loaded', {
-        detail: [{ id: 'card-1', name: 'Test Card' }],
-      }),
-    );
-    await nextTick();
-
-    element.clickRow(0);
-    await nextTick();
-
-    expect(element.getSelectedId()).toBe('card-1');
-    expect(
-      element.getTbody().querySelector('.selected'),
-    ).not.toBeNull();
-  });
-
-  test('clicking row dispatches cc:card-selected event', async () => {
-    let receivedEvent: CustomEvent | null = null;
-    window.addEventListener('cc:card-selected', ((
-      e: CustomEvent,
-    ) => {
-      receivedEvent = e;
-    }) as EventListener);
-
-    window.dispatchEvent(
-      new CustomEvent('cc:cards-loaded', {
-        detail: [{ id: 'card-xyz', name: 'Magic Card' }],
-      }),
-    );
-    await nextTick();
-
-    element.clickRow(0);
-    await nextTick();
-
-    expect(receivedEvent).not.toBeNull();
-    expect(receivedEvent!.detail.cardId).toBe('card-xyz');
-    expect(receivedEvent!.detail.card.name).toBe(
-      'Magic Card',
-    );
-  });
-
-  test('generates ids for cards without id', async () => {
-    window.dispatchEvent(
-      new CustomEvent('cc:cards-loaded', {
-        detail: [{ name: 'No ID Card' }],
-      }),
-    );
-    await nextTick();
-
-    expect(element.getCards()[0].id).toBe('card-0');
-  });
-
-  test('limits displayed columns to 6', async () => {
-    window.dispatchEvent(
-      new CustomEvent('cc:cards-loaded', {
-        detail: [
-          {
-            col1: 'a',
-            col2: 'b',
-            col3: 'c',
-            col4: 'd',
-            col5: 'e',
-            col6: 'f',
-            col7: 'g',
-            col8: 'h',
-          },
-        ],
-      }),
-    );
-    await nextTick();
-
-    const headerCells =
-      element.shadowRoot!.querySelectorAll('th');
-    expect(headerCells.length).toBe(6);
-  });
-
-  test('(integration) clicking card in table with auto-preview triggers preview', async () => {
-    // GIVEN
-    const mockRender = mock(() => {});
-    (window as any).cardCreatorLibrary = {
-      preview: { render: mockRender },
-    };
-
-    // Clear body and add both components fresh
-    document.body.innerHTML =
-      '<cc-card-table></cc-card-table><cc-preview></cc-preview>';
-    element = document.querySelector(
-      'cc-card-table',
-    ) as CardTableElement;
-    await nextTick();
-
-    window.dispatchEvent(
-      new CustomEvent('cc:cards-loaded', {
-        detail: [{ id: 'integration-card', name: 'Test' }],
-      }),
-    );
-    await nextTick();
-
-    // WHEN
-    element.clickRow(0);
-    await nextTick();
+  test('renders nested card objects correctly.', () => {
+    // GIVEN / WHEN
+    library.project.loadCards([
+      {
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+        details: { damage: 5 },
+      },
+      {
+        name: 'Ice Bolt',
+        cost: 2,
+        type: 'Spell',
+        subtypes: ['frost', 'magic'],
+      },
+    ]);
 
     // THEN
-    expect(mockRender).toHaveBeenCalledWith(
-      'integration-card',
-    );
+    // Headers are loaded.
+    expect(
+      Array.from(element.querySelectorAll('thead th')).map(
+        (c) => c.textContent,
+      ),
+    ).toContainValues([
+      'name',
+      'cost',
+      'type',
+      'subtypes',
+      'details',
+    ]);
+
+    // Cards are loaded.
+    expect(
+      element.querySelectorAll('tbody tr'),
+    ).toHaveLength(2);
+
+    const firstRowContent = element
+      .querySelectorAll('tbody tr')[0]
+      .textContent.replaceAll(/\s/g, '');
+    expect(firstRowContent).toContain('Fireball');
+    expect(firstRowContent).toContain('3');
+    expect(firstRowContent).toContain('Spell');
+    expect(firstRowContent).toContain('{"damage":5}');
+
+    const secondRowContent = element
+      .querySelectorAll('tbody tr')[1]
+      .textContent.replaceAll(/\s/g, '');
+    expect(secondRowContent).toContain('IceBolt');
+    expect(secondRowContent).toContain('2');
+    expect(secondRowContent).toContain('Spell');
+    expect(secondRowContent).toContain('["frost","magic"]');
   });
+  // TODO: Somewhere you should be able to send logs to the console for each card render (like "$info('___')" ...?)
 
-  test('clicking card with auto-preview disabled does not call preview', async () => {
+  test('clicking row selects card and highlights it', async () => {
     // GIVEN
-    const mockRender = mock(() => {});
-    (window as any).cardCreatorLibrary = {
-      preview: { render: mockRender },
-    };
-
-    // Clear body and add both components fresh
-    document.body.innerHTML =
-      '<cc-card-table></cc-card-table><cc-preview></cc-preview>';
-    element = document.querySelector(
-      'cc-card-table',
-    ) as CardTableElement;
-    const preview = document.querySelector(
-      'cc-preview',
-    ) as PreviewElement;
-    await nextTick();
+    library.project.loadCards([
+      {
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+        details: { damage: 5 },
+      },
+      {
+        name: 'Ice Bolt',
+        cost: 2,
+        type: 'Spell',
+        subtypes: ['frost', 'magic'],
+      },
+    ]);
 
     // WHEN
     (
-      preview.querySelector(
-        'auto-preview',
+      element.querySelectorAll('tbody tr')[0] as HTMLElement
+    ).click();
+
+    // THEN
+    expect(
+      element.querySelectorAll('.selected'),
+    ).toHaveLength(1);
+    expect(
+      element.querySelectorAll('tbody tr')[0]!.classList,
+    ).toContain('selected');
+  });
+
+  test('clicking a row issues a preview', (done) => {
+    // THEN
+    library.events.on('previewRenderStarted', (event) => {
+      expect(event.data.card).toEqual({
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+      });
+      done();
+    });
+
+    // GIVEN
+    library.project.loadCards([
+      {
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+      },
+    ]);
+
+    // WHEN
+    (
+      element.querySelectorAll('tbody tr')[0] as HTMLElement
+    ).click();
+
+    // THEN
+    expect(
+      element.querySelectorAll('.selected'),
+    ).toHaveLength(1);
+    expect(
+      element.querySelectorAll('tbody tr')[0]!.classList,
+    ).toContain('selected');
+
+    timeout(done);
+  });
+
+  test('clicking card in table with auto-preview disabled triggers preview', (done) => {
+    // THEN
+    library.events.on('previewRenderStarted', (_) => {
+      throw new Error('Should not be called!');
+    });
+
+    // GIVEN
+    // Disable auto-preview.
+    (
+      element.querySelector(
+        '#auto-preview-toggle',
+      )! as HTMLInputElement
+    ).checked = false;
+    library.project.loadCards([
+      {
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+      },
+    ]);
+
+    // WHEN
+    (
+      element.querySelectorAll('tbody tr')[0] as HTMLElement
+    ).click();
+    // THEN
+    // We expect no preview to be triggered.
+    library.events.clear();
+
+    // Second: Enable auto-preview again.
+    (
+      element.querySelector(
+        '#auto-preview-toggle',
+      )! as HTMLInputElement
+    ).checked = true;
+    library.events.on('previewRenderStarted', (event) => {
+      expect(event.data.card).toEqual({
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+      });
+      done();
+    });
+
+    // WHEN
+    (
+      element.querySelectorAll('tbody tr')[0] as HTMLElement
+    ).click();
+
+    timeout(done);
+  });
+
+  test('when auto-preview is disabled, a render call is issued by clicking the render button', (done) => {
+    // GIVEN
+    // Loads cards.
+    library.project.loadCards([
+      {
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+      },
+    ]);
+
+    // Disable auto-preview.
+    (
+      element.querySelector(
+        '#auto-preview-toggle',
       )! as HTMLInputElement
     ).checked = false;
 
-    window.dispatchEvent(
-      new CustomEvent('cc:cards-loaded', {
-        detail: [{ id: 'no-preview-card', name: 'Test' }],
-      }),
-    );
-    await nextTick();
-
+    // Select card.
     (
-      element.querySelector('tbody tr')! as HTMLElement
+      element.querySelectorAll('tbody tr')[0] as HTMLElement
     ).click();
-    await nextTick();
+
+    // WHEN
+    // THEN
+    library.events.on('previewRenderStarted', (event) => {
+      expect(event.data.card).toEqual({
+        name: 'Fireball',
+        cost: 3,
+        type: 'Spell',
+      });
+      done();
+    });
+
+    const renderButton = element.getElementById(
+      'render-preview-button',
+    )! as HTMLButtonElement;
+
+    expect(renderButton.disabled).toBe(false);
+    renderButton.click();
+
+    timeout(done);
+  });
+
+  test('when no card is loaded, the render button can not be clicked.', () => {
+    // GIVEN / WHEN
+    const renderButton = element.getElementById(
+      'render-preview-button',
+    ) as HTMLButtonElement;
 
     // THEN
-    expect(
-      element
-        .querySelector('tbody tr')!
-        .classList.contains('selected'),
-    ).toBe(true);
-    expect(mockRender).not.toHaveBeenCalled();
+    expect(renderButton.disabled).toBe(true);
   });
 });

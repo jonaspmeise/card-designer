@@ -7,6 +7,7 @@ import {
 import { ProjectData } from '../project/project-types';
 import { Card, RenderJob } from '../render/render-types';
 import { Template } from '../template/template-types';
+import { LogLevel } from '../types/domain';
 import { DomainEvent } from '../types/events';
 
 export type EventServiceDependencies = Pick<
@@ -75,19 +76,27 @@ export type CardRenderStartedEvent = DomainEvent<
   }>
 >;
 
+export type RenderResult = {
+  card: Card;
+  image: ArrayBufferLike;
+};
+
 export type CardRenderFinishedEvent = DomainEvent<
   'cardRenderFinished',
-  Identifiable<{
-    card: Card;
-    image: ArrayBufferLike;
-  }>
+  Identifiable<RenderResult>
 >;
 
-export type PreviewRenderStartedEvent =
-  DomainEvent<'previewRenderStarted'>;
+export type PreviewRenderFinishedEvent = DomainEvent<
+  'previewRenderFinished',
+  RenderResult
+>;
 
-export type PreviewRenderFinishedEvent =
-  DomainEvent<'previewRenderFinished'>;
+export type PreviewRenderStartedEvent = DomainEvent<
+  'previewRenderStarted',
+  {
+    card: Card;
+  }
+>;
 
 export type TemplateLoadedEvent = DomainEvent<
   'templateLoaded',
@@ -112,9 +121,26 @@ export type ConfigChangedEvent = DomainEvent<
   { key: string; value: unknown }
 >;
 
+/**
+ * Issued when cards are loaded into the system.
+ * It doesn't matter, how many cards are loaded, this event is always issued once after loading something.
+ */
 export type CardsLoadedEvent = DomainEvent<
   'cardsLoaded',
   {
     cards: Card[];
+  }
+>;
+
+/**
+ * An event that can be issued within code of a template.
+ * This can be used to inform the user about state of computation when creating a template.
+ */
+export type RenderLogEvent = DomainEvent<
+  'renderLog',
+  {
+    message: string;
+    card: Card;
+    level: LogLevel;
   }
 >;

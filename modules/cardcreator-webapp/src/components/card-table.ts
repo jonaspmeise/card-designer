@@ -18,6 +18,10 @@ template.innerHTML = `
     tr { cursor: pointer; }
     .empty { padding: 24px; text-align: center; color: #888; }
   </style>
+  <div>
+    <input id="auto-preview-toggle" type="checkbox" checked />
+    <button id="render-preview-button" disabled>Preview</button>
+  </div>
   <div class="header">
     <span>Cards</span>
     <span class="count" id="count"></span>
@@ -43,7 +47,9 @@ export class CardTableElement extends CardcreatorHTMLComponent {
   private shadow: ShadowRoot;
   private cards: Card[] = [];
   private columns: string[] = [];
-  private selectedId: string | null = null;
+  private selected: Card | null = null;
+  private autoPreviewEnabled: boolean = true;
+  private readonly renderButton: HTMLButtonElement;
 
   constructor() {
     super();
@@ -51,6 +57,25 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     this.shadow.appendChild(
       template.content.cloneNode(true),
     );
+
+    // Hook up toggles.
+    (
+      this.shadow.getElementById(
+        'auto-preview-toggle',
+      ) as HTMLInputElement
+    ).addEventListener('change', (event) => {
+      const toggle = event.target as HTMLInputElement;
+      this.autoPreviewEnabled = toggle.checked;
+    });
+
+    this.renderButton = this.shadow.getElementById(
+      'render-preview-button',
+    ) as HTMLButtonElement;
+    this.renderButton.addEventListener('click', () => {
+      if (this.selected) {
+        this.preview(this.selected);
+      }
+    });
   }
 
   init(): void {
@@ -79,20 +104,24 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     count.textContent = `${this.cards.length} cards`;
 
     if (this.cards.length === 0) {
+      this.renderButton.disabled = true;
+
       thead.innerHTML = '';
       tbody.innerHTML =
         '<tr><td class="empty" colspan="100">No cards loaded</td></tr>';
       return;
     }
 
+    this.renderButton.disabled = this.selected === null;
+
     thead.innerHTML = `<tr>${this.columns
       .map((c) => `<th>${c}</th>`)
       .join('')}</tr>`;
     tbody.innerHTML = this.cards
       .map(
-        (card) => `
-      <tr data-id="${card.id}" class="${
-          card.id === this.selectedId ? 'selected' : ''
+        (card, i) => `
+      <tr data-card="${i}" class="${
+          card === this.selected ? 'selected' : ''
         }">
         ${this.columns
           .map(
@@ -105,28 +134,36 @@ export class CardTableElement extends CardcreatorHTMLComponent {
       .join('');
 
     tbody.querySelectorAll('tr').forEach((row) => {
-      row.onclick = () => this.selectCard(row.dataset.id!);
+      row.onclick = () =>
+        this.selectCard(
+          this.cards[Number(row.getAttribute('data-card'))],
+        );
     });
   }
 
   private formatValue(val: unknown): string {
-    if (val === null || val === undefined) return '';
-    if (typeof val === 'object') return JSON.stringify(val);
+    if (val === null || val === undefined) {
+      return '';
+    }
+    if (typeof val === 'object') {
+      return JSON.stringify(val, null, 2);
+    }
+
     return String(val);
   }
 
-  private selectCard(id: string): void {
-    this.selectedId = id;
+  private selectCard(card: Card): void {
+    this.selected = card;
     this.render();
 
-    window.dispatchEvent(
-      new CustomEvent('cc:card-selected', {
-        detail: {
-          cardId: id,
-          card: this.cards.find((c) => c.id === id),
-        },
-      }),
-    );
+    // Emit preview event.
+    if (this.autoPreviewEnabled) {
+      this.preview(card);
+    }
+  }
+
+  private preview(card: Card): void {
+    this.library.render.preview(card);
   }
 }
 

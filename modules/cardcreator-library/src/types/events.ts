@@ -17,10 +17,12 @@ import {
   JobRenderFinishedEvent,
   JobRenderStartedEvent,
   PreviewRenderFinishedEvent,
+  PreviewRenderStartedEvent,
   ProjectClosedEvent,
   ProjectLoadedEvent,
   ProjectResetEvent,
   ProjectSavedEvent,
+  RenderLogEvent,
   TemplateLoadedEvent,
 } from '../events/event-types';
 
@@ -62,7 +64,9 @@ export type CardCreatorEvent =
   | CardCompiledEvent
   | ConfigChangedEvent
   | PreviewRenderFinishedEvent
-  | CardsLoadedEvent;
+  | CardsLoadedEvent
+  | PreviewRenderStartedEvent
+  | RenderLogEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.

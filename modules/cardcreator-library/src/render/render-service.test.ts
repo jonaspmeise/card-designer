@@ -9,7 +9,7 @@ import { Command } from '../architecture/types';
 import { NO_OP_LOGGER } from '..';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
-import { timeout } from '../test-utility';
+import { dummyCard, timeout } from '../test-utility';
 import { RenderService } from './render-service';
 import { HistoryService } from '../history/history-service';
 import {
@@ -23,10 +23,6 @@ import { ConfigService } from '../config/config-service';
 
 const dummyJob: RenderJob = {
   name: 'Dummy Job',
-};
-
-const dummyCard: Card = {
-  name: 'my dummy card',
 };
 
 describe('RenderService', () => {
@@ -83,7 +79,6 @@ describe('RenderService', () => {
     historyService.push = (_command: Command) => {
       return _command as any;
     };
-    templateService.loadTemplate = (_source: string) => {};
     configService.config = () => ({});
   });
 
@@ -224,5 +219,45 @@ describe('RenderService', () => {
       service.renderCard(dummyCard);
       timeout(done);
     });
+  });
+
+  describe('preview', () => {
+    test('issues a preview started event when previewing a card', (done) => {
+      // GIVEN
+      eventService.publish = async (event) => {
+        // THEN
+        if (event.type === 'previewRenderStarted') {
+          expect(event.data.card).toBe(dummyCard);
+          done();
+        }
+      };
+
+      // WHEN
+      service.preview(dummyCard);
+      timeout(done);
+    });
+
+    test('issues a preview finished event when previewing a card', (done) => {
+      let previewStarted = false;
+      // GIVEN
+      eventService.publish = async (event) => {
+        if (event.type === 'previewRenderStarted') {
+          previewStarted = true;
+        }
+        // THEN
+        if (event.type === 'previewRenderFinished') {
+          expect(previewStarted).toBe(true);
+          expect(event.data.card).toBe(dummyCard);
+
+          done();
+        }
+      };
+
+      // WHEN
+      service.preview(dummyCard);
+      timeout(done);
+    });
+
+    // TODO: Handle error messages gracefully.
   });
 });

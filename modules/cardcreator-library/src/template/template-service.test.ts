@@ -9,7 +9,7 @@ import { Command } from '../architecture/types';
 import { NO_OP_LOGGER } from '..';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
-import { timeout } from '../test-utility';
+import { dummyCard, timeout } from '../test-utility';
 import { HistoryService } from '../history/history-service';
 import { TemplateService } from './template-service';
 import {
@@ -19,6 +19,7 @@ import {
 import { Template } from './template-types';
 import { ConfigService } from '../config/config-service';
 import { config } from 'process';
+import { LogLevel } from '../types/domain';
 
 describe('TemplateService', () => {
   let service: TemplateService;
@@ -223,5 +224,36 @@ describe('TemplateService', () => {
         ),
       ).toEqual('Render Job Index: 5');
     });
+
+    test.each([
+      ['warn' as LogLevel],
+      ['error' as LogLevel],
+      ['info' as LogLevel],
+      ['debug' as LogLevel],
+    ])(
+      'issues a render %s event when a template is rendered that issues log messages.',
+      (level: LogLevel, done) => {
+        // GIVEN
+        service.loadTemplate(
+          `<svg>{{ $console.${level}("Rendering card...") }}</svg>`,
+        );
+
+        eventService.publish = async (event) => {
+          // THEN
+          if (event.type === 'renderLog') {
+            expect(event.data.message).toBe(
+              'Rendering card...',
+            );
+            expect(event.data.level).toBe(level);
+            expect(event.data.card).toBe(dummyCard);
+            done();
+          }
+        };
+
+        // WHEN
+        service.apply(dummyCard, {} as RenderContext);
+        timeout(done);
+      },
+    );
   });
 });

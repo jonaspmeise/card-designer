@@ -23,6 +23,7 @@ import { TemplateService } from './template/template-service';
 import { ConfigService } from './config/config-service';
 import { config } from 'process';
 import { CardService } from './cards/card-service';
+import { RenderService } from './render/render-service';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
@@ -163,6 +164,7 @@ export class CardCreatorLibrary {
     this.project = new ProjectService(this.dependencies);
     this.events = this.dependencies
       .eventService as EventBus;
+    this.render = new RenderService(this.dependencies);
 
     this.dependencies.logger.info(
       'CardCreator library initialized',
@@ -171,4 +173,5 @@ export class CardCreatorLibrary {
 
   public readonly project: Readonly<ProjectService>;
   public readonly events: Readonly<ExternalEventBus>;
+  public readonly render: Readonly<RenderService>;
 }
