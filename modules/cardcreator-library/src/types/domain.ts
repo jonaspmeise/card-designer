@@ -10,10 +10,10 @@ import { OutputFormat } from '../render/render-types';
 // ============================================================================
 
 export interface Logger {
-  debug(message: string, ...context: any): Promise<void>;
-  info(message: string, ...context: any): Promise<void>;
-  warn(message: string, ...context: any): Promise<void>;
-  error(message: string, ...context: any): Promise<void>;
+  debug(message: string, ...context: any): void;
+  info(message: string, ...context: any): void;
+  warn(message: string, ...context: any): void;
+  error(message: string, ...context: any): void;
 }
 
 export type LogLevel = keyof Logger;

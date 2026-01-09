@@ -151,4 +151,41 @@ describe('ConfigService', () => {
       });
     });
   });
+
+  describe('reset', () => {
+    test('resets the config to empty by default.', () => {
+      // GIVEN
+      service.config()['my-key'] = 'my-value';
+      expect(service.config()).toEqual({
+        'my-key': 'my-value',
+      });
+
+      // WHEN
+      service.reset();
+
+      // THEN
+      expect(service.config()).toEqual({});
+    });
+
+    test('after reset and modification, an event is issued.', (done) => {
+      // GIVEN
+      service.config()['my-key'] = 'my-value';
+
+      eventService.publish = async (event) => {
+        // THEN
+        if (event.type !== 'configChanged') {
+          return;
+        }
+        expect(event.data).toEqual({
+          key: 'my-key',
+          value: 'my-new-value',
+        });
+        done();
+      };
+
+      // WHEN
+      service.reset();
+      service.config()['my-key'] = 'my-new-value';
+    });
+  });
 });

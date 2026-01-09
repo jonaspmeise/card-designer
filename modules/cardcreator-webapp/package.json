@@ -7,7 +7,13 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lint": "^6.9.2",
+    "@codemirror/state": "^6.5.3",
+    "@codemirror/view": "^6.39.9",
     "cardcreator-library": "workspace:*",
+    "codemirror": "^6.0.2",
+    "highlight.js": "^11.8.0",
     "js-yaml": "^4.1.0",
     "xlsx": "^0.18.5"
   },
@@ -15,6 +21,7 @@
     "@types/bun": "^1.2.16",
     "@types/js-yaml": "^4.0.9",
     "@happy-dom/global-registrator": "^15.11.7",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/highlight.js": "^10.1.0"
   }
 }

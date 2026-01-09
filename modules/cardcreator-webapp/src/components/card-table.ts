@@ -78,6 +78,9 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     });
   }
 
+  /**
+   * Init method, which is called after the library is registered.
+   */
   init(): void {
     this.library.events.on('cardsLoaded', (event) => {
       this.cards = event.data.cards;
@@ -86,6 +89,10 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     });
   }
 
+  /**
+   * Extracts all columns from current, loaded cards.
+   * @returns a list of columns.
+   */
   private extractColumns(): string[] {
     const cols = new Set<string>();
     this.cards.forEach((card) => {
@@ -96,6 +103,9 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     return Array.from(cols);
   }
 
+  /**
+   * Renders the current state of the component.
+   */
   private render(): void {
     const thead = this.shadow.getElementById('thead')!;
     const tbody = this.shadow.getElementById('tbody')!;
@@ -141,6 +151,11 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     });
   }
 
+  /**
+   * Formats a given object into a nice string representation.
+   * @param val The object to convert.
+   * @returns Its string representation.
+   */
   private formatValue(val: unknown): string {
     if (val === null || val === undefined) {
       return '';
@@ -152,6 +167,10 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     return String(val);
   }
 
+  /**
+   * Trigger that is called when a card is selected through the table.
+   * @param card The selected card.
+   */
   private selectCard(card: Card): void {
     this.selected = card;
     this.render();
@@ -162,6 +181,10 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     }
   }
 
+  /**
+   * Issues a render for the library.
+   * @param card The card to render.
+   */
   private preview(card: Card): void {
     this.library.render.preview(card);
   }

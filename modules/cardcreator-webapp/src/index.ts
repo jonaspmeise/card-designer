@@ -5,7 +5,6 @@
 import { CardCreatorLibrary } from 'cardcreator-library';
 import { BrowserFileProvider } from './lib/browser-file-provider';
 import { BrowserRenderer } from './lib/browser-renderer';
-import { setupLibraryEvents } from './lib/library-events';
 import { initTaskbar } from './lib/taskbar';
 import { initResize } from './lib/resize';
 
@@ -19,19 +18,44 @@ import './components/render-queue';
 import './components/editor';
 import './components/preview';
 import './components/card-table';
+import {
+  CARDCREATOR_ATTRIBUTE,
+  CardcreatorHTMLComponent,
+  LibraryRequestEvent,
+} from './components/cardcreator-component';
 
 const library = new CardCreatorLibrary({
   renderer: new BrowserRenderer(),
   fileProvider: new BrowserFileProvider(),
 });
 
-// Make library available to components
-(window as any).cardCreatorLibrary = library;
+// Provide library to components on request
+console.debug(`Setting up library provider...`);
+window.addEventListener(
+  'cardcreator:request-library',
+  (event) => {
+    console.debug(
+      'Providing cardcreator library to component...',
+      event.target,
+    );
+
+    const e = event as LibraryRequestEvent;
+    e.detail.provide(library);
+  },
+);
+console.debug(
+  `Triggering all components to request library...`,
+);
+document
+  .querySelectorAll(`[${CARDCREATOR_ATTRIBUTE}="true"]`)
+  .forEach((e) => {
+    const element = e as CardcreatorHTMLComponent;
+    element.provide(library);
+  });
 
 // Setup UI
 initTaskbar();
 initResize();
-setupLibraryEvents(library);
 
 // Restore UI state from localStorage
 const uiState = localStorage.getItem('cc-ui-state');

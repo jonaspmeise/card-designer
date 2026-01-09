@@ -1,5 +1,12 @@
 import { CardCreatorLibrary } from 'cardcreator-library';
 
+export type LibraryRequestEvent = CustomEvent<{
+  provide: (library: CardCreatorLibrary) => void;
+}>;
+
+export const CARDCREATOR_ATTRIBUTE =
+  'data-cardcreator-component';
+
 /**
  * Base class for Cardcreator Web Components.
  */
@@ -8,11 +15,20 @@ export abstract class CardcreatorHTMLComponent extends HTMLElement {
     'cardcreator:request-library';
   protected library!: CardCreatorLibrary;
 
+  protected constructor() {
+    super();
+
+    this.setAttribute(CARDCREATOR_ATTRIBUTE, 'true');
+  }
+
   /**
    * Requests an instance of the CardCreatorLibrary from the hosting application.
    * This method is called when the component is connected to the DOM.
    */
   connectedCallback() {
+    console.debug(
+      `Component connected to DOM, requesting library...`,
+    );
     this.dispatchEvent(
       new CustomEvent(
         CardcreatorHTMLComponent.REQUEST_LIB,
@@ -34,7 +50,9 @@ export abstract class CardcreatorHTMLComponent extends HTMLElement {
   }
 
   public provide(library: CardCreatorLibrary) {
+    console.debug(`Library provided.`);
     this.library = library;
+    this.init();
   }
 
   /**

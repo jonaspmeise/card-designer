@@ -4,16 +4,13 @@ import {
   test,
   expect,
   beforeEach,
-  mock,
   beforeAll,
 } from 'bun:test';
 import './card-table';
 import { CardTableElement } from './card-table';
-import { nextTick, timeout } from '../test-utils';
-import { PreviewElement } from './preview';
+import { timeout } from '../test-utils';
 import { CardCreatorLibrary } from 'cardcreator-library';
 import { CardcreatorHTMLComponent } from './cardcreator-component';
-import { Card } from 'cardcreator-library/render/render-types';
 
 describe('CardTableElement', () => {
   let element: ShadowRoot;

@@ -1,6 +1,4 @@
 import { DependableService } from '../architecture/types';
-import { initProjectData } from '../project/project-types';
-import { Card } from '../render/render-types';
 import { SetConfigCommand } from './commands/set-config';
 import {
   Config,
@@ -34,6 +32,37 @@ export class ConfigService extends DependableService<ConfigServiceDependencies> 
     },
   });
 
+  private _set(config: Config): void {
+    this._dependencies.logger.debug(
+      `Setting config to: ${JSON.stringify(config)}`,
+    );
+
+    this._config = config;
+    this._proxy = new Proxy(this._config, {
+      set: (target, property, value) => {
+        this._dependencies.logger.debug(
+          `Setting config key "${property.toString()}" to value: ${value}`,
+        );
+
+        const key = property.toString();
+
+        this._dependencies.historyService.push(
+          new SetConfigCommand(
+            {
+              next: [key, value],
+              overwritten: target.hasOwnProperty(key)
+                ? ([key, target[key]] as KeyValuePair)
+                : undefined,
+            },
+            this._config,
+          ),
+        );
+
+        return true;
+      },
+    });
+  }
+
   constructor(dependencies: ConfigServiceDependencies) {
     super(dependencies, dependencies.logger);
   }
@@ -52,5 +81,15 @@ export class ConfigService extends DependableService<ConfigServiceDependencies> 
     this._dependencies.logger.debug(`Getting config...`);
 
     return this._proxy;
+  }
+
+  public reset(config: Config = {}): void {
+    this._dependencies.logger.info(`Resetting config.`);
+    this._dependencies.logger.debug(
+      `New config is:`,
+      config,
+    );
+
+    this._set(config);
   }
 }

@@ -165,6 +165,7 @@ export class CardCreatorLibrary {
     this.events = this.dependencies
       .eventService as EventBus;
     this.render = new RenderService(this.dependencies);
+    this.config = configService;
 
     this.dependencies.logger.info(
       'CardCreator library initialized',
@@ -174,4 +175,5 @@ export class CardCreatorLibrary {
   public readonly project: Readonly<ProjectService>;
   public readonly events: Readonly<ExternalEventBus>;
   public readonly render: Readonly<RenderService>;
+  public readonly config: Readonly<ConfigService>;
 }
