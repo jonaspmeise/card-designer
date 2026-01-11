@@ -1,4 +1,4 @@
-import { CardcreatorHTMLComponent } from './cardcreator-component';
+import { CardcreatorHTMLComponent } from '../cardcreator-component';
 
 /**
  * Card Table Web Component - Shows loaded cards in a table

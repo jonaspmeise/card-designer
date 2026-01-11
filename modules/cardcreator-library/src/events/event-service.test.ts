@@ -8,6 +8,7 @@ import {
 import { EventService } from './event-service';
 import { file } from 'bun';
 import { ProjectLoadedEvent } from './event-types';
+import { NO_OP_LOGGER } from '..';
 
 const dummyProject: ProjectLoadedEvent['data'] = {
   name: 'Test Project',
@@ -16,12 +17,7 @@ const dummyProject: ProjectLoadedEvent['data'] = {
 
 describe('EventService', () => {
   let eventService: EventService;
-  const logger = {
-    debug: async (_msg: string) => {},
-    info: async (_msg: string) => {},
-    warn: async (_msg: string) => {},
-    error: async (_msg: string) => {},
-  };
+  const logger = NO_OP_LOGGER;
 
   beforeEach(() => {
     eventService = new EventService({

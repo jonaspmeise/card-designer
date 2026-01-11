@@ -3,68 +3,69 @@ import { SetConfigCommand } from './commands/set-config';
 import {
   Config,
   ConfigServiceDependencies,
-  KeyValuePair,
 } from './config-types';
 
 export class ConfigService extends DependableService<ConfigServiceDependencies> {
-  private _config: Config = {};
-  private _proxy: Config = new Proxy(this._config, {
-    set: (target, property, value) => {
-      this._dependencies.logger.debug(
-        `Setting config key "${property.toString()}" to value: ${value}`,
-      );
+  private _config: Config | undefined = undefined;
+  private _proxy!: Config;
 
-      const key = property.toString();
+  constructor(dependencies: ConfigServiceDependencies) {
+    super(dependencies, dependencies.logger);
 
-      this._dependencies.historyService.push(
-        new SetConfigCommand(
-          {
-            next: [key, value],
-            overwritten: target.hasOwnProperty(key)
-              ? ([key, target[key]] as KeyValuePair)
-              : undefined,
-          },
-          this._config,
-        ),
-      );
+    this._set({});
+  }
 
-      return true;
-    },
-  });
+  /**
+   * Sends a command to set the current config to the history service.
+   */
+  private _sendCommand(prior: Config, next: Config): void {
+    this._dependencies.logger.debug(
+      `Sending config change command to history service...`,
+    );
+    this._dependencies.historyService.push(
+      new SetConfigCommand(
+        {
+          next: next,
+          prior: prior,
+        },
+        this._config!,
+      ),
+    );
+  }
 
+  /**
+   * Internal method to set the current config object.
+   * @param config The config to set.
+   */
   private _set(config: Config): void {
     this._dependencies.logger.debug(
       `Setting config to: ${JSON.stringify(config)}`,
     );
 
-    this._config = config;
-    this._proxy = new Proxy(this._config, {
+    const first: boolean = this._config === undefined;
+    if (first) {
+      this._config = {};
+    }
+
+    this._proxy = new Proxy(this._config!, {
       set: (target, property, value) => {
         this._dependencies.logger.debug(
           `Setting config key "${property.toString()}" to value: ${value}`,
         );
 
-        const key = property.toString();
+        const prior = { ...target };
+        const next = { ...target };
+        next[property as string] = value;
 
-        this._dependencies.historyService.push(
-          new SetConfigCommand(
-            {
-              next: [key, value],
-              overwritten: target.hasOwnProperty(key)
-                ? ([key, target[key]] as KeyValuePair)
-                : undefined,
-            },
-            this._config,
-          ),
-        );
+        this._sendCommand(prior, next);
 
         return true;
       },
     });
-  }
 
-  constructor(dependencies: ConfigServiceDependencies) {
-    super(dependencies, dependencies.logger);
+    if (!first) {
+      this._sendCommand({ ...this._config }, config);
+    }
   }
 
   // TODO: If I load config from both a file and manually, and then change them, how are they persisted?

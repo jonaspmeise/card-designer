@@ -10,7 +10,7 @@ import './card-table';
 import { CardTableElement } from './card-table';
 import { timeout } from '../test-utils';
 import { CardCreatorLibrary } from 'cardcreator-library';
-import { CardcreatorHTMLComponent } from './cardcreator-component';
+import { CardcreatorHTMLComponent } from '../cardcreator-component';
 
 describe('CardTableElement', () => {
   let element: ShadowRoot;

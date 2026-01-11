@@ -9,18 +9,17 @@ import {
   Command,
   PopulatedCommand,
 } from '../architecture/types';
-import { NO_OP_LOGGER } from '..';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
 import { timeout } from '../test-utility';
 import { HistoryService } from '../history/history-service';
 import { ConfigService } from './config-service';
-import { Card } from '../render/render-types';
-import { time } from 'console';
 
 describe('ConfigService', () => {
   let service: ConfigService;
-  const logger = NO_OP_LOGGER;
+  const logger = {
+    ...console,
+  };
   const eventService: InternalEventBus = new EventService({
     logger: logger,
   });
@@ -72,10 +71,6 @@ describe('ConfigService', () => {
         if (event.type !== 'configChanged') {
           return;
         }
-        expect(event.data).toEqual({
-          key: 'my-key',
-          value: 'my-value',
-        });
         done();
       };
 
@@ -102,6 +97,11 @@ describe('ConfigService', () => {
       // WHEN
       service.config()['my-key'] = 'my-new-value';
       timeout(done);
+    });
+
+    test('an initial set config triggers no command push.', () => {
+      // THEN
+      expect(historyService.history()).toHaveLength(0);
     });
 
     test('can be undone/redone via the history service.', () => {
@@ -176,10 +176,6 @@ describe('ConfigService', () => {
         if (event.type !== 'configChanged') {
           return;
         }
-        expect(event.data).toEqual({
-          key: 'my-key',
-          value: 'my-new-value',
-        });
         done();
       };
 

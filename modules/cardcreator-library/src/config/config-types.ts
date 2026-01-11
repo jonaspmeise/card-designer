@@ -12,5 +12,3 @@ export type ConfigServiceDependencies = Pick<
  * The configuration object structure.
  */
 export type Config = Record<string, any>;
-
-export type KeyValuePair = [string, unknown];

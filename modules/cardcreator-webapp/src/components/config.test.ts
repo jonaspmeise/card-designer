@@ -10,8 +10,9 @@ import {
 } from 'bun:test';
 import './config';
 import { CardCreatorLibrary } from 'cardcreator-library';
-import { CardcreatorHTMLComponent } from './cardcreator-component';
+import { CardcreatorHTMLComponent } from '../cardcreator-component';
 import { ConfigElement } from './config';
+import { timeout } from '../test-utils';
 
 describe('ConfigElement', () => {
   let raw: ConfigElement;
@@ -22,9 +23,9 @@ describe('ConfigElement', () => {
   const _debug = console.debug;
 
   beforeAll(() => {
-    // Monkey-patch CSS issue.
     console.debug = () => {};
 
+    // Monkey-patch CSS issue.
     CSSStyleSheet.prototype.insertRule = function (
       rule: string,
       index?: number,
@@ -241,5 +242,37 @@ describe('ConfigElement', () => {
 
     // THEN
     expect(library.config.config()).toEqual({});
+  });
+
+  test('when a valid config is entered, and that change is undone, the prior config is restored.', (done) => {
+    // GIVEN
+    const validJson1 = '{ "valid": true }';
+    const validJson2 = '{ "another": 123 }';
+
+    // THEN
+    library.events.on('commandExecuted', (data) => {
+      // We only undo the second change!
+      if (
+        !!(data.data.data.next as { another: number })
+          .another
+      ) {
+        console.info('AAAA', data);
+        data.data.undo();
+      }
+    });
+
+    library.events.on('commandUndone', (_) => {
+      // THEN
+      expect(library.config.config()).toEqual(
+        JSON.parse(validJson1),
+      );
+      done();
+    });
+
+    // WHEN
+    raw.set(validJson1);
+    raw.set(validJson2);
+
+    timeout(done);
   });
 });

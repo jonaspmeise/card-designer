@@ -116,10 +116,8 @@ export type CardCompiledEvent = DomainEvent<
   }>
 >;
 
-export type ConfigChangedEvent = DomainEvent<
-  'configChanged',
-  { key: string; value: unknown }
->;
+export type ConfigChangedEvent =
+  DomainEvent<'configChanged'>;
 
 /**
  * Issued when cards are loaded into the system.

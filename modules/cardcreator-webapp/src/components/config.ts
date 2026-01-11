@@ -23,7 +23,7 @@ import {
   defaultHighlightStyle,
   bracketMatching,
 } from '@codemirror/language';
-import { CardcreatorHTMLComponent } from './cardcreator-component';
+import { CardcreatorHTMLComponent } from '../cardcreator-component';
 
 /**
  * Custom event fired when config content changes

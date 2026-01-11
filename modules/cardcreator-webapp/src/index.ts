@@ -21,28 +21,13 @@ import './components/card-table';
 import {
   CARDCREATOR_ATTRIBUTE,
   CardcreatorHTMLComponent,
-  LibraryRequestEvent,
-} from './components/cardcreator-component';
+} from './cardcreator-component';
 
 const library = new CardCreatorLibrary({
   renderer: new BrowserRenderer(),
   fileProvider: new BrowserFileProvider(),
 });
 
-// Provide library to components on request
-console.debug(`Setting up library provider...`);
-window.addEventListener(
-  'cardcreator:request-library',
-  (event) => {
-    console.debug(
-      'Providing cardcreator library to component...',
-      event.target,
-    );
-
-    const e = event as LibraryRequestEvent;
-    e.detail.provide(library);
-  },
-);
 console.debug(
   `Triggering all components to request library...`,
 );

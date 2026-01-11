@@ -1,10 +1,10 @@
 import { Command } from '../../architecture/types';
 import { ConfigChangedEvent } from '../../events/event-types';
-import { Config, KeyValuePair } from '../config-types';
+import { Config } from '../config-types';
 
 export type SetConfigCommandData = {
-  overwritten?: KeyValuePair;
-  next: KeyValuePair;
+  prior: Readonly<Config>;
+  next: Readonly<Config>;
 };
 export class SetConfigCommand
   implements
@@ -17,35 +17,49 @@ export class SetConfigCommand
   constructor(
     public readonly data: SetConfigCommandData,
     public readonly target: Config,
-  ) {}
+  ) {
+    if (data.prior === target) {
+      throw new Error(
+        'Prior config must not be the same reference as target config.',
+      );
+    }
+
+    if (data.next === target) {
+      throw new Error(
+        'Next config must not be the same reference as target config.',
+      );
+    }
+  }
 
   public events(): readonly [ConfigChangedEvent] {
     return [
       {
         type: 'configChanged',
-        data: {
-          key: this.data.next[0],
-          value: this.data.next[1],
-        },
+        data: {},
       },
     ];
   }
 
   public do(): void {
-    // We need to make sure that the config is updated correctly (deeply).
-    Reflect.set(
-      this.target,
-      this.data.next[0],
-      this.data.next[1],
-    );
+    this._set(this.data.next);
   }
 
   public undo(): void {
-    if (this.data.overwritten !== undefined) {
-      this.target[this.data.overwritten[0]] =
-        this.data.overwritten[1];
-    } else {
-      delete this.target[this.data.next[0]];
-    }
+    this._set(this.data.prior);
+  }
+
+  /**
+   * Sets the target to the given value.
+   * @param value The value to set.
+   */
+  private _set(value: Readonly<Config>): void {
+    // Delete all entries in the current config and replace them with the new one, without changing the reference.
+    Object.keys(this.target).forEach((key) => {
+      Reflect.deleteProperty(this.target, key);
+    });
+
+    Object.entries(value).forEach(([key, value]) => {
+      Reflect.set(this.target, key, value);
+    });
   }
 }
