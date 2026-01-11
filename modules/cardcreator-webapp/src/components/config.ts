@@ -124,51 +124,9 @@ type ValidStatus = {
 /**
  * Config Web Component with CodeMirror JSON editor
  */
-const template = document.createElement('template');
-template.innerHTML = `
-  <style>
-    :host {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      overflow: hidden;
-    }
-    .status-icon {
-      width: 16px;
-      height: 16px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: bold;
-    }
-
-    .status-icon.valid::before {
-      content: "✓";
-      color: #22c55e; /* green */
-    }
-
-    .status-icon.invalid::before {
-      content: "✕";
-      color: #ef4444; /* red */
-    }
-
-  </style>
-  <div class="content">
-    <div class="editor-container" id="editor-container"></div>
-  </div>
-  <div class="footer">
-    <div class="status">
-      <span class="status-icon valid" id="config-status-icon"></span>
-      <span class="status-text" id="config-status-text">Valid JSON</span>
-    </div>
-  </div>
-`;
-
 export class ConfigElement extends CardcreatorHTMLComponent {
   private _content: string = '';
 
-  private shadow: ShadowRoot;
   private container!: HTMLElement;
   private editorView!: EditorView;
   private statusIcon!: HTMLElement;
@@ -176,10 +134,7 @@ export class ConfigElement extends CardcreatorHTMLComponent {
 
   constructor() {
     super();
-    this.shadow = this.attachShadow({ mode: 'open' });
-    this.shadow.appendChild(
-      template.content.cloneNode(true),
-    );
+
     this.container = this.shadow.getElementById(
       'editor-container',
     )!;
@@ -191,10 +146,55 @@ export class ConfigElement extends CardcreatorHTMLComponent {
     )!;
   }
 
+  protected template(): HTMLTemplateElement {
+    const template = document.createElement('template');
+    template.innerHTML = `
+      <style>
+        :host {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          overflow: hidden;
+        }
+        .status-icon {
+          width: 16px;
+          height: 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          font-weight: bold;
+        }
+
+        .status-icon.valid::before {
+          content: "✓";
+          color: #22c55e; /* green */
+        }
+
+        .status-icon.invalid::before {
+          content: "✕";
+          color: #ef4444; /* red */
+        }
+
+      </style>
+      <div class="content">
+        <div class="editor-container" id="editor-container"></div>
+      </div>
+      <div class="footer">
+        <div class="status">
+          <span class="status-icon valid" id="config-status-icon"></span>
+          <span class="status-text" id="config-status-text">Valid JSON</span>
+        </div>
+      </div>
+    `;
+
+    return template;
+  }
+
   /**
    * Init method, called after the library is registered.
    */
-  init(): void {
+  protected init(): void {
     this.initEditor();
 
     // Register hooks.
@@ -411,7 +411,7 @@ export class ConfigElement extends CardcreatorHTMLComponent {
   }
 
   /**
-   * Cleanup on disconnect
+   * Cleanup on disconnect.
    */
   disconnectedCallback(): void {
     this.editorView.destroy();

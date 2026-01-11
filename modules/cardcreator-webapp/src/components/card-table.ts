@@ -1,50 +1,14 @@
 import { CardcreatorHTMLComponent } from '../cardcreator-component';
 
-/**
- * Card Table Web Component - Shows loaded cards in a table
- */
-const template = document.createElement('template');
-template.innerHTML = `
-  <style>
-    :host { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-    .header { padding: 8px; background: var(--bg-tertiary, #353550); border-bottom: 1px solid var(--border, #404060); font-weight: 600; display: flex; justify-content: space-between; }
-    .count { font-size: 12px; color: #888; }
-    .table-wrap { flex: 1; overflow: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { position: sticky; top: 0; background: var(--bg-tertiary, #353550); text-align: left; padding: 8px; border-bottom: 2px solid var(--border, #404060); }
-    td { padding: 8px; border-bottom: 1px solid var(--border, #404060); }
-    tr:hover { background: var(--bg-hover, #404060); }
-    tr.selected { background: var(--accent, #7c3aed); }
-    tr { cursor: pointer; }
-    .empty { padding: 24px; text-align: center; color: #888; }
-  </style>
-  <div>
-    <input id="auto-preview-toggle" type="checkbox" checked />
-    <button id="render-preview-button" disabled>Preview</button>
-  </div>
-  <div class="header">
-    <span>Cards</span>
-    <span class="count" id="count"></span>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <caption>
-        <span id="card-table-card-count">No cards loaded.</span>
-      </caption>
-      <thead id="thead"></thead>
-      <tbody id="tbody">
-      </tbody>
-    </table>
-  </div>
-`;
-
 interface Card {
   id?: string;
   [key: string]: unknown;
 }
 
+/**
+ * Card Table Web Component - Shows loaded cards in a table
+ */
 export class CardTableElement extends CardcreatorHTMLComponent {
-  private shadow: ShadowRoot;
   private cards: Card[] = [];
   private columns: string[] = [];
   private selected: Card | null = null;
@@ -53,10 +17,6 @@ export class CardTableElement extends CardcreatorHTMLComponent {
 
   constructor() {
     super();
-    this.shadow = this.attachShadow({ mode: 'open' });
-    this.shadow.appendChild(
-      template.content.cloneNode(true),
-    );
 
     // Hook up toggles.
     (
@@ -78,10 +38,49 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     });
   }
 
+  protected template(): HTMLTemplateElement {
+    const template = document.createElement('template');
+    template.innerHTML = `
+      <style>
+        :host { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .header { padding: 8px; background: var(--bg-tertiary, #353550); border-bottom: 1px solid var(--border, #404060); font-weight: 600; display: flex; justify-content: space-between; }
+        .count { font-size: 12px; color: #888; }
+        .table-wrap { flex: 1; overflow: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { position: sticky; top: 0; background: var(--bg-tertiary, #353550); text-align: left; padding: 8px; border-bottom: 2px solid var(--border, #404060); }
+        td { padding: 8px; border-bottom: 1px solid var(--border, #404060); }
+        tr:hover { background: var(--bg-hover, #404060); }
+        tr.selected { background: var(--accent, #7c3aed); }
+        tr { cursor: pointer; }
+        .empty { padding: 24px; text-align: center; color: #888; }
+      </style>
+      <div>
+        <input id="auto-preview-toggle" type="checkbox" checked />
+        <button id="render-preview-button" disabled>Preview</button>
+      </div>
+      <div class="header">
+        <span>Cards</span>
+        <span class="count" id="count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <caption>
+            <span id="card-table-card-count">No cards loaded.</span>
+          </caption>
+          <thead id="thead"></thead>
+          <tbody id="tbody">
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    return template;
+  }
+
   /**
    * Init method, which is called after the library is registered.
    */
-  init(): void {
+  protected init(): void {
     this.library.events.on('cardsLoaded', (event) => {
       this.cards = event.data.cards;
       this.columns = this.extractColumns();

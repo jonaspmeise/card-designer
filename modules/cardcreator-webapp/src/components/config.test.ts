@@ -79,8 +79,7 @@ describe('ConfigElement', () => {
     ) as ConfigElement;
     raw.provide(library);
 
-    element =
-      document.querySelector('cc-config')!.shadowRoot!;
+    element = raw.shadowRoot!;
   });
 
   test('is empty initially', () => {
@@ -256,7 +255,6 @@ describe('ConfigElement', () => {
         !!(data.data.data.next as { another: number })
           .another
       ) {
-        console.info('AAAA', data);
         data.data.undo();
       }
     });

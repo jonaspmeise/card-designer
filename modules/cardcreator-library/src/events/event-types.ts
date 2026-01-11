@@ -22,12 +22,12 @@ export type ProjectLoadedEvent = DomainEvent<
 
 export type CommandExecutedEvent = DomainEvent<
   'commandExecuted',
-  Command
+  Identifiable<Command> // TODO: Or PopulatedCommand?
 >;
 
 export type CommandUndoneEvent = DomainEvent<
   'commandUndone',
-  Command
+  Identifiable<Command> // TODO: Or PopulatedCommand?
 >;
 
 export type ProjectSavedEvent = DomainEvent<
