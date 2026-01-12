@@ -6,6 +6,7 @@ import { CardcreatorHTMLComponent } from '../cardcreator-component';
  */
 export class HistoryElement extends CardcreatorHTMLComponent {
   private _list: HTMLUListElement;
+  private _items: HTMLElement[] = [];
 
   constructor() {
     super();
@@ -42,7 +43,64 @@ export class HistoryElement extends CardcreatorHTMLComponent {
 
   protected init(): void {
     this.library.events.on('commandExecuted', (command) => {
-      this._addCommand(command);
+      const item = this._items.find(
+        (i) => i.id === command.data.id,
+      );
+
+      console.debug(
+        `Command executed event received: ${
+          command.data.id
+        }. Component item exists: ${item !== undefined}`,
+      );
+
+      if (item !== undefined) {
+        item.classList.remove('undone');
+        item.classList.add('done');
+        (
+          item.querySelector(
+            '.undo-button',
+          )! as HTMLButtonElement
+        ).disabled = false;
+        (
+          item.querySelector(
+            '.do-button',
+          )! as HTMLButtonElement
+        ).disabled = true;
+      } else {
+        this._addCommand(command);
+      }
+    });
+
+    this.library.events.on('commandUndone', (command) => {
+      const item = this._items.find(
+        (i) => i.id === command.data.id,
+      );
+
+      console.debug(
+        `Command undone event received: ${
+          command.data.id
+        }. Component item exists: ${item !== undefined}`,
+      );
+
+      if (item === undefined) {
+        console.warn(
+          `Received commandUndone event for unknown command ID: ${command.data.id}`,
+        );
+        return;
+      }
+
+      item.classList.remove('done');
+      item.classList.add('undone');
+      (
+        item.querySelector(
+          '.do-button',
+        )! as HTMLButtonElement
+      ).disabled = false;
+      (
+        item.querySelector(
+          '.undo-button',
+        )! as HTMLButtonElement
+      ).disabled = true;
     });
   }
 
@@ -52,14 +110,59 @@ export class HistoryElement extends CardcreatorHTMLComponent {
    */
   private _addCommand(event: CommandExecutedEvent): void {
     console.debug(
-      `Adding command to history: ${event.data.id}`,
+      `Adding command to history component: ${event.data.id}`,
     );
 
     const item = document.createElement('li');
+    item.id = event.data.id;
     item.classList.add('item');
-    item.textContent = `${event.data.constructor.name}`;
+    item.innerHTML = `
+      <div>
+        ${event.data.message()}
+        <div class="actions" data-command-id="${
+          event.data.id
+        }">
+          <button class="undo-button">Undo</button>
+          <button class="do-button" disabled>Do</button>
+        </div>
+      </div>
+    `;
 
+    // Register handlers.
+    (
+      item.querySelector(
+        '.undo-button',
+      )! as HTMLButtonElement
+    ).onclick = () => {
+      this.undo(event.data.id);
+    };
+    (
+      item.querySelector('.do-button')! as HTMLButtonElement
+    ).onclick = () => {
+      this.do(event.data.id);
+    };
+
+    this._items.push(item);
     this._list.appendChild(item);
+  }
+
+  /**
+   * Undoes a command by its ID.
+   * @param commandId The ID of the command to undo.
+   */
+  private undo(commandId: string): void {
+    console.debug(`Undoing command: ${commandId}`);
+
+    this.library.history.undo(commandId);
+  }
+
+  /**
+   * Executes a command by its ID.
+   * @param commandId The ID of the command to execute.
+   */
+  private do(commandId: string): void {
+    console.debug(`Executing command: ${commandId}`);
+    this.library.history.do(commandId);
   }
 }
 

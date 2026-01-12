@@ -4,7 +4,7 @@ import {
   DependableService,
   PopulatedCommand,
 } from '../architecture/types';
-import { generateId } from '../cross-cutting-concerns';
+import { generateId, ID } from '../cross-cutting-concerns';
 import { HistoryServiceDependencies } from './history-types';
 
 /**
@@ -43,20 +43,28 @@ export class HistoryService
       `Generated command ID: ${id}`,
     );
 
-    const populated: PopulatedCommand<T> = {
-      ...command,
+    const populated = {
       id,
-      status: 'done',
       do: () => {
         this._dependencies.logger.info(
           `Doing command ID: ${id}...`,
         );
 
-        command.do();
+        const executed = command.do();
 
+        if (!executed) {
+          this._dependencies.logger.info(
+            `Command ID: ${id} was already done, skipping further actions...`,
+          );
+          return;
+        }
+
+        this._dependencies.logger.debug(
+          `Publishing commandExecuted event for command ID: ${id}...`,
+        );
         this._dependencies.eventService.publish({
           type: 'commandExecuted',
-          data: populated,
+          data: populated as PopulatedCommand<T>,
         });
       },
       undo: () => {
@@ -64,22 +72,33 @@ export class HistoryService
           `Undoing command ID: ${id}...`,
         );
 
-        command.undo();
+        const undone = command.undo();
+
+        if (!undone) {
+          this._dependencies.logger.info(
+            `Command ID: ${id} was already undone, skipping further actions...`,
+          );
+          return;
+        }
 
         this._dependencies.eventService.publish({
           type: 'commandUndone',
-          data: populated,
+          data: populated as PopulatedCommand<T>,
         });
       },
       events: command.events,
+      done: command.done,
     };
 
+    const prototyped: PopulatedCommand<T> =
+      Object.setPrototypeOf(populated, command);
+
     // Execute command.
-    this._history.push(populated);
-    populated.do();
+    this._history.push(prototyped);
+    prototyped.do();
 
     // Execute additional events.
-    populated.events().forEach((event) => {
+    prototyped.events().forEach((event) => {
       this._dependencies.logger.debug(
         `Emitting event "${event.type}" from command ID "${id}"...`,
       );
@@ -91,9 +110,13 @@ export class HistoryService
       );
     });
 
-    return populated;
+    return prototyped;
   }
 
+  /**
+   * Fetches a readonly copy of the command history (in ascending order).
+   * @returns The command history.
+   */
   public history(): ReadonlyArray<
     PopulatedCommand<Command>
   > {
@@ -102,5 +125,55 @@ export class HistoryService
     );
 
     return this._history;
+  }
+
+  /**
+   * Explicitly does a command by its ID.
+   * If the command is already done, nothing happens.
+   * If the command does not exist, an error is logged.
+   * @param command The command of the ID to do.
+   */
+  public do(command: ID): void {
+    this._dependencies.logger.debug(
+      `Explicitly doing command by ID: ${command}...`,
+    );
+
+    const target = this._history.find(
+      (c) => c.id === command,
+    );
+
+    if (target === undefined) {
+      this._dependencies.logger.error(
+        `Command with ID "${command}" does not exist and can't be done!`,
+      );
+      return;
+    }
+
+    target.do();
+  }
+
+  /**
+   * Explicitly undoes a command by its ID.
+   * If the command is already undone, nothing happens.
+   * If the command does not exist, an error is logged.
+   * @param command The ID of the command to undo.
+   */
+  public undo(command: ID): void {
+    this._dependencies.logger.debug(
+      `Explicitly undoing command by ID: ${command}...`,
+    );
+
+    const target = this._history.find(
+      (c) => c.id === command,
+    );
+
+    if (target === undefined) {
+      this._dependencies.logger.error(
+        `Command with ID "${command}" does not exist and can't be undone!`,
+      );
+      return;
+    }
+
+    target.undo();
   }
 }

@@ -3,18 +3,43 @@ import {
   test,
   expect,
   beforeEach,
-  afterEach,
 } from 'bun:test';
 import { HistoryService } from './history-service';
-import { Command } from '../architecture/types';
+import { BaseCommand } from '../architecture/types';
 import { NO_OP_LOGGER } from '..';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
 import { timeout } from '../test-utility';
+import { CardCreatorEvent } from '../types/events';
+
+class DummyCommand extends BaseCommand {
+  constructor(
+    public readonly data = {},
+    public readonly target = {
+      value: 0,
+    },
+  ) {
+    super();
+  }
+
+  message(): string {
+    return 'Dummy Command';
+  }
+
+  events(): readonly CardCreatorEvent[] {
+    return [];
+  }
+  protected _do(): void {
+    this.target.value++;
+  }
+  protected _undo(): void {
+    this.target.value--;
+  }
+}
 
 describe('HistoryService', () => {
   let service: HistoryService;
-  const logger = NO_OP_LOGGER;
+  const logger = console;
   const eventService: InternalEventBus = new EventService({
     logger: logger,
   });
@@ -33,164 +58,194 @@ describe('HistoryService', () => {
     eventService.publish = async (_event) => {};
   });
 
-  test('pushed commands should be executed', (done) => {
-    // GIVEN / THEN
-    const command: Command = {
-      data: {},
-      target: {},
-      events: () => [],
-      do: async () => {
+  describe('push', () => {
+    test('pushed commands should be executed', (done) => {
+      // GIVEN / THEN
+      const command = new DummyCommand();
+      command.do = () => {
         done();
-      },
-      undo: async () => {},
-    };
+        return true;
+      };
 
-    // WHEN
-    service.push(command);
-    timeout(done);
-  });
-
-  test('pushed commands should be fetchable from history', () => {
-    // GIVEN / THEN
-    const command: Command = {
-      data: {},
-      target: {},
-      events: () => [],
-      do: async () => {},
-      undo: async () => {},
-    };
-
-    // WHEN
-    service.push(command);
-
-    // THEN
-    expect(service.history()).toHaveLength(1);
-  });
-
-  test('can be cleared', () => {
-    // GIVEN
-    service.push({
-      data: {},
-      target: {},
-      events: () => [],
-      do: async () => {},
-      undo: async () => {},
+      // WHEN
+      service.push(command);
     });
 
-    // WHEN
-    service.clear();
+    test('pushed commands should be fetchable from history', () => {
+      // GIVEN / THEN
+      const command = new DummyCommand();
 
-    // THEN
-    expect(service.history()).toHaveLength(0);
-  });
+      // WHEN
+      service.push(command);
 
-  test('metadata of each command should be included in the history (was executed or not)', () => {
-    // GIVEN / THEN
-    const command: Command = {
-      data: {
-        test: 'my-test-data',
-      },
-      target: {},
-      events: () => [],
-      do: async () => {},
-      undo: async () => {},
-    };
-
-    // WHEN
-    service.push(command);
-
-    // THEN
-    expect(service.history()).toHaveLength(1);
-    expect(service.history()[0].status).toEqual('done');
-    expect(service.history()[0].id).toBeDefined();
-    expect(service.history()[0].data.test).toEqual(
-      'my-test-data',
-    );
-  });
-
-  test('pushed commands should trigger an event', (done) => {
-    // GIVEN
-    eventService.publish = async (event) => {
-      if (event.type === 'commandExecuted') {
-        expect(event.data.data).toEqual({
-          test: 'my-test-data',
-        });
-
-        done();
-      }
-    };
-
-    // THEN
-    const command: Command = {
-      data: {
-        test: 'my-test-data',
-      },
-      target: {},
-      events: () => [],
-      do: async () => {},
-      undo: async () => {},
-    };
-
-    // WHEN
-    service.push(command);
-
-    timeout(done);
-  });
-
-  test('undone commands should trigger an event', (done) => {
-    // THEN
-    eventService.publish = async (event) => {
-      if (event.type === 'commandUndone') {
-        expect(event.data.data).toEqual({
-          test: 'my-test-data',
-        });
-
-        done();
-      }
-    };
-
-    // GIVEN
-    const command = service.push({
-      data: {
-        test: 'my-test-data',
-      },
-      target: {},
-      events: () => [],
-      do: async () => {},
-      undo: async () => {},
+      // THEN
+      expect(service.history()).toHaveLength(1);
     });
 
-    // WHEN
-    command.undo();
+    test('metadata of each command should be included in the history (was executed or not)', () => {
+      // GIVEN / THEN
+      const command = new DummyCommand();
 
-    timeout(done);
+      // WHEN
+      service.push(command);
+
+      // THEN
+      expect(service.history()).toHaveLength(1);
+      expect(service.history()[0].done()).toEqual(true);
+      expect(service.history()[0].id).toBeDefined();
+    });
+
+    test('pushed commands should trigger an event', (done) => {
+      // THEN
+      eventService.publish = async (event) => {
+        if (event.type === 'commandExecuted') {
+          done();
+        }
+      };
+
+      // GIVEN / WHEN
+      service.push(new DummyCommand());
+
+      timeout(done);
+    });
   });
 
-  test('additional events are emitted when a command is executed', (done) => {
-    eventService.publish = async (event) => {
-      if (event.type === 'projectLoaded') {
-        done();
-      }
-    };
+  describe('clear', () => {
+    test('can be cleared', () => {
+      // GIVEN
+      service.push(new DummyCommand());
 
-    // GIVEN
-    const command = service.push({
-      data: {
-        test: 'my-test-data',
-      },
-      target: {},
-      events: () => [
+      // WHEN
+      service.clear();
+
+      // THEN
+      expect(service.history()).toHaveLength(0);
+    });
+  });
+
+  describe('misc', () => {
+    test('undone commands should trigger an event', (done) => {
+      // THEN
+      eventService.publish = async (event) => {
+        if (event.type === 'commandUndone') {
+          done();
+        }
+      };
+
+      // GIVEN
+      const command = service.push(new DummyCommand());
+
+      // WHEN
+      command.undo();
+
+      timeout(done);
+    });
+
+    test('additional events are emitted when a command is executed', (done) => {
+      eventService.publish = async (event) => {
+        if (event.type === 'projectLoaded') {
+          done();
+        }
+      };
+
+      // GIVEN
+      const command = new DummyCommand();
+      command.events = () => [
         {
           type: 'projectLoaded',
-          data: {} as any,
+          data: { name: 'My Project', source: '' },
         },
-      ],
-      do: async () => {},
-      undo: async () => {},
+      ];
+
+      // WHEN
+      service.push(command);
+      timeout(done);
+    });
+  });
+
+  describe('do', () => {
+    test('if an invalid command is done explicitly, an error is logged and nothing happens.', (done) => {
+      // THEN
+      logger.error = (message) => {
+        if (/exist/i.test(message)) {
+          done();
+        }
+      };
+
+      // GIVEN / WHEN
+      service.do('non-existing-command-id');
+
+      timeout(done);
     });
 
-    // WHEN
-    service.push(command);
-    timeout(done);
+    test('if a valid command is done explicitly, it is executed again.', () => {
+      // GIVEN
+      const command = service.push(new DummyCommand());
+
+      expect(command.target.value).toBe(1);
+      command.undo();
+      expect(command.target.value).toBe(0);
+
+      // WHEN
+      service.do(command.id);
+
+      // THEN
+      expect(command.target.value).toBe(1);
+    });
+
+    test('if a done command is done explicitly again, nothing happens.', () => {
+      // GIVEN
+      const command = new DummyCommand();
+      const returned = service.push(command);
+
+      expect(command.target.value).toEqual(1);
+
+      // WHEN
+      service.do(returned.id);
+
+      // THEN
+      expect(command.target.value).toBe(1);
+    });
+  });
+
+  describe('undo', () => {
+    test('if an invalid command is undone explicitly, an error is logged and nothing happens.', (done) => {
+      // THEN
+      logger.error = (message) => {
+        if (/exist/i.test(message)) {
+          done();
+        }
+      };
+
+      // GIVEN / WHEN
+      service.undo('non-existing-command-id');
+
+      timeout(done);
+    });
+
+    test('if a valid command is undone explicitly, its effect is undone.', () => {
+      // GIVEN
+      const command = service.push(new DummyCommand());
+      expect(command.target.value).toBe(1);
+
+      // WHEN
+      service.undo(command.id);
+
+      // THEN
+      expect(command.target.value).toBe(0);
+    });
+
+    test('if a undone command is undone explicitly again, nothing happens.', () => {
+      // GIVEN
+      const command = new DummyCommand();
+      const returned = service.push(command);
+
+      // WHEN
+      service.undo(returned.id);
+      service.undo(returned.id);
+
+      // THEN
+      expect(command.target.value).toBe(0);
+    });
   });
 });

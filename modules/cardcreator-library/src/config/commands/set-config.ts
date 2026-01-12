@@ -1,4 +1,7 @@
-import { Command } from '../../architecture/types';
+import {
+  BaseCommand,
+  Command,
+} from '../../architecture/types';
 import { ConfigChangedEvent } from '../../events/event-types';
 import { Config } from '../config-types';
 
@@ -6,18 +9,17 @@ export type SetConfigCommandData = {
   prior: Readonly<Config>;
   next: Readonly<Config>;
 };
-export class SetConfigCommand
-  implements
-    Command<
-      SetConfigCommandData,
-      Config,
-      [ConfigChangedEvent]
-    >
-{
+export class SetConfigCommand extends BaseCommand<
+  SetConfigCommandData,
+  Config,
+  [ConfigChangedEvent]
+> {
   constructor(
     public readonly data: SetConfigCommandData,
     public readonly target: Config,
   ) {
+    super();
+
     if (data.prior === target) {
       throw new Error(
         'Prior config must not be the same reference as target config.',
@@ -40,11 +42,11 @@ export class SetConfigCommand
     ];
   }
 
-  public do(): void {
+  protected _do(): void {
     this._set(this.data.next);
   }
 
-  public undo(): void {
+  protected _undo(): void {
     this._set(this.data.prior);
   }
 
@@ -62,4 +64,6 @@ export class SetConfigCommand
       Reflect.set(this.target, key, value);
     });
   }
+
+  public message = () => `Config modified`;
 }

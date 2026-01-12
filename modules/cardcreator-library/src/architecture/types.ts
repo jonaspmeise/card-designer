@@ -41,18 +41,64 @@ export interface Command<
   TARGET = unknown,
   EVENTS extends CardCreatorEvent[] = CardCreatorEvent[],
 > {
+  message(): string;
   readonly data: DATA;
   // The target should be an object reference which itself is not overwritten.
   // Only properties of that target may be changed, but not the entire reference itself.
   readonly target: TARGET;
   // The events that are emitted when the command is executed.
   events(): ReadonlyArray<EVENTS[number]>;
-  do(): void;
-  undo(): void;
+  // Executes the command and returns whether it was executed.
+  do(): boolean;
+  // Undoes the command and returns whether it was undone.
+  undo(): boolean;
+  // Is the command currently done?
+  done(): boolean;
+}
+
+export abstract class BaseCommand<
+  DATA extends Readonly<Record<string, unknown>> = Readonly<
+    Record<string, unknown>
+  >,
+  TARGET = unknown,
+  EVENTS extends CardCreatorEvent[] = CardCreatorEvent[],
+> implements Command<DATA, TARGET, EVENTS>
+{
+  protected _isDone = false;
+
+  public done(): boolean {
+    return this._isDone;
+  }
+
+  public do(): boolean {
+    if (this._isDone) {
+      return false;
+    }
+    this._do();
+    this._isDone = true;
+
+    return true;
+  }
+
+  public undo(): boolean {
+    if (!this._isDone) {
+      return false;
+    }
+    this._undo();
+    this._isDone = false;
+
+    return true;
+  }
+
+  abstract message(): string;
+  abstract readonly data: DATA;
+  abstract readonly target: TARGET;
+  abstract events(): ReadonlyArray<EVENTS[number]>;
+  protected abstract _do(): void;
+  protected abstract _undo(): void;
 }
 
 export type PopulatedCommand<C extends Command = Command> =
   C & {
-    status: 'done' | 'undone';
     readonly id: ID;
   };

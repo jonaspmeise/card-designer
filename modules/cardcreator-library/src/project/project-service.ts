@@ -11,7 +11,10 @@ import {
   DependableService,
   PopulatedCommand,
 } from '../architecture/types';
-import { objectsIdentical } from '../cross-cutting-concerns';
+import {
+  ID,
+  objectsIdentical,
+} from '../cross-cutting-concerns';
 import { Card } from '../render/render-types';
 import { LoadProjectCommand } from './commands/load-project';
 import {
@@ -199,6 +202,10 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
     });
   }
 
+  /**
+   * Loads cards into the project service.
+   * @param cards The cards to load.
+   */
   public loadCards(cards: Card[]): void {
     this._dependencies.logger.debug(
       `Loading ${cards.length} cards into project service...`,

@@ -126,12 +126,17 @@ export class EventService
     const eventType = event.type;
 
     this._dependencies.logger.debug(
-      `Publishing event: ${eventType}...`,
+      `Publishing event of type "${eventType}"...`,
     );
 
     try {
       // Process conjunction handlers; isolate errors per handler so one failing
       // listener doesn't prevent other listeners from running.
+      this._dependencies.logger.debug(
+        `${
+          this.handlerRegistry[eventType]?.size ?? 0
+        } registered handlers found for event: ${eventType}`,
+      );
       this.handlerRegistry[eventType]?.forEach(
         (handler) => {
           this._dependencies.logger.debug(
