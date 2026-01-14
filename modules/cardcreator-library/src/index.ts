@@ -7,9 +7,8 @@
  * @module CardCreatorLibrary
  */
 
-import { InMemoryAssetCache } from './cache/cache';
 import type { Logger, AssetCache } from './types/domain';
-import { FileProvider } from './files/file-provider';
+import { FileProvider } from './file/file-provider';
 import { ProjectService } from './project/project-service';
 import {
   EventBus,
@@ -24,6 +23,8 @@ import { ConfigService } from './config/config-service';
 import { config } from 'process';
 import { CardService } from './cards/card-service';
 import { RenderService } from './render/render-service';
+import { FileService } from './file/file-service';
+import { file } from 'bun';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
@@ -32,12 +33,12 @@ import { RenderService } from './render/render-service';
 export interface CardCreatorProvidedDependencies {
   logger: Logger;
   renderer: CardRenderer;
-  cache: AssetCache;
   eventService: InternalEventBus;
   historyService: HistoryService;
   templateService: TemplateService;
   configService: ConfigService;
   cardService: CardService;
+  fileService: FileService;
 }
 
 export interface CardCreatorRequiredDependencies {
@@ -148,8 +149,15 @@ export class CardCreatorLibrary {
       historyService,
     });
 
+    const fileService: FileService = new FileService(
+      dependencies.fileProvider,
+      {
+        logger,
+        eventService,
+      },
+    );
+
     this.dependencies = {
-      cache: config.cache ?? new InMemoryAssetCache(),
       logger: logger,
       renderer: dependencies.renderer,
       fileProvider: dependencies.fileProvider,
@@ -158,15 +166,16 @@ export class CardCreatorLibrary {
       templateService: templateService,
       configService: configService,
       cardService: cardService,
+      fileService: fileService,
     };
 
-    // Register services for each concern.
     this.project = new ProjectService(this.dependencies);
     this.events = this.dependencies
       .eventService as EventBus;
     this.render = new RenderService(this.dependencies);
     this.config = configService;
     this.history = historyService;
+    this.files = fileService;
 
     this.dependencies.logger.info(
       'CardCreator library initialized',
@@ -178,4 +187,5 @@ export class CardCreatorLibrary {
   public readonly render: Readonly<RenderService>;
   public readonly config: Readonly<ConfigService>;
   public readonly history: Readonly<HistoryService>;
+  public readonly files: Readonly<FileService>;
 }

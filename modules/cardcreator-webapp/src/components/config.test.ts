@@ -37,15 +37,6 @@ describe('ConfigElement', () => {
         return 0;
       }
     };
-
-    // Set up filler for library dependency.
-    window.addEventListener(
-      CardcreatorHTMLComponent.REQUEST_LIB,
-      (event: Event) => {
-        const customEvent = event as CustomEvent;
-        customEvent.detail.provide(library);
-      },
-    );
   });
 
   afterAll(() => {

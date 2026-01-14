@@ -13,6 +13,8 @@ import {
   CommandUndoneEvent,
   ConfigChangedEvent,
   DialogEvent,
+  ErrorOccurredEvent,
+  FileAddedEvent,
   FileOpenedEvent,
   JobRenderFinishedEvent,
   JobRenderStartedEvent,
@@ -51,7 +53,7 @@ export type CardCreatorEvent =
   | CommandExecutedEvent
   | CommandUndoneEvent
   | ProjectLoadedEvent
-  | FileOpenedEvent
+  | FileOpenedEvent // TODO: Needed?
   | DialogEvent
   | ProjectResetEvent
   | ProjectSavedEvent
@@ -66,7 +68,9 @@ export type CardCreatorEvent =
   | PreviewRenderFinishedEvent
   | CardsLoadedEvent
   | PreviewRenderStartedEvent
-  | RenderLogEvent;
+  | RenderLogEvent
+  | FileAddedEvent
+  | ErrorOccurredEvent;
 
 /**
  * Type-safe mapping of event types to their corresponding event interfaces.

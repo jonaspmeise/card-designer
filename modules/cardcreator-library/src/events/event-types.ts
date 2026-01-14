@@ -4,6 +4,11 @@ import {
   ID,
   Identifiable,
 } from '../cross-cutting-concerns';
+import {
+  FileInformation,
+  FileTypes,
+  ResolvedFile,
+} from '../file/file-types';
 import { ProjectData } from '../project/project-types';
 import { Card, RenderJob } from '../render/render-types';
 import { Template } from '../template/template-types';
@@ -140,5 +145,25 @@ export type RenderLogEvent = DomainEvent<
     message: string;
     card: Card;
     level: LogLevel;
+  }
+>;
+
+/**
+ * An event that is issued when a file is added to the project.
+ */
+export type FileAddedEvent = DomainEvent<
+  'fileAdded',
+  {
+    file: ResolvedFile<FileInformation>;
+  }
+>;
+
+/**
+ * An event that is issued when an error occurs.
+ */
+export type ErrorOccurredEvent = DomainEvent<
+  'errorOccurred',
+  {
+    message: string;
   }
 >;

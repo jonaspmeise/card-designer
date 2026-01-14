@@ -140,7 +140,7 @@ export class EventService
       this.handlerRegistry[eventType]?.forEach(
         (handler) => {
           this._dependencies.logger.debug(
-            `Invoking handler (#${handler.id}) for event: ${eventType}`,
+            `Invoking handler (#${handler.id}) for event: "${eventType}"`,
           );
 
           try {

@@ -1,4 +1,7 @@
-import { CommandExecutedEvent } from 'cardcreator-library/events/event-types';
+import {
+  CommandExecutedEvent,
+  CommandUndoneEvent,
+} from 'cardcreator-library/events/event-types';
 import { CardcreatorHTMLComponent } from '../cardcreator-component';
 
 /**
@@ -43,65 +46,58 @@ export class HistoryElement extends CardcreatorHTMLComponent {
 
   protected init(): void {
     this.library.events.on('commandExecuted', (command) => {
-      const item = this._items.find(
-        (i) => i.id === command.data.id,
-      );
-
-      console.debug(
-        `Command executed event received: ${
-          command.data.id
-        }. Component item exists: ${item !== undefined}`,
-      );
-
-      if (item !== undefined) {
-        item.classList.remove('undone');
-        item.classList.add('done');
-        (
-          item.querySelector(
-            '.undo-button',
-          )! as HTMLButtonElement
-        ).disabled = false;
-        (
-          item.querySelector(
-            '.do-button',
-          )! as HTMLButtonElement
-        ).disabled = true;
-      } else {
-        this._addCommand(command);
-      }
+      this._toggle(command, 'do');
     });
 
     this.library.events.on('commandUndone', (command) => {
-      const item = this._items.find(
-        (i) => i.id === command.data.id,
-      );
+      this._toggle(command, 'undo');
+    });
+  }
 
-      console.debug(
-        `Command undone event received: ${
-          command.data.id
-        }. Component item exists: ${item !== undefined}`,
-      );
+  private _toggle(
+    command: CommandExecutedEvent | CommandUndoneEvent,
+    type: 'do' | 'undo',
+  ): void {
+    console.debug(
+      `Toggling ${command.data.id} to: ${type}`,
+    );
 
-      if (item === undefined) {
+    const item = this._items.find(
+      (i) => i.id === command.data.id,
+    );
+
+    console.debug(
+      `Command undone event received: ${
+        command.data.id
+      }. Component item exists: ${item !== undefined}`,
+    );
+
+    if (item === undefined) {
+      if (type === 'do') {
+        // Item doesn't exist yet, we add it in this case.
+        this._addCommand(command as CommandExecutedEvent);
+        return;
+      } else {
+        // We can't really receive an undo event for an unknown command...
         console.warn(
           `Received commandUndone event for unknown command ID: ${command.data.id}`,
         );
         return;
       }
+    }
 
-      item.classList.remove('done');
-      item.classList.add('undone');
-      (
-        item.querySelector(
-          '.do-button',
-        )! as HTMLButtonElement
-      ).disabled = false;
-      (
-        item.querySelector(
-          '.undo-button',
-        )! as HTMLButtonElement
-      ).disabled = true;
-    });
+    item.classList.remove(type === 'do' ? 'undo' : 'do');
+    item.classList.add(type);
+    (
+      item.querySelector(
+        `.${type === 'do' ? 'undo' : 'do'}-button`,
+      )! as HTMLButtonElement
+    ).disabled = false;
+    (
+      item.querySelector(
+        `.${type}-button`,
+      )! as HTMLButtonElement
+    ).disabled = true;
   }
 
   /**
