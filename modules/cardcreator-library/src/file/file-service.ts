@@ -8,6 +8,7 @@ import path from 'path';
 import {
   FileInformation,
   FileServiceDependencies,
+  FolderInformation,
   InternalResolvedFile,
   ResolvedFile,
 } from './file-types';
@@ -47,6 +48,32 @@ export class FileService
       `Loading file: ${file.path}`,
     );
 
+    return this._loadFile(file);
+  }
+
+  public loadWorkspace(
+    folder: FolderInformation,
+  ): ResolvedFile<FileInformation>[] {
+    this._dependencies.logger.info(
+      `Loading folder with ${folder.files.length} files...`,
+    );
+
+    const loadedFiles: ResolvedFile<FileInformation>[] =
+      folder.files.map((file) => this._loadFile(file));
+
+    this._dependencies.eventService.publish({
+      type: 'folderLoaded',
+      data: {
+        files: loadedFiles,
+      },
+    });
+
+    return loadedFiles;
+  }
+
+  private _loadFile(
+    file: FileInformation,
+  ): ResolvedFile<typeof file> {
     const extension =
       file.extension ?? file.path.includes('.')
         ? file.path.split('.').pop()?.toLowerCase()

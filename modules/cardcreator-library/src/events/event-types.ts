@@ -158,6 +158,13 @@ export type FileAddedEvent = DomainEvent<
   }
 >;
 
+export type FolderLoadedEvent = DomainEvent<
+  'folderLoaded',
+  {
+    files: ResolvedFile<FileInformation>[];
+  }
+>;
+
 /**
  * An event that is issued when an error occurs.
  */

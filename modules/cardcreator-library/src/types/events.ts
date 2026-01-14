@@ -16,6 +16,7 @@ import {
   ErrorOccurredEvent,
   FileAddedEvent,
   FileOpenedEvent,
+  FolderLoadedEvent,
   JobRenderFinishedEvent,
   JobRenderStartedEvent,
   PreviewRenderFinishedEvent,
@@ -70,6 +71,7 @@ export type CardCreatorEvent =
   | PreviewRenderStartedEvent
   | RenderLogEvent
   | FileAddedEvent
+  | FolderLoadedEvent
   | ErrorOccurredEvent;
 
 /**

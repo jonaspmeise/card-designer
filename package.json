@@ -6,8 +6,8 @@
     "modules/*"
   ],
   "scripts": {
-    "test": "bun run --filter \"*\" test",
-    "build": "bun run --filter \"*\" build",
+    "test": "bun run --filter \"./modules/*\" test",
+    "build": "bun run --filter \"./modules/*\" build",
     "install-all": "bun install"
   },
   "type": "module",

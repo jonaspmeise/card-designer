@@ -8,6 +8,7 @@ import { FileService } from './file-service';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
 import { timeout } from '../test-utility';
+import { FileInformation } from './file-types';
 
 describe('FileService', () => {
   let service: FileService;
@@ -191,6 +192,49 @@ describe('FileService', () => {
       expect(() => {
         service.fetch('myfile.txt');
       }).toThrowError();
+    });
+  });
+
+  describe('loadFolder', () => {
+    test('when a folder of files is loaded, all files are added and an event is published.', (done) => {
+      // GIVEN
+      const files = [
+        {
+          type: 'direct',
+          content: new Uint8Array([1, 2, 3]).buffer,
+          path: 'file1.txt',
+          size: 3,
+        } as FileInformation,
+        {
+          type: 'direct',
+          content: new Uint8Array([4, 5, 6, 7]).buffer,
+          path: 'file2.bin',
+          size: 4,
+        } as FileInformation,
+      ];
+
+      // THEN
+      eventService.publish = async (event) => {
+        if (event.type === 'folderLoaded') {
+          expect(event.data.files.length).toBe(2);
+          expect(
+            event.data.files.map((f) => f.path),
+          ).toEqual(['file1.txt', 'file2.bin']);
+
+          done();
+        }
+      };
+
+      // WHEN
+      service.loadWorkspace({
+        files: files,
+      });
+
+      // THEN
+      const fetched1 = service.fetch('file1.txt');
+      expect(fetched1.content()).resolves.toEqual(
+        new Uint8Array([1, 2, 3]).buffer,
+      );
     });
   });
 });

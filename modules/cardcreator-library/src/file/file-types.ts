@@ -66,3 +66,7 @@ export type DirectFileInformation = BasicFileInformation & {
   // Size of the file in bytes.
   size: number;
 };
+
+export type FolderInformation = {
+  files: FileInformation[];
+};
