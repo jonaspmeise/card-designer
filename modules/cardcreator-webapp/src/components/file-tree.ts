@@ -9,8 +9,10 @@ import {
 
 export class FileTreeElement extends CardcreatorHTMLComponent {
   private _uploadFileButton!: HTMLButtonElement;
+  private _uploadFolderButton!: HTMLButtonElement;
   private _fileInput!: HTMLInputElement;
-  private _tree!: HTMLDivElement;
+  private _folderInput!: HTMLInputElement;
+  private _tree!: HTMLLIElement;
 
   constructor() {
     super();
@@ -23,33 +25,31 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
     this._fileInput = this.shadow.getElementById(
       'file-input',
     ) as HTMLInputElement;
+    this._uploadFolderButton = this.shadow.getElementById(
+      'upload-folder',
+    ) as HTMLButtonElement;
+    this._folderInput = this.shadow.getElementById(
+      'folder-input',
+    ) as HTMLInputElement;
     this._tree = this.shadow.getElementById(
       'workspace-tree',
-    ) as HTMLDivElement;
+    ) as HTMLLIElement;
 
     // Add event listeners for DOM -> API events.
     this._fileInput.addEventListener('change', () => {
       console.debug('File input changed.');
 
-      const files = this._fileInput.files;
-      if (files != null) {
-        console.debug(`Uploading ${files.length} files...`);
+      this._processFiles(
+        Array.from(this._fileInput.files ?? []),
+      );
+    });
 
-        // TODO: When I add a file, do I add it as 'direct' or 'virtual'?
-        Array.from(files).forEach(async (file) => {
-          const buffer = await file.arrayBuffer();
+    this._folderInput.addEventListener('change', () => {
+      console.debug('Folder input changed.');
 
-          this.library.files.loadFile({
-            type: 'direct',
-            path: file.name,
-            content: buffer,
-            size: buffer.byteLength,
-          });
-          console.debug(
-            `Added file "${file.name}" to workspace tree.`,
-          );
-        });
-      }
+      this._processFiles(
+        Array.from(this._folderInput.files ?? []),
+      );
     });
 
     this._uploadFileButton.addEventListener('click', () => {
@@ -64,6 +64,23 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
       console.debug(`File added: ${event.data.file.path}`);
 
       this._addFile(event.data.file);
+    });
+  }
+
+  private async _processFiles(
+    files: File[],
+  ): Promise<void> {
+    console.debug(`Uploading ${files.length} files...`);
+
+    files.forEach(async (file) => {
+      const buffer = await file.arrayBuffer();
+
+      this.library.files.loadFile({
+        type: 'direct',
+        path: file.webkitRelativePath ?? file.name,
+        content: buffer,
+        size: buffer.byteLength,
+      });
     });
   }
 
@@ -88,6 +105,38 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
       // TODO: Update entry!
       return;
     } else {
+      // Potentially add all missing parent folder paths...
+      const folders = file.path.split('/').slice(0, -1);
+
+      // The parent, where we will add this file to.
+      let parent = this._tree;
+
+      folders.forEach((folder, index) => {
+        const path = folders.slice(0, index + 1).join('/');
+
+        let folderItem = parent.querySelector(
+          `li[data-path="${path}"]`,
+        ) as HTMLLIElement;
+
+        console.debug(
+          `Folder "${folder}" exists? ${
+            folderItem !== null
+          }`,
+        );
+
+        if (folderItem === null) {
+          folderItem = document.createElement('li');
+          folderItem.classList.add('folder-node');
+          folderItem.dataset['path'] = path;
+          folderItem.textContent = folder;
+          folderItem.title = 'Folder';
+          parent.appendChild(folderItem);
+          console.debug(`Folder added to tree: ${path}`);
+        }
+
+        parent = folderItem;
+      });
+
       const li = document.createElement('li');
       li.dataset['path'] = file.path;
       li.textContent = file.path;
@@ -96,6 +145,8 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
       } bytes`;
 
       this._tree.appendChild(li);
+
+      console.debug(`File added to tree: ${file.path}`);
     }
   }
 

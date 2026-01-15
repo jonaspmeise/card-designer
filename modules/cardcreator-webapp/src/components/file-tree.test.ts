@@ -123,8 +123,64 @@ describe('FileTreeElement', () => {
     expect(item.title).toMatch(/\? bytes/i); // The file was not yet loaded, so its size is unknown.
   });
 
-  test.todo(
-    'when a folder workspace is loaded, it appears in the tree',
-    async () => {},
-  );
+  test('when a folder workspace is loaded, it appears in the tree', async () => {
+    // GIVEN
+    const input = element.getElementById(
+      'folder-input',
+    ) as HTMLInputElement;
+
+    const file1 = new File(['a'], 'a.txt', {
+      type: 'text/plain',
+    });
+    Object.defineProperty(file1, 'webkitRelativePath', {
+      value: 'myFolder/a.txt',
+    });
+
+    const file2 = new File(['b'], 'b.json', {
+      type: 'application/json',
+    });
+    Object.defineProperty(file2, 'webkitRelativePath', {
+      value: 'myFolder/b.json',
+    });
+
+    const datatransfer = new DataTransfer();
+    datatransfer.items.add(file1);
+    datatransfer.items.add(file2);
+
+    // WHEN
+    input.files = datatransfer.files;
+    input.dispatchEvent(new Event('change'));
+
+    // Wait for browser to settle, until the event is processed.
+    await idle();
+
+    // THEN
+    // 2 items exist in the tree.
+    let item = Array.from(
+      element.querySelectorAll(
+        'li[data-path="myFolder/a.txt"], li[data-path="myFolder/b.json"]',
+      ),
+    );
+
+    expect(item.length).toBe(2);
+
+    expect(
+      element.querySelector(
+        'li[data-path="myFolder/a.txt"]',
+      )!.textContent,
+    ).toEqual('myFolder/a.txt');
+    expect(
+      element.querySelector(
+        'li[data-path="myFolder/b.json"]',
+      )!.textContent,
+    ).toEqual('myFolder/b.json');
+
+    // There should be a node representing the "myFolder" folder.
+    item = Array.from(
+      element.querySelectorAll(
+        '.folder-node[data-path="myFolder"]',
+      ),
+    );
+    expect(item.length).toBe(1);
+  });
 });
