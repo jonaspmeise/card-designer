@@ -74,6 +74,19 @@ export class FileService
   private _loadFile(
     file: FileInformation,
   ): ResolvedFile<typeof file> {
+    if (file.path.trim().length == 0) {
+      // TODO: Generalize!
+
+      const message = `Cannot load file with empty path!`;
+      this._dependencies.eventService.publish({
+        type: 'errorOccurred',
+        data: {
+          message: message,
+        },
+      });
+      throw new Error(message);
+    }
+
     const extension =
       file.extension ?? file.path.includes('.')
         ? file.path.split('.').pop()?.toLowerCase()

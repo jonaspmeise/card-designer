@@ -122,6 +122,28 @@ describe('FileService', () => {
       // We don't want to load the file multiple times for each access.
       expect(called).toBe(1);
     });
+
+    test('when a file with no name is added, an error event is issued and an error is thrown', () => {
+      // THEN
+      let eventIssued = false;
+      eventService.publish = async (event) => {
+        if (event.type === 'errorOccurred') {
+          eventIssued = true;
+        }
+      };
+
+      // GIVEN / WHEN / THEN
+      expect(() => {
+        service.loadFile({
+          type: 'direct',
+          path: '',
+          content: new Uint8Array().buffer,
+          size: 0,
+        });
+      }).toThrowError();
+
+      expect(eventIssued).toBe(true);
+    });
   });
 
   describe('fetch', () => {

@@ -12,7 +12,7 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
   private _uploadFolderButton!: HTMLButtonElement;
   private _fileInput!: HTMLInputElement;
   private _folderInput!: HTMLInputElement;
-  private _tree!: HTMLLIElement;
+  private _tree!: HTMLUListElement;
 
   constructor() {
     super();
@@ -32,8 +32,8 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
       'folder-input',
     ) as HTMLInputElement;
     this._tree = this.shadow.getElementById(
-      'workspace-tree',
-    ) as HTMLLIElement;
+      'workspace',
+    ) as HTMLUListElement;
 
     // Add event listeners for DOM -> API events.
     this._fileInput.addEventListener('change', () => {
@@ -53,11 +53,15 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
     });
 
     this._uploadFileButton.addEventListener('click', () => {
-      const input = this.shadow.getElementById(
-        'file-input',
-      ) as HTMLInputElement;
-      input.click();
+      this._fileInput.click();
     });
+
+    this._uploadFolderButton.addEventListener(
+      'click',
+      () => {
+        this._folderInput.click();
+      },
+    );
 
     // Add event listeners for API -> DOM events.
     this.library.events.on('fileAdded', (event) => {
@@ -77,7 +81,11 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
 
       this.library.files.loadFile({
         type: 'direct',
-        path: file.webkitRelativePath ?? file.name,
+        path:
+          // Since we don't use webkitRelativePath in testing, we make this potentially undefined.
+          file.webkitRelativePath?.length > 0
+            ? file.webkitRelativePath
+            : file.name,
         content: buffer,
         size: buffer.byteLength,
       });
@@ -115,8 +123,8 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
         const path = folders.slice(0, index + 1).join('/');
 
         let folderItem = parent.querySelector(
-          `li[data-path="${path}"]`,
-        ) as HTMLLIElement;
+          `ul[data-path="${path}"]`,
+        ) as HTMLUListElement;
 
         console.debug(
           `Folder "${folder}" exists? ${
@@ -125,12 +133,26 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
         );
 
         if (folderItem === null) {
-          folderItem = document.createElement('li');
-          folderItem.classList.add('folder-node');
+          const folderli = document.createElement('li');
+          folderli.classList.add('folder');
+          folderli.dataset['path'] = path;
+
+          const span = document.createElement('span');
+          span.textContent = folder;
+          folderli.appendChild(span);
+
+          folderItem = document.createElement('ul');
+          folderItem.classList.add('tree', 'inactive');
           folderItem.dataset['path'] = path;
-          folderItem.textContent = folder;
           folderItem.title = 'Folder';
-          parent.appendChild(folderItem);
+          folderli.appendChild(folderItem);
+
+          span.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._toggleFolder(folderItem);
+          });
+
+          parent.appendChild(folderli);
           console.debug(`Folder added to tree: ${path}`);
         }
 
@@ -138,15 +160,36 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
       });
 
       const li = document.createElement('li');
+      li.classList.add('file');
       li.dataset['path'] = file.path;
-      li.textContent = file.path;
+      li.textContent = file.path.split('/').pop()!;
       li.title = `Size: ${
         file.loaded() ? file.size() : '?'
       } bytes`;
 
-      this._tree.appendChild(li);
+      parent.appendChild(li);
 
       console.debug(`File added to tree: ${file.path}`);
+    }
+  }
+
+  private _toggleFolder(folder: HTMLUListElement): void {
+    console.debug(
+      `Toggling folder: ${folder.dataset['path']}`,
+    );
+    const target = folder.parentElement!.querySelector(
+      'ul,.tree',
+    ) as HTMLUListElement;
+
+    console.debug(
+      `Toggling child node ${target!.dataset['path']}`,
+    );
+    if (target!.classList.contains('active')) {
+      target!.classList.remove('active');
+      target!.classList.add('inactive');
+    } else {
+      target!.classList.add('active');
+      target!.classList.remove('inactive');
     }
   }
 
@@ -155,19 +198,19 @@ export class FileTreeElement extends CardcreatorHTMLComponent {
     template.innerHTML = `
       <style>
         :host { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-        .header { display: flex; gap: 4px; padding: 8px; background: var(--bg-tertiary, #353550); border-bottom: 1px solid var(--border, #404060); }
-        .item { padding: 4px 8px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
-        .item:hover { background: var(--bg-hover, #404060); }
-        .item.selected { background: var(--accent, #7c3aed); }
-        .folder > .children { margin-left: 16px; }
-        .folder.collapsed > .children { display: none; }
-        .icon { width: 16px; text-align: center; }
+        .folder::before {content: "📁";display: inline-block;}
+        .file::before {content: "📄";display: inline-block;}
+        .folder > span { cursor: pointer; user-select: none; }
+        .tree.active {display: block;}
+        .tree.inactive {display: none;}
+        #workspace { width: max-content; }
+        ul, li { list-style: none; }
       </style>
       <div class="header">
         <button id="upload-folder" title="Load local Workspace">📁+</button>
         <button id="upload-file" title="Add File">📄+</button>
       </div>
-      <ul id="workspace-tree"></div>
+      <ul id="workspace" class="tree"></ul>
       <input type="file" id="folder-input" webkitdirectory multiple hidden>
       <input type="file" id="file-input" multiple hidden>
     `;

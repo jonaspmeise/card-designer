@@ -9,8 +9,6 @@ import {
   afterAll,
 } from 'bun:test';
 import { CardCreatorLibrary } from 'cardcreator-library';
-import { CardcreatorHTMLComponent } from '../cardcreator-component';
-import { ConfigElement } from './config';
 import { idle, timeout } from '../test-utils';
 
 import './file-tree';
@@ -140,7 +138,7 @@ describe('FileTreeElement', () => {
       type: 'application/json',
     });
     Object.defineProperty(file2, 'webkitRelativePath', {
-      value: 'myFolder/b.json',
+      value: 'myFolder/nested/b.json',
     });
 
     const datatransfer = new DataTransfer();
@@ -158,7 +156,7 @@ describe('FileTreeElement', () => {
     // 2 items exist in the tree.
     let item = Array.from(
       element.querySelectorAll(
-        'li[data-path="myFolder/a.txt"], li[data-path="myFolder/b.json"]',
+        'li[data-path="myFolder/a.txt"], li[data-path="myFolder/nested/b.json"]',
       ),
     );
 
@@ -168,19 +166,158 @@ describe('FileTreeElement', () => {
       element.querySelector(
         'li[data-path="myFolder/a.txt"]',
       )!.textContent,
-    ).toEqual('myFolder/a.txt');
+    ).toEqual('a.txt');
     expect(
       element.querySelector(
-        'li[data-path="myFolder/b.json"]',
+        'li[data-path="myFolder/nested/b.json"]',
       )!.textContent,
-    ).toEqual('myFolder/b.json');
+    ).toEqual('b.json');
 
     // There should be a node representing the "myFolder" folder.
     item = Array.from(
       element.querySelectorAll(
-        '.folder-node[data-path="myFolder"]',
+        '.folder[data-path="myFolder"] .file[data-path="myFolder/a.txt"]',
       ),
     );
+    console.error(element.innerHTML);
     expect(item.length).toBe(1);
+  });
+
+  test('when a nested file in a folder is uploaded, it is hidden. by clicking it, the files in the next nested level are shown', async () => {
+    // GIVEN
+    const input = element.getElementById(
+      'folder-input',
+    ) as HTMLInputElement;
+
+    const file1 = new File(['a'], 'a.txt', {
+      type: 'text/plain',
+    });
+    Object.defineProperty(file1, 'webkitRelativePath', {
+      value: 'myFolder/a.txt',
+    });
+
+    const file2 = new File(['b'], 'b.json', {
+      type: 'application/json',
+    });
+    Object.defineProperty(file2, 'webkitRelativePath', {
+      value: 'myFolder/nested/b.json',
+    });
+
+    const datatransfer = new DataTransfer();
+    datatransfer.items.add(file1);
+    datatransfer.items.add(file2);
+
+    // WHEN
+    input.files = datatransfer.files;
+    input.dispatchEvent(new Event('change'));
+
+    // Wait for browser to settle, until the event is processed.
+    await idle();
+
+    // THEN
+    // There should only be a single item at the top level (the folder).
+    const nestedFolder = Array.from(
+      element.querySelectorAll(
+        '#workspace > li',
+      ) as NodeListOf<HTMLLIElement>,
+    );
+    expect(nestedFolder).toHaveLength(1);
+    expect(
+      nestedFolder[0].classList.contains('folder'),
+    ).toBeTrue();
+
+    // Initially, all nested items are hidden.
+    expect(
+      Array.from(
+        nestedFolder[0].querySelectorAll('.tree'),
+      ).find((li) => li.classList.contains('active')),
+    ).toBeUndefined();
+
+    // WHEN clicking the top-level folder node.
+    (
+      nestedFolder[0].querySelector(
+        'span',
+      )! as HTMLSpanElement
+    ).click();
+
+    // THEN the nested subfolder item is visible.
+    expect(
+      nestedFolder[0]
+        .querySelector('.tree')!
+        .classList.contains('active'),
+    ).toBe(true);
+  });
+
+  test('when a nested folder is collapsed, all its child folders disappear. when clicking the folder again, the child folders reappear', async () => {
+    // GIVEN
+    const input = element.getElementById(
+      'folder-input',
+    ) as HTMLInputElement;
+
+    const file1 = new File(['a'], 'a.txt', {
+      type: 'text/plain',
+    });
+    Object.defineProperty(file1, 'webkitRelativePath', {
+      value: 'myFolder/a.txt',
+    });
+
+    const file2 = new File(['b'], 'b.json', {
+      type: 'application/json',
+    });
+    Object.defineProperty(file2, 'webkitRelativePath', {
+      value: 'myFolder/nested/b.json',
+    });
+
+    const datatransfer = new DataTransfer();
+    datatransfer.items.add(file1);
+    datatransfer.items.add(file2);
+
+    // WHEN
+    input.files = datatransfer.files;
+    input.dispatchEvent(new Event('change'));
+
+    // Wait for browser to settle, until the event is processed.
+    await idle();
+
+    // WHEN clicking the top-level folder node.
+    const topFolder = element.querySelector(
+      '.tree[data-path="myFolder"]',
+    ) as HTMLLIElement;
+    (
+      topFolder.parentElement!.querySelector(
+        'span',
+      )! as HTMLSpanElement
+    ).click();
+
+    // THEN the nested subfolder item is visible.
+    const subfolder: HTMLLIElement =
+      topFolder.querySelector(
+        '.tree[data-path="myFolder/nested"]',
+      ) as HTMLLIElement;
+    const child: HTMLLIElement = topFolder.querySelector(
+      '.file[data-path="myFolder/nested/b.json"]',
+    ) as HTMLLIElement;
+
+    expect(subfolder).not.toBeNull();
+    expect(child).not.toBeNull();
+
+    console.error(topFolder.outerHTML);
+
+    expect(topFolder.classList.contains('active')).toBe(
+      true,
+    );
+    expect(topFolder.classList.contains('inactive')).toBe(
+      false,
+    );
+    // ... but the nested file is still hidden.
+    expect(subfolder.classList.contains('active')).toBe(
+      false,
+    );
+    expect(subfolder.classList.contains('inactive')).toBe(
+      true,
+    );
+
+    // WHEN clicking the top-level folder node again to collapse it.
+    topFolder.click();
   });
 });
