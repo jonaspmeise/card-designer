@@ -33,6 +33,7 @@ import { file } from 'bun';
 export interface CardCreatorProvidedDependencies {
   logger: Logger;
   renderer: CardRenderer;
+  renderService: RenderService;
   eventService: InternalEventBus;
   historyService: HistoryService;
   templateService: TemplateService;
@@ -134,6 +135,16 @@ export class CardCreatorLibrary {
         historyService,
       });
 
+    const renderService: RenderService =
+      config.renderService ??
+      new RenderService({
+        logger,
+        eventService,
+        historyService,
+        renderer: dependencies.renderer,
+        templateService: templateService,
+      });
+
     const templateService: TemplateService =
       config.templateService ??
       new TemplateService({
@@ -141,6 +152,7 @@ export class CardCreatorLibrary {
         eventService,
         historyService,
         configService,
+        renderService,
       });
 
     const cardService: CardService = new CardService({
@@ -167,6 +179,7 @@ export class CardCreatorLibrary {
       configService: configService,
       cardService: cardService,
       fileService: fileService,
+      renderService: renderService,
     };
 
     this.project = new ProjectService(this.dependencies);

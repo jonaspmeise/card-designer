@@ -23,10 +23,15 @@ import {
   CardcreatorHTMLComponent,
 } from './cardcreator-component';
 
-const library = new CardCreatorLibrary({
-  renderer: new BrowserRenderer(),
-  fileProvider: new BrowserFileProvider(),
-});
+const library = new CardCreatorLibrary(
+  {
+    renderer: new BrowserRenderer(),
+    fileProvider: new BrowserFileProvider(),
+  },
+  {
+    logger: console,
+  },
+);
 
 console.debug(
   `Triggering all components to request library...`,
@@ -41,35 +46,3 @@ document
 // Setup UI
 initTaskbar();
 initResize();
-
-// Restore UI state from localStorage
-const uiState = localStorage.getItem('cc-ui-state');
-if (uiState) {
-  try {
-    const state = JSON.parse(uiState);
-    if (state.activePanel) {
-      document
-        .querySelector(
-          `[data-panel="${state.activePanel}"]`,
-        )
-        ?.dispatchEvent(new Event('click'));
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-// Save UI state on unload
-window.addEventListener('beforeunload', () => {
-  const activeBtn = document.querySelector(
-    '.taskbar-btn.active',
-  );
-  const state = {
-    activePanel:
-      activeBtn?.getAttribute('data-panel') || null,
-  };
-  localStorage.setItem(
-    'cc-ui-state',
-    JSON.stringify(state),
-  );
-});

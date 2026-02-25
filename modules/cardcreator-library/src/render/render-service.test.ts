@@ -260,4 +260,30 @@ describe('RenderService', () => {
 
     // TODO: Handle error messages gracefully.
   });
+
+  describe('previewed', () => {
+    test('returns null if no card is previewed.', () => {
+      // GIVEN / WHEN / THEN
+      expect(service.previewed()).toBeNull();
+    });
+
+    test('returns the currently previewed card.', () => {
+      // GIVEN / WHEN
+      service.preview(dummyCard);
+
+      // THEN
+      expect(service.previewed()).toBe(dummyCard);
+    });
+
+    test('when the service is cleared, the previewed card is reset.', () => {
+      // GIVEN
+      service.preview(dummyCard);
+
+      // WHEN
+      service.clear();
+
+      // THEN
+      expect(service.previewed()).toBeNull();
+    });
+  });
 });

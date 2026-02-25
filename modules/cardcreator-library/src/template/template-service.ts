@@ -3,9 +3,7 @@ import { initProjectData } from '../project/project-types';
 import {
   Card,
   RenderContext,
-  RenderJob,
 } from '../render/render-types';
-import { JobInfo } from '../../dist/types/domain';
 import {
   Template,
   TemplateServiceDependencies,
@@ -17,6 +15,7 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
   private _template: Template = {
     source: initProjectData().source,
   };
+
   // The functions extracted from the template.
   // A mapping between the function source and the actual Function.
   private _functions: Map<string, Function> = new Map();

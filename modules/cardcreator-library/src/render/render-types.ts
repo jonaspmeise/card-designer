@@ -29,7 +29,7 @@ export type RenderServiceDependencies = Pick<
   | 'eventService'
   | 'logger'
   | 'renderer'
-  | 'templateService'
+  | 'templateService' // we need the template service to get the current template when rendering a card.
 >;
 
 export type OutputFormat =

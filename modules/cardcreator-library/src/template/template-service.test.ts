@@ -18,7 +18,6 @@ import {
 } from '../render/render-types';
 import { Template } from './template-types';
 import { ConfigService } from '../config/config-service';
-import { config } from 'process';
 import { LogLevel } from '../types/domain';
 
 describe('TemplateService', () => {
@@ -94,6 +93,18 @@ describe('TemplateService', () => {
       expect(service.template().source).toEqual(
         '<svg></svg>',
       );
+    });
+
+    test('if a card is previewed, and the template is modified, a preview event is issued. // TODO: It is not really clear "who" should consolidate changes done to template/card to trigger the preview, so it is done in each element for now...', (done) => {
+      // GIVEN
+      const card: Card = {
+        id: 'test-card',
+      };
+
+      // WHEN
+      library.render.template;
+
+      // THEN
     });
   });
 

@@ -12,30 +12,9 @@ export class CardTableElement extends CardcreatorHTMLComponent {
   private cards: Card[] = [];
   private columns: string[] = [];
   private selected: Card | null = null;
-  private autoPreviewEnabled: boolean = true;
-  private readonly renderButton: HTMLButtonElement;
 
   constructor() {
     super();
-
-    // Hook up toggles.
-    (
-      this.shadow.getElementById(
-        'auto-preview-toggle',
-      ) as HTMLInputElement
-    ).addEventListener('change', (event) => {
-      const toggle = event.target as HTMLInputElement;
-      this.autoPreviewEnabled = toggle.checked;
-    });
-
-    this.renderButton = this.shadow.getElementById(
-      'render-preview-button',
-    ) as HTMLButtonElement;
-    this.renderButton.addEventListener('click', () => {
-      if (this.selected) {
-        this.preview(this.selected);
-      }
-    });
   }
 
   protected template(): HTMLTemplateElement {
@@ -54,10 +33,6 @@ export class CardTableElement extends CardcreatorHTMLComponent {
         tr { cursor: pointer; }
         .empty { padding: 24px; text-align: center; color: #888; }
       </style>
-      <div>
-        <input id="auto-preview-toggle" type="checkbox" checked />
-        <button id="render-preview-button" disabled>Preview</button>
-      </div>
       <div class="header">
         <span>Cards</span>
         <span class="count" id="count"></span>
@@ -113,15 +88,11 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     count.textContent = `${this.cards.length} cards`;
 
     if (this.cards.length === 0) {
-      this.renderButton.disabled = true;
-
       thead.innerHTML = '';
       tbody.innerHTML =
         '<tr><td class="empty" colspan="100">No cards loaded</td></tr>';
       return;
     }
-
-    this.renderButton.disabled = this.selected === null;
 
     thead.innerHTML = `<tr>${this.columns
       .map((c) => `<th>${c}</th>`)
@@ -130,8 +101,8 @@ export class CardTableElement extends CardcreatorHTMLComponent {
       .map(
         (card, i) => `
       <tr data-card="${i}" class="${
-          card === this.selected ? 'selected' : ''
-        }">
+        card === this.selected ? 'selected' : ''
+      }">
         ${this.columns
           .map(
             (c) => `<td>${this.formatValue(card[c])}</td>`,
@@ -175,9 +146,7 @@ export class CardTableElement extends CardcreatorHTMLComponent {
     this.render();
 
     // Emit preview event.
-    if (this.autoPreviewEnabled) {
-      this.preview(card);
-    }
+    this.preview(card);
   }
 
   /**

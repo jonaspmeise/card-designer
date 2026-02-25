@@ -218,19 +218,13 @@ describe('CardTableElement', () => {
     timeout(done);
   });
 
-  test('clicking card in table with auto-preview disabled triggers preview', (done) => {
+  test('clicking card in table triggers preview', (done) => {
     // THEN
     library.events.on('previewRenderStarted', (_) => {
       throw new Error('Should not be called!');
     });
 
     // GIVEN
-    // Disable auto-preview.
-    (
-      element.querySelector(
-        '#auto-preview-toggle',
-      )! as HTMLInputElement
-    ).checked = false;
     library.project.loadCards([
       {
         name: 'Fireball',
@@ -247,12 +241,6 @@ describe('CardTableElement', () => {
     // We expect no preview to be triggered.
     library.events.clear();
 
-    // Second: Enable auto-preview again.
-    (
-      element.querySelector(
-        '#auto-preview-toggle',
-      )! as HTMLInputElement
-    ).checked = true;
     library.events.on('previewRenderStarted', (event) => {
       expect(event.data.card).toEqual({
         name: 'Fireball',
@@ -268,59 +256,5 @@ describe('CardTableElement', () => {
     ).click();
 
     timeout(done);
-  });
-
-  test('when auto-preview is disabled, a render call is issued by clicking the render button', (done) => {
-    // GIVEN
-    // Loads cards.
-    library.project.loadCards([
-      {
-        name: 'Fireball',
-        cost: 3,
-        type: 'Spell',
-      },
-    ]);
-
-    // Disable auto-preview.
-    (
-      element.querySelector(
-        '#auto-preview-toggle',
-      )! as HTMLInputElement
-    ).checked = false;
-
-    // Select card.
-    (
-      element.querySelectorAll('tbody tr')[0] as HTMLElement
-    ).click();
-
-    // WHEN
-    // THEN
-    library.events.on('previewRenderStarted', (event) => {
-      expect(event.data.card).toEqual({
-        name: 'Fireball',
-        cost: 3,
-        type: 'Spell',
-      });
-      done();
-    });
-
-    const renderButton = element.getElementById(
-      'render-preview-button',
-    )! as HTMLButtonElement;
-
-    expect(renderButton.disabled).toBe(false);
-    renderButton.click();
-
-    timeout(done);
-  });
-
-  test('when no card is loaded, the render button can not be clicked.', () => {
-    // GIVEN / WHEN
-    const renderButton = element.getElementById(
-      'render-preview-button',
-    ) as HTMLButtonElement;
-
-    // THEN
-    expect(renderButton.disabled).toBe(true);
   });
 });

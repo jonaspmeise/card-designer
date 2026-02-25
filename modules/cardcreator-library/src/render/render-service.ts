@@ -1,4 +1,7 @@
-import { DependableService } from '../architecture/types';
+import {
+  Clearable,
+  DependableService,
+} from '../architecture/types';
 import { generateId, ID } from '../cross-cutting-concerns';
 import {
   Card,
@@ -11,9 +14,22 @@ import {
  * Service to render single cards.
  * Acts as a wrapper around the renderer implementation.
  */
-export class RenderService extends DependableService<RenderServiceDependencies> {
+export class RenderService
+  extends DependableService<RenderServiceDependencies>
+  implements Clearable
+{
+  // This is transient data, which does not have to be persisted.
+  private _previewedCard: Card | null = null;
+
   constructor(dependencies: RenderServiceDependencies) {
     super(dependencies, dependencies.logger);
+  }
+
+  clear(): void {
+    this._dependencies.logger.info(
+      'Clearing render service...',
+    );
+    this._previewedCard = null;
   }
 
   // TODO: How to pass render parameters, card data, template, assets, all smoothly into here?
@@ -88,6 +104,8 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
       card,
     );
 
+    this._previewedCard = card;
+
     this._dependencies.eventService.publish({
       type: 'previewRenderStarted',
       data: {
@@ -96,7 +114,6 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
     });
 
     // Render card.
-
     this._dependencies.eventService.publish({
       type: 'previewRenderFinished',
       data: {
@@ -104,6 +121,18 @@ export class RenderService extends DependableService<RenderServiceDependencies> 
         image: new ArrayBuffer(0), // TODO: Replace with actual image data.
       },
     });
+  }
+
+  /**
+   * Returns the currently previewed card, if any.
+   * @returns The currently previewed card, or null if no card is previewed.
+   */
+  public previewed(): Card | null {
+    this._dependencies.logger.debug(
+      'Fetching currently previewed card...',
+    );
+
+    return this._previewedCard;
   }
 
   public renderJob(job: RenderJob, cards: Card[]): void {

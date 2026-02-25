@@ -15,4 +15,5 @@ export type TemplateServiceDependencies = Pick<
   | 'eventService'
   | 'logger'
   | 'configService'
+  | 'renderService' // we need the render service to issue render previews when the template changes.
 >;
