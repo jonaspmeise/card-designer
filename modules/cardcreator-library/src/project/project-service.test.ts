@@ -5,7 +5,6 @@ import {
   afterEach,
 } from 'bun:test';
 import { NO_OP_LOGGER } from '..';
-import { FileProvider } from '../files/file-provider';
 import { timeout } from '../test-utility';
 import { Logger } from '../types/domain';
 import { ProjectService } from './project-service';
@@ -14,6 +13,7 @@ import { EventService } from '../events/event-service';
 import { HistoryService } from '../history/history-service';
 import { ProjectData } from './project-types';
 import { CardService } from '../cards/card-service';
+import { FileProvider } from '../file/file-provider';
 
 /**
  * Tests for the logic of the project service.
@@ -22,14 +22,15 @@ import { CardService } from '../cards/card-service';
  */
 const dummyProjectData: ProjectData = {
   name: 'Dummy Project',
-  source: '',
+  template: '',
+  _functions: new Map(),
 };
 
 describe('ProjectService', () => {
   // Mocks.
   const fileProvider: FileProvider = {
-    load: async (_) => new Uint8Array(),
-    save: async (_, __) => {},
+    load: async (_: unknown) => new Uint8Array(),
+    save: async (_: unknown, __: unknown) => {},
   };
   const logger: Logger = NO_OP_LOGGER;
   const eventService: EventBus = new EventService({
@@ -66,10 +67,14 @@ describe('ProjectService', () => {
     logger.warn = async () => {};
     logger.error = async () => {};
 
-    eventService.publish = async (_) => {};
+    eventService.publish = async (_: unknown) => {};
 
-    fileProvider.load = async (_) => new Uint8Array();
-    fileProvider.save = async (_, __) => {};
+    fileProvider.load = async (_: unknown) =>
+      new Uint8Array();
+    fileProvider.save = async (
+      _: unknown,
+      __: unknown,
+    ) => {};
 
     cardService.cards = () => [];
     cardService.load = async (_cards) => {};
@@ -82,7 +87,8 @@ describe('ProjectService', () => {
       // WHEN / THEN
       expect(service.data()).toEqual({
         name: 'New Project',
-        source: '<svg></svg>',
+        template: '<svg></svg>',
+        _functions: new Map(),
       });
     });
 
@@ -304,7 +310,10 @@ describe('ProjectService', () => {
   describe('save', () => {
     test('calls the file provider save method when saving a project.', (done) => {
       // GIVEN
-      fileProvider.save = async (_, __) => {
+      fileProvider.save = async (
+        _: unknown,
+        __: unknown,
+      ) => {
         done();
       };
 
@@ -321,7 +330,10 @@ describe('ProjectService', () => {
 
     test('saves to the given path when provided.', (done) => {
       // THEN
-      fileProvider.save = async (path: string, __) => {
+      fileProvider.save = async (
+        path: string,
+        __: unknown,
+      ) => {
         expect(path).toBe(
           'my/custom/path.cardcreator.json',
         );
@@ -342,7 +354,10 @@ describe('ProjectService', () => {
 
     test('saves to the default path when no path is provided.', (done) => {
       // THEN
-      fileProvider.save = async (path: string, __) => {
+      fileProvider.save = async (
+        path: string,
+        __: unknown,
+      ) => {
         expect(path).toBe('test.cardcreator.json');
         done();
       };

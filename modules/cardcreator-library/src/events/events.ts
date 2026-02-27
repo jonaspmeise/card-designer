@@ -11,8 +11,7 @@ import {
 } from '../types/events';
 
 export interface EventBus
-  extends InternalEventBus,
-    ExternalEventBus {}
+  extends InternalEventBus, ExternalEventBus {}
 
 export interface SharedEventBus {
   /**
@@ -91,3 +90,7 @@ export interface ExternalEventBus extends SharedEventBus {
 export type EventHandler<DOMAIN extends DomainEvent> = (
   event: DOMAIN,
 ) => void | Promise<void>;
+
+// Add these event types to your existing event type union:
+// | { type: 'templatePreviewed'; data: { template: Template; svg: string } }
+// | { type: 'cardPreviewed'; data: { card: Card; svg: string } }

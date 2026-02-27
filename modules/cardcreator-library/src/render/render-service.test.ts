@@ -3,7 +3,6 @@ import {
   test,
   expect,
   beforeEach,
-  afterEach,
 } from 'bun:test';
 import { Command } from '../architecture/types';
 import { NO_OP_LOGGER } from '..';
@@ -13,7 +12,6 @@ import { dummyCard, timeout } from '../test-utility';
 import { RenderService } from './render-service';
 import { HistoryService } from '../history/history-service';
 import {
-  Card,
   CardRenderer,
   RenderJob,
   RenderSettings,
@@ -43,12 +41,18 @@ describe('RenderService', () => {
     historyService: historyService,
   });
   const templateService: TemplateService =
-    new TemplateService({
-      logger: logger,
-      eventService: eventService,
-      historyService: historyService,
-      configService: configService,
-    });
+    new TemplateService(
+      {
+        logger: logger,
+        eventService: eventService,
+        historyService: historyService,
+        configService: configService,
+      },
+      {
+        template: '<svg></svg>',
+        _functions: new Map(),
+      },
+    );
   const renderer: CardRenderer = {
     render: async (
       source: string,

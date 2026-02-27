@@ -1,5 +1,4 @@
 import { DependableService } from '../architecture/types';
-import { initProjectData } from '../project/project-types';
 import {
   Card,
   RenderContext,
@@ -7,25 +6,25 @@ import {
 import {
   Template,
   TemplateServiceDependencies,
+  TemplateState,
 } from './template-types';
 import { Logger, LogLevel } from '../types/domain';
 import { RenderLogger } from './render-logger';
+import { LoadTemplateCommand } from '../project/commands/load-template';
 
-export class TemplateService extends DependableService<TemplateServiceDependencies> {
-  private _template: Template = {
-    source: initProjectData().source,
-  };
-
-  // The functions extracted from the template.
-  // A mapping between the function source and the actual Function.
-  private _functions: Map<string, Function> = new Map();
-
+export class TemplateService extends DependableService<
+  TemplateServiceDependencies,
+  TemplateState
+> {
   private _renderLogger: Logger = new RenderLogger(
     this._dependencies.eventService,
   );
 
-  constructor(dependencies: TemplateServiceDependencies) {
-    super(dependencies, dependencies.logger);
+  constructor(
+    dependencies: TemplateServiceDependencies,
+    state: TemplateState,
+  ) {
+    super(dependencies, dependencies.logger, state);
   }
 
   /**
@@ -38,21 +37,13 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
       source,
     );
 
-    // Reset prior state.
-    this._template = {
-      source: source,
-    };
-    this._functions.clear();
+    // Extracting all functions from this template.
+    const functions: Map<string, Function> = new Map();
 
-    // Extracting functions.
-    const functions = Array.from(
-      this._template.source.matchAll(
-        /{{(?<source>.+?)}}/gms,
-      ),
-    );
-
-    functions.forEach((match) => {
-      this._functions.set(
+    Array.from(
+      source.matchAll(/{{(?<source>.+?)}}/gms),
+    ).forEach((match) => {
+      functions.set(
         match[0],
         new Function(
           '$card',
@@ -67,15 +58,22 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
     });
 
     this._dependencies.logger.debug(
-      `Extracted ${this._functions.size} functions from template.`,
+      `Extracted ${functions.size} functions from template.`,
     );
 
-    this._dependencies.eventService.publish({
-      type: 'templateLoaded',
-      data: {
-        template: this._template,
-      },
-    });
+    const command: LoadTemplateCommand =
+      new LoadTemplateCommand(
+        {
+          prior: structuredClone(this._state),
+          next: {
+            template: source,
+            _functions: functions,
+          },
+        },
+        this._state,
+      );
+
+    this._dependencies.historyService.push(command);
   }
 
   /**
@@ -87,25 +85,25 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
       'Getting current template...',
     );
 
-    return this._template;
+    return this._state.template;
   }
 
   /**
    * Applies a given template to the given card.
    * @param template The template to apply.
-   * @param card Tehe card to apply the template to.
+   * @param card The card to apply the template to.
    * @param job Optional render job info, which give context about in what context this render is happening.
    * @returns The rendered result as a string.
    */
   public apply(card: Card, job: RenderContext): string {
     this._dependencies.logger.debug(
       'Applying template to card...',
-      this._template,
+      this._state.template,
       card,
     );
 
-    let rendered = this._template.source;
-    this._functions.forEach((func, source) => {
+    let rendered = this._state.template;
+    this._state._functions.forEach((func, source) => {
       const result = func(
         card,
         this._dependencies.configService.config(),
@@ -130,7 +128,7 @@ export class TemplateService extends DependableService<TemplateServiceDependenci
 
     this._dependencies.logger.debug(
       'Applying template to card...',
-      this._template,
+      this._state.template,
       card,
     );
 

@@ -25,6 +25,11 @@ import { CardService } from './cards/card-service';
 import { RenderService } from './render/render-service';
 import { FileService } from './file/file-service';
 import { file } from 'bun';
+import {
+  initProjectData,
+  ProjectData,
+  ProjectServiceState,
+} from './project/project-types';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
@@ -113,6 +118,8 @@ export class CardCreatorLibrary {
       );
     }
 
+    const state: ProjectData = initProjectData();
+
     const logger: Logger = config.logger ?? NO_OP_LOGGER;
     const eventService: InternalEventBus =
       config.eventService ??
@@ -135,6 +142,18 @@ export class CardCreatorLibrary {
         historyService,
       });
 
+    const templateService: TemplateService =
+      config.templateService ??
+      new TemplateService(
+        {
+          logger,
+          eventService,
+          historyService,
+          configService,
+        },
+        state,
+      );
+
     const renderService: RenderService =
       config.renderService ??
       new RenderService({
@@ -143,16 +162,6 @@ export class CardCreatorLibrary {
         historyService,
         renderer: dependencies.renderer,
         templateService: templateService,
-      });
-
-    const templateService: TemplateService =
-      config.templateService ??
-      new TemplateService({
-        logger,
-        eventService,
-        historyService,
-        configService,
-        renderService,
       });
 
     const cardService: CardService = new CardService({
@@ -189,6 +198,7 @@ export class CardCreatorLibrary {
     this.config = configService;
     this.history = historyService;
     this.files = fileService;
+    this.template = templateService;
 
     this.dependencies.logger.info(
       'CardCreator library initialized',
@@ -201,4 +211,5 @@ export class CardCreatorLibrary {
   public readonly config: Readonly<ConfigService>;
   public readonly history: Readonly<HistoryService>;
   public readonly files: Readonly<FileService>;
+  public readonly template: Readonly<TemplateService>;
 }

@@ -4,6 +4,7 @@
 
 import { CardCreatorDependencies } from '..';
 import { Card } from '../render/render-types';
+import { TemplateState } from '../template/template-types';
 
 export type ProjectServiceState = {
   project: ProjectData;
@@ -21,16 +22,17 @@ export type ProjectServiceDependencies = Pick<
 >;
 
 /**
- * The data structure representing a project.
+ * Describes the actual state of the entire project.
+ * This object is serialized / deserialized and encapsulates the entire settings of the project.
  */
-export type ProjectData = {
+export type ProjectData = TemplateState & {
   // The name of the project.
   name: string;
-  // The template source used for this project.
-  source: string;
 };
 
+// TODO: This should be a nested / granular object.
 export const initProjectData: () => ProjectData = () => ({
   name: 'New Project',
-  source: '<svg></svg>',
+  template: '<svg></svg>',
+  _functions: new Map(),
 });

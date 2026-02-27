@@ -16,12 +16,14 @@ import {
   Card,
   RenderContext,
 } from '../render/render-types';
-import { Template } from './template-types';
+import { Template, TemplateState } from './template-types';
 import { ConfigService } from '../config/config-service';
 import { LogLevel } from '../types/domain';
 
 describe('TemplateService', () => {
   let service: TemplateService;
+  let state: TemplateState;
+
   const logger = NO_OP_LOGGER;
   const eventService: InternalEventBus = new EventService({
     logger: logger,
@@ -39,12 +41,20 @@ describe('TemplateService', () => {
   });
 
   beforeEach(() => {
-    service = new TemplateService({
-      logger: logger,
-      eventService: eventService,
-      historyService: historyService,
-      configService: configService,
-    });
+    state = {
+      template: '<svg></svg>',
+      _functions: new Map(),
+    };
+
+    service = new TemplateService(
+      {
+        logger: logger,
+        eventService: eventService,
+        historyService: historyService,
+        configService: configService,
+      },
+      state,
+    );
 
     logger.info = async (_msg: string) => {};
     logger.debug = async (_msg: string) => {};
@@ -52,10 +62,8 @@ describe('TemplateService', () => {
     logger.error = async (_msg: string) => {};
 
     eventService.publish = async (_event) => {};
-    historyService.push = (_command: Command) => {
-      return _command as any;
-    };
     configService.config = () => ({});
+    historyService.clear();
   });
 
   describe('template', () => {
@@ -64,7 +72,7 @@ describe('TemplateService', () => {
       const template = service.template();
 
       // THEN
-      expect(template.source).toEqual('<svg></svg>');
+      expect(template).toEqual('<svg></svg>');
     });
   });
 
@@ -73,16 +81,36 @@ describe('TemplateService', () => {
       // GIVEN
       eventService.publish = async (event) => {
         if (event.type === 'templateLoaded') {
-          expect(event.data.template.source).toEqual(
-            '<svg></svg>',
+          expect(event.data.template).toEqual(
+            '<svg>my-custom-svg</svg>',
           );
+
+          expect(state.template).toEqual(
+            '<svg>my-custom-svg</svg>',
+          );
+
           done();
         }
       };
       // WHEN
-      service.loadTemplate('<svg></svg>');
+      service.loadTemplate('<svg>my-custom-svg</svg>');
       // THEN
       timeout(done);
+    });
+
+    test('allows a loaded template to be undone.', () => {
+      // GIVEN
+      service.loadTemplate('<svg>my custom svg</svg>');
+
+      // WHEN / THEN
+      expect(historyService.history()).toHaveLength(1);
+
+      // WHEN
+      historyService.history()[0].undo();
+
+      // THEN
+      // Back to default...
+      expect(service.template()).toEqual('<svg></svg>');
     });
 
     test('allows loading the template synchronously.', () => {
@@ -90,71 +118,57 @@ describe('TemplateService', () => {
       service.loadTemplate('<svg></svg>');
 
       // THEN
-      expect(service.template().source).toEqual(
-        '<svg></svg>',
-      );
+      expect(service.template()).toEqual('<svg></svg>');
     });
 
-    test('if a card is previewed, and the template is modified, a preview event is issued. // TODO: It is not really clear "who" should consolidate changes done to template/card to trigger the preview, so it is done in each element for now...', (done) => {
-      // GIVEN
-      const card: Card = {
-        id: 'test-card',
-      };
+    test.todo(
+      'if a card is previewed, and the template is modified, a preview event is issued. // TODO: It is not really clear "who" should consolidate changes done to template/card to trigger the preview, so it is done in each element for now...',
+      (done) => {
+        // GIVEN
+        const card: Card = {
+          id: 'test-card',
+        };
 
-      // WHEN
-      library.render.template;
+        // WHEN
 
-      // THEN
-    });
+        // THEN
+      },
+    );
   });
 
   describe('apply', () => {
     test.each([
-      ['empty value', '', {}, { source: '' }],
-      [
-        'empty value with card',
-        '',
-        { some: 'thing' },
-        { source: '' },
-      ],
-      [
-        'passed template',
-        '<svg></svg>',
-        {},
-        { source: '<svg></svg>' },
-      ],
-      ['static value', '3', {}, { source: '{{ 1 + 2 }}' }],
+      ['empty value', '', {}, ''],
+      ['empty value with card', '', { some: 'thing' }, ''],
+      ['passed template', '<svg></svg>', {}, '<svg></svg>'],
+      ['static value', '3', {}, '{{ 1 + 2 }}'],
       [
         'simple function',
         'Hello, World!',
         {},
-        { source: '{{ return "Hello, World" + "!"; }}' },
+        '{{ return "Hello, World" + "!"; }}',
       ],
       [
         'simple card injection with plain value',
         'Card Name: My Card',
         { name: 'My Card' },
-        { source: 'Card Name: {{ $card.name }}' },
+        'Card Name: {{ $card.name }}',
       ],
       [
         'simple card injection with function',
         'Card Name: My Card',
         { name: 'My Card' },
-        {
-          source: 'Card Name: {{ return $card.name; }}',
-        },
+        'Card Name: {{ return $card.name; }}',
       ],
       [
         'multiline function',
         'Sum is: 15',
         {},
-        {
-          source: `Sum is: {{
+        `Sum is: {{
           const a = 5;
           const b = 10;
           return a + b;
         }}`,
-        },
       ],
     ])(
       'card can be applied to template: "%s"',
@@ -165,7 +179,8 @@ describe('TemplateService', () => {
         template: Template,
       ) => {
         // GIVEN
-        service.loadTemplate(template.source);
+        service.loadTemplate(template);
+
         // WHEN / THEN
         expect(
           service.apply(card, {} as RenderContext),

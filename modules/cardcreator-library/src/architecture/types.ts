@@ -7,11 +7,18 @@ import { CardCreatorEvent } from '../types/events';
  * A utility class that models that a service is dependent on a subset of system dependencies.
  */
 export abstract class DependableService<
-  T extends Partial<CardCreatorDependencies>,
+  DEPENDENCIES extends Partial<CardCreatorDependencies>,
+  // A reference to the custom state, which this service has access too.
+  // This state is serialized / deserialized on project load and actually persisted.
+  // Transient state is not explicitly modeled and should be implemented in each service itself.
+  STATE extends
+    | Readonly<Record<string, unknown>>
+    | undefined = undefined,
 > {
   constructor(
-    protected readonly _dependencies: T,
+    protected readonly _dependencies: DEPENDENCIES,
     logger: Logger,
+    protected readonly _state: STATE = undefined as STATE,
   ) {
     logger.debug(
       `Initialized service "${
@@ -62,8 +69,7 @@ export abstract class BaseCommand<
   >,
   TARGET = unknown,
   EVENTS extends CardCreatorEvent[] = CardCreatorEvent[],
-> implements Command<DATA, TARGET, EVENTS>
-{
+> implements Command<DATA, TARGET, EVENTS> {
   protected _isDone = false;
 
   public done(): boolean {
