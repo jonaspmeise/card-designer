@@ -19,6 +19,7 @@ import {
 import { Template, TemplateState } from './template-types';
 import { ConfigService } from '../config/config-service';
 import { LogLevel } from '../types/domain';
+import { RenderService } from '../render/render-service';
 
 describe('TemplateService', () => {
   let service: TemplateService;
@@ -40,6 +41,19 @@ describe('TemplateService', () => {
     historyService: historyService,
   });
 
+  const renderService: RenderService = new RenderService({
+    logger: logger,
+    eventService: eventService,
+    historyService: historyService,
+    renderer: {
+      render: async (_: string, __: any) =>
+        new Uint8Array(),
+      supports: (_) => true,
+      parallelity: () => 1,
+    },
+    templateService: {} as TemplateService, // TODO: circular dependency...
+  });
+
   beforeEach(() => {
     state = {
       template: '<svg></svg>',
@@ -54,6 +68,9 @@ describe('TemplateService', () => {
         configService: configService,
       },
       state,
+      () => {
+        renderService.triggerPreview();
+      },
     );
 
     logger.info = async (_msg: string) => {};
@@ -92,9 +109,27 @@ describe('TemplateService', () => {
           done();
         }
       };
+
       // WHEN
       service.loadTemplate('<svg>my-custom-svg</svg>');
+
       // THEN
+      timeout(done);
+    });
+
+    test('issues a preview when a template is loaded.', (done) => {
+      // A card does not need to be selected. A template can exist without referencing a card!
+      // GIVEN / THEN
+      eventService.publish = async (event) => {
+        if (event.type === 'previewRenderStarted') {
+          expect(event.data.card).toBeUndefined();
+          done();
+        }
+      };
+
+      // WHEN
+      service.loadTemplate('<svg>my-custom-svg</svg>');
+
       timeout(done);
     });
 

@@ -23,6 +23,7 @@ export class TemplateService extends DependableService<
   constructor(
     dependencies: TemplateServiceDependencies,
     state: TemplateState,
+    private readonly triggerRenderPreview: () => void,
   ) {
     super(dependencies, dependencies.logger, state);
   }
@@ -71,6 +72,7 @@ export class TemplateService extends DependableService<
           },
         },
         this._state,
+        this.triggerRenderPreview,
       );
 
     this._dependencies.historyService.push(command);

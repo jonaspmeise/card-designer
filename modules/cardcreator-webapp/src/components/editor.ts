@@ -53,7 +53,7 @@ export class EditorElement extends CardcreatorHTMLComponent {
     // Register hooks.
     this.library.events.on('templateLoaded', (event) => {
       const template = event.data.template;
-      this.editorElement.value = template.source;
+      this.editorElement.value = template;
     });
   }
 }

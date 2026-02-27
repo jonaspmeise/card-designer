@@ -82,7 +82,9 @@ export type CardRenderStartedEvent = DomainEvent<
 >;
 
 export type RenderResult = {
-  card: Card;
+  // For which card was this render issued?
+  // This may not exist, if a render (without a $card template reference) was rendered...
+  card: Card | undefined;
   image: ArrayBufferLike;
 };
 
@@ -99,7 +101,7 @@ export type PreviewRenderFinishedEvent = DomainEvent<
 export type PreviewRenderStartedEvent = DomainEvent<
   'previewRenderStarted',
   {
-    card: Card;
+    card: Card | undefined;
   }
 >;
 

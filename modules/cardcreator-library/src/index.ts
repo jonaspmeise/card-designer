@@ -152,6 +152,10 @@ export class CardCreatorLibrary {
           configService,
         },
         state,
+        () => {
+          // Trigger a render preview whenever the template changes.
+          renderService.triggerPreview();
+        },
       );
 
     const renderService: RenderService =

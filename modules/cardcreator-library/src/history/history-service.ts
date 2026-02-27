@@ -97,6 +97,9 @@ export class HistoryService
     this._history.push(prototyped);
     prototyped.do();
 
+    // Execute side effects.
+    prototyped.sideeffects();
+
     // Execute additional events.
     prototyped.events().forEach((event) => {
       this._dependencies.logger.debug(

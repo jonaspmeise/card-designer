@@ -59,7 +59,7 @@ describe('EditorElement', () => {
 
     // THEN
     library.events.on('templateLoaded', (event) => {
-      expect(event.data.template.source).toBe(testContent);
+      expect(event.data.template).toBe(testContent);
       done();
     });
 
@@ -68,6 +68,23 @@ describe('EditorElement', () => {
     editor.dispatchEvent(new Event('input'));
 
     timeout(done, 500);
+  });
+
+  test('modifying the template code triggers a preview event', (done) => {
+    // GIVEN
+    const testContent = '<svg>{{ $card.name }}</svg>';
+
+    // THEN
+    library.events.on('previewRenderStarted', (event) => {
+      expect(event.data.card).toBeUndefined(); // No card is selected!
+      done();
+    });
+
+    // WHEN
+    editor.value = testContent;
+    editor.dispatchEvent(new Event('input'));
+
+    timeout(done, 100);
   });
 
   test.todo(

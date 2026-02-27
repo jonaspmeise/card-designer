@@ -52,6 +52,10 @@ describe('RenderService', () => {
         template: '<svg></svg>',
         _functions: new Map(),
       },
+      () => {
+        // TODO: Placeholder for now.
+        // Not necessary for this test, since this functionality belongs to the ownership of the template service.
+      },
     );
   const renderer: CardRenderer = {
     render: async (
@@ -266,9 +270,9 @@ describe('RenderService', () => {
   });
 
   describe('previewed', () => {
-    test('returns null if no card is previewed.', () => {
+    test('returns undefined if no card is previewed.', () => {
       // GIVEN / WHEN / THEN
-      expect(service.previewed()).toBeNull();
+      expect(service.previewed()).toBeUndefined();
     });
 
     test('returns the currently previewed card.', () => {
@@ -287,7 +291,7 @@ describe('RenderService', () => {
       service.clear();
 
       // THEN
-      expect(service.previewed()).toBeNull();
+      expect(service.previewed()).toBeUndefined();
     });
   });
 });

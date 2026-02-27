@@ -153,7 +153,11 @@ describe('HistoryService', () => {
       command.events = () => [
         {
           type: 'projectLoaded',
-          data: { name: 'My Project', source: '' },
+          data: {
+            name: 'My Project',
+            template: '',
+            _functions: new Map(),
+          },
         },
       ];
 
@@ -205,6 +209,21 @@ describe('HistoryService', () => {
 
       // THEN
       expect(command.target.value).toBe(1);
+    });
+
+    test('side effects of commands are executed when a command is done.', (done) => {
+      // GIVEN
+      const command = new DummyCommand();
+
+      // THEN
+      command.sideeffects = () => {
+        done();
+      };
+
+      // WHEN
+      service.push(command);
+
+      timeout(done);
     });
   });
 

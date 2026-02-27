@@ -61,6 +61,9 @@ export interface Command<
   undo(): boolean;
   // Is the command currently done?
   done(): boolean;
+  // Which side effects are executed when this command is done?
+  // Warning: These side effects can not be undone!
+  sideeffects(): void;
 }
 
 export abstract class BaseCommand<
@@ -95,6 +98,9 @@ export abstract class BaseCommand<
 
     return true;
   }
+
+  // Default implementation - no side effects.
+  sideeffects(): void {}
 
   abstract message(): string;
   abstract readonly data: DATA;

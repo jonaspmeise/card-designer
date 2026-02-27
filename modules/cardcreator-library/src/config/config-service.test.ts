@@ -3,12 +3,8 @@ import {
   test,
   expect,
   beforeEach,
-  afterEach,
 } from 'bun:test';
-import {
-  Command,
-  PopulatedCommand,
-} from '../architecture/types';
+import { Command } from '../architecture/types';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
 import { timeout } from '../test-utility';

@@ -140,31 +140,6 @@ describe('ConfigElement', () => {
     expect(Array.from(status.classList)).toContain('valid');
   });
 
-  test.todo(
-    'when entering content in the texteditor, the content state of the component is updated.',
-    () => {
-      /*
-      // GIVEN
-      const editor = element.querySelector(
-        '.cm-content',
-      ) as HTMLElement;
-      editor.focus();
-
-      // WHEN
-      editor.dispatchEvent(
-        new InputEvent('input', {
-          bubbles: true,
-          inputType: 'insertText',
-          data: 'abc 123',
-        }),
-      );
-
-      // THEN
-      expect(raw.content()).toBe('abc 123');
-      */
-    },
-  );
-
   test('when entering no text, the status shows as valid.', () => {
     // GIVEN / WHEN
     raw.set('');

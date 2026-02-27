@@ -12,7 +12,8 @@ import { NO_OP_LOGGER } from '..';
 
 const dummyProject: ProjectLoadedEvent['data'] = {
   name: 'Test Project',
-  source: 'source content',
+  template: 'source content',
+  _functions: new Map(),
 };
 
 describe('EventService', () => {
@@ -98,7 +99,8 @@ describe('EventService', () => {
       type: 'projectLoaded',
       data: {
         name: 'Test Project',
-        source: '',
+        template: '',
+        _functions: new Map(),
       },
     });
 

@@ -17,6 +17,7 @@ export class LoadTemplateCommand extends BaseCommand<
   constructor(
     public readonly data: LoadTemplateCommandData,
     public readonly target: TemplateState,
+    private readonly triggerRenderPreview: () => void,
   ) {
     super();
   }
@@ -41,4 +42,8 @@ export class LoadTemplateCommand extends BaseCommand<
   }
 
   public message = () => `Loaded template`;
+
+  public sideeffects(): void {
+    this.triggerRenderPreview();
+  }
 }

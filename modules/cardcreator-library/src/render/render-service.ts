@@ -19,7 +19,7 @@ export class RenderService
   implements Clearable
 {
   // This is transient data, which does not have to be persisted.
-  private _previewedCard: Card | null = null;
+  private _previewedCard: Card | undefined = undefined;
 
   constructor(dependencies: RenderServiceDependencies) {
     super(dependencies, dependencies.logger);
@@ -29,7 +29,7 @@ export class RenderService
     this._dependencies.logger.info(
       'Clearing render service...',
     );
-    this._previewedCard = null;
+    this._previewedCard = undefined;
   }
 
   // TODO: How to pass render parameters, card data, template, assets, all smoothly into here?
@@ -95,16 +95,16 @@ export class RenderService
   }
 
   /**
-   * Previews a card.
-   * @param card The card to preview.
+   * Triggers a render preview.
+   * If a card is selected, the preview will be triggered for this card.
+   * Otherwise a generic preview will be triggered.
    */
-  public preview(card: Card): void {
+  public triggerPreview(): void {
     this._dependencies.logger.info(
-      'Previewing card...',
-      card,
+      'Triggering render preview...',
     );
 
-    this._previewedCard = card;
+    const card = this._previewedCard;
 
     this._dependencies.eventService.publish({
       type: 'previewRenderStarted',
@@ -117,17 +117,31 @@ export class RenderService
     this._dependencies.eventService.publish({
       type: 'previewRenderFinished',
       data: {
-        card: card,
+        card: this._previewedCard,
         image: new ArrayBuffer(0), // TODO: Replace with actual image data.
       },
     });
   }
 
   /**
-   * Returns the currently previewed card, if any.
-   * @returns The currently previewed card, or null if no card is previewed.
+   * Previews a card.
+   * @param card The card to preview.
    */
-  public previewed(): Card | null {
+  public preview(card: Card): void {
+    this._dependencies.logger.info(
+      'Previewing card...',
+      card,
+    );
+
+    this._previewedCard = card;
+    this.triggerPreview();
+  }
+
+  /**
+   * Returns the currently previewed card, if any.
+   * @returns The currently previewed card, or undefined if no card is previewed.
+   */
+  public previewed(): Card | undefined {
     this._dependencies.logger.debug(
       'Fetching currently previewed card...',
     );
