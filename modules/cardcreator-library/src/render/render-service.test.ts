@@ -227,6 +227,42 @@ describe('RenderService', () => {
       service.renderCard(dummyCard);
       timeout(done);
     });
+
+    test('calls the renderer when rendering a card.', (done) => {
+      // GIVEN / THEN
+      renderer.render = async (svg, _) => {
+        expect(svg).toBe('<svg></svg>');
+
+        done();
+        return new Uint8Array([1, 2, 3]);
+      };
+
+      // WHEN
+      service.renderCard(dummyCard);
+    });
+  });
+
+  describe('triggerPreview', () => {
+    test('triggering a preview delegates a call to the renderer to render a preview image.', (done) => {
+      // GIVEN / THEN
+      renderer.render = async (svg, _) => {
+        expect(svg).toBe('<svg></svg>');
+        return new Uint8Array([1, 2, 3]);
+      };
+
+      eventService.publish = async (event) => {
+        if (event.type === 'previewRenderFinished') {
+          expect(event.data.image).toEqual(
+            new Uint8Array([1, 2, 3]).buffer,
+          );
+
+          done();
+        }
+      };
+
+      // WHEN
+      service.triggerPreview();
+    });
   });
 
   describe('preview', () => {

@@ -93,11 +93,14 @@ export class TemplateService extends DependableService<
   /**
    * Applies a given template to the given card.
    * @param template The template to apply.
-   * @param card The card to apply the template to.
+   * @param card The card to apply the template to. This can be undefined, if the template is okay with not accepting a card.
    * @param job Optional render job info, which give context about in what context this render is happening.
    * @returns The rendered result as a string.
    */
-  public apply(card: Card, job: RenderContext): string {
+  public apply(
+    card: Card | undefined,
+    job: RenderContext,
+  ): string {
     this._dependencies.logger.debug(
       'Applying template to card...',
       this._state.template,

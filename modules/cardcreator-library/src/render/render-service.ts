@@ -37,11 +37,11 @@ export class RenderService
    * Renders a single card.
    * The resulting card will be published via an event.
    * The render context will completely be taken from all depending services.
-   * @param card The card to render.
+   * @param card The card to render. If no card is supplied, the template is rendered as-is.
    * @return A promise that resolves with the rendered image data.
    */
   public async renderCard(
-    card: Card,
+    card: Card | undefined,
   ): Promise<ArrayBufferLike> {
     this._dependencies.logger.info(
       'Rendering card...',
@@ -99,7 +99,7 @@ export class RenderService
    * If a card is selected, the preview will be triggered for this card.
    * Otherwise a generic preview will be triggered.
    */
-  public triggerPreview(): void {
+  public async triggerPreview(): Promise<void> {
     this._dependencies.logger.info(
       'Triggering render preview...',
     );
@@ -113,12 +113,14 @@ export class RenderService
       },
     });
 
+    const image = await this.renderCard(card);
+
     // Render card.
     this._dependencies.eventService.publish({
       type: 'previewRenderFinished',
       data: {
-        card: this._previewedCard,
-        image: new ArrayBuffer(0), // TODO: Replace with actual image data.
+        card: card,
+        image: image,
       },
     });
   }

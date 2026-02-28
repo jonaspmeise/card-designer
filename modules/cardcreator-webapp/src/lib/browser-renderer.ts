@@ -8,6 +8,7 @@ import type {
 } from 'cardcreator-library/render/render-types';
 
 export class BrowserRenderer implements CardRenderer {
+  // TODO: Don't reinstantiate Canvas and Image for every render, reuse them.
   async render(
     svg: string,
     settings: RenderSettings,

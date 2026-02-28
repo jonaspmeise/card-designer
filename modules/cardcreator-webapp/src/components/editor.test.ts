@@ -55,7 +55,7 @@ describe('EditorElement', () => {
 
   test('modifying the editor content triggers a library event', (done) => {
     // GIVEN
-    const testContent = '<svg>{{ $card.name }}</svg>';
+    const testContent = '<svg>my-custom-svg</svg>';
 
     // THEN
     library.events.on('templateLoaded', (event) => {
@@ -72,7 +72,7 @@ describe('EditorElement', () => {
 
   test('modifying the template code triggers a preview event', (done) => {
     // GIVEN
-    const testContent = '<svg>{{ $card.name }}</svg>';
+    const testContent = '<svg>my-custom-svg</svg>';
 
     // THEN
     library.events.on('previewRenderStarted', (event) => {
@@ -151,7 +151,7 @@ describe('EditorElement', () => {
 
   test('when library loads a template, editor content is updated', async () => {
     // GIVEN
-    const templateSource = '<svg>{{ $card.id }}</svg>';
+    const templateSource = '<svg>awesome</svg>';
 
     // WHEN
     library.template.loadTemplate(templateSource);

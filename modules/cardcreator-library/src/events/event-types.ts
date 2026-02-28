@@ -77,7 +77,7 @@ export type JobRenderFinishedEvent = DomainEvent<
 export type CardRenderStartedEvent = DomainEvent<
   'cardRenderStarted',
   Identifiable<{
-    card: Card;
+    card: Card | undefined;
   }>
 >;
 
@@ -118,7 +118,7 @@ export type ProjectClosedEvent =
 export type CardCompiledEvent = DomainEvent<
   'cardCompiled',
   Identifiable<{
-    card: Card;
+    card: Card | undefined;
     compiled: string;
   }>
 >;

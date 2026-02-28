@@ -7,6 +7,11 @@ export class PreviewElement extends CardcreatorHTMLComponent {
   private autoPreview: boolean = true;
   private autoPreviewElement!: HTMLInputElement;
   private refreshButton!: HTMLButtonElement;
+  private previewImage!: HTMLImageElement;
+  // The loaded Object URL of the image.
+  private imageUrl: string | null = null;
+  // The blob of the currently loaded image.
+  private imageBlob: Blob | null = null;
 
   constructor() {
     super();
@@ -38,6 +43,7 @@ export class PreviewElement extends CardcreatorHTMLComponent {
         </div>
       </div>
       <div class="container" id="container">
+        <img id="preview-image"></img>
         <div class="empty">Select a card to preview</div>
       </div>
     `;
@@ -62,7 +68,39 @@ export class PreviewElement extends CardcreatorHTMLComponent {
       'refresh',
     ) as HTMLButtonElement;
 
+    this.previewImage = this.shadow.getElementById(
+      'preview-image',
+    ) as HTMLImageElement;
+
     // Register hooks.
+    this.library.events.on(
+      'previewRenderFinished',
+      (data) => {
+        console.debug(
+          'Preview render issued event, updating preview...',
+        );
+
+        if (this.imageUrl != null) {
+          console.debug(
+            'Revoking old preview image URL...',
+          );
+          URL.revokeObjectURL(this.imageUrl);
+          this.imageUrl = null;
+        }
+
+        const arrayBuffer = data.data.image as ArrayBuffer;
+        this.imageBlob = new Blob([arrayBuffer], {
+          type: 'image/png',
+        });
+        this.imageUrl = URL.createObjectURL(this.imageBlob);
+
+        this.previewImage.src = this.imageUrl;
+      },
+    );
+  }
+
+  public image(): Blob | null {
+    return this.imageBlob;
   }
 }
 
