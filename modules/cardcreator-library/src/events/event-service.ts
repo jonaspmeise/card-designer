@@ -93,10 +93,6 @@ export class EventService
 
     this._registerHandler(type, entry);
 
-    this._dependencies.logger.debug(
-      `Handler (#${registrationId}) registered for event "${type}".`,
-    );
-
     // Return unsubscribe function
     return () => {
       this.handlerRegistry[type]?.delete(entry);
@@ -178,7 +174,7 @@ export class EventService
   ): void {
     if (!(eventType in this.handlerRegistry)) {
       this._dependencies.logger.debug(
-        `Creating new handler set for event type: ${eventType}`,
+        `Creating new handler set for event type: ${eventType}...`,
       );
       this.handlerRegistry[eventType] = new Set<
         EventRegistryEntry<SingleEvent<T>>

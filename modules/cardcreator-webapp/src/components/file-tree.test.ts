@@ -179,7 +179,6 @@ describe('FileTreeElement', () => {
         '.folder[data-path="myFolder"] .file[data-path="myFolder/a.txt"]',
       ),
     );
-    console.error(element.innerHTML);
     expect(item.length).toBe(1);
   });
 
@@ -300,8 +299,6 @@ describe('FileTreeElement', () => {
 
     expect(subfolder).not.toBeNull();
     expect(child).not.toBeNull();
-
-    console.error(topFolder.outerHTML);
 
     expect(topFolder.classList.contains('active')).toBe(
       true,

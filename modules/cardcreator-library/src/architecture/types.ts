@@ -1,4 +1,8 @@
-import { CardCreatorDependencies } from '..';
+import {
+  CardCreatorDependencies,
+  LazyCardCreatorDependencies,
+  PotentiallyLazy,
+} from '..';
 import { ID } from '../cross-cutting-concerns';
 import { Logger } from '../types/domain';
 import { CardCreatorEvent } from '../types/events';
@@ -7,7 +11,9 @@ import { CardCreatorEvent } from '../types/events';
  * A utility class that models that a service is dependent on a subset of system dependencies.
  */
 export abstract class DependableService<
-  DEPENDENCIES extends Partial<CardCreatorDependencies>,
+  DEPENDENCIES extends Partial<
+    CardCreatorDependencies | LazyCardCreatorDependencies
+  >,
   // A reference to the custom state, which this service has access too.
   // This state is serialized / deserialized on project load and actually persisted.
   // Transient state is not explicitly modeled and should be implemented in each service itself.
@@ -15,16 +21,40 @@ export abstract class DependableService<
     | Readonly<Record<string, unknown>>
     | undefined = undefined,
 > {
+  protected readonly _dependencies: CardCreatorDependencies;
+
   constructor(
-    protected readonly _dependencies: DEPENDENCIES,
-    logger: Logger,
+    dependencies: PotentiallyLazy<DEPENDENCIES>,
+    logger: Logger | (() => Logger),
     protected readonly _state: STATE = undefined as STATE,
   ) {
-    logger.debug(
+    this._dependencies = Object.fromEntries(
+      Object.entries(dependencies).map(([key, value]) => [
+        key,
+        typeof value === 'function'
+          ? // Lazily resolve this dependency from its supplier once its requested.
+            new Proxy(
+              {},
+              {
+                get: (_, prop) =>
+                  (
+                    (
+                      value as () => unknown
+                    )() as typeof value
+                  )[prop],
+              },
+            )
+          : value,
+      ]),
+    ) as CardCreatorDependencies;
+
+    const resolvedLogger =
+      typeof logger === 'function' ? logger() : logger;
+    resolvedLogger.debug(
       `Initialized service "${
         this.constructor.name
       }" with dependencies: ${Object.keys(
-        _dependencies,
+        this._dependencies,
       ).join(', ')}`,
     );
   }

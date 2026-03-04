@@ -11,6 +11,7 @@ import {
 import { Logger, LogLevel } from '../types/domain';
 import { RenderLogger } from './render-logger';
 import { LoadTemplateCommand } from '../project/commands/load-template';
+import { RenderService } from '../render/render-service';
 
 export class TemplateService extends DependableService<
   TemplateServiceDependencies,
@@ -23,7 +24,7 @@ export class TemplateService extends DependableService<
   constructor(
     dependencies: TemplateServiceDependencies,
     state: TemplateState,
-    private readonly triggerRenderPreview: () => void,
+    private readonly renderService: () => RenderService,
   ) {
     super(dependencies, dependencies.logger, state);
   }
@@ -62,6 +63,10 @@ export class TemplateService extends DependableService<
       `Extracted ${functions.size} functions from template.`,
     );
 
+    // Lazily load the render service.
+    const renderService: RenderService =
+      this.renderService();
+
     const command: LoadTemplateCommand =
       new LoadTemplateCommand(
         {
@@ -72,7 +77,20 @@ export class TemplateService extends DependableService<
           },
         },
         this._state,
-        this.triggerRenderPreview,
+        () => {
+          if (
+            /\$card/g.test(source) &&
+            renderService.previewed() == undefined
+          ) {
+            // Don't issue an update, because we can't render the full source without an (expected) card.
+            this._dependencies.logger.debug(
+              'Template contains card references, but no preview card is set. Skipping render preview trigger.',
+            );
+            return;
+          }
+
+          renderService.triggerPreview();
+        },
       );
 
     this._dependencies.historyService.push(command);
@@ -130,12 +148,6 @@ export class TemplateService extends DependableService<
       );
       rendered = rendered.replaceAll(source, result);
     });
-
-    this._dependencies.logger.debug(
-      'Applying template to card...',
-      this._state.template,
-      card,
-    );
 
     return rendered;
   }

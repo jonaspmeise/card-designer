@@ -1,9 +1,6 @@
 import { BaseCommand } from '../../architecture/types';
 import { TemplateLoadedEvent } from '../../events/event-types';
-import {
-  Template,
-  TemplateState,
-} from '../../template/template-types';
+import { TemplateState } from '../../template/template-types';
 
 export type LoadTemplateCommandData = {
   prior: TemplateState;

@@ -1,3 +1,4 @@
+import { LazyCardCreatorDependencies } from '..';
 import {
   Clearable,
   DependableService,

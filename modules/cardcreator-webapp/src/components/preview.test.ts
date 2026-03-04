@@ -109,6 +109,7 @@ describe('PreviewElement', () => {
     library.render.preview({
       name: 'my dummy card',
     });
+
     library.template.loadTemplate(
       '<svg>{{ $card.name }}</svg>',
     );
@@ -120,12 +121,7 @@ describe('PreviewElement', () => {
   });
 
   test('a simple svg is correctly rendered.', async () => {
-    // GIVEN
-    const previewImage = element.getElementById(
-      'preview-image',
-    ) as HTMLImageElement;
-
-    // WHEN
+    // GIVEN / WHEN
     library.template.loadTemplate(
       `<svg height="3" width="3" xmlns="http://www.w3.org/2000/svg">
         <rect width="3" height="3" fill="red"/>

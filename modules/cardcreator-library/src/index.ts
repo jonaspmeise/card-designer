@@ -35,6 +35,10 @@ import {
  * External dependencies, which can be overwritten with platform-specific adapters.
  */
 
+export type PotentiallyLazy<T> = {
+  [K in keyof T]: T[K] | (() => T[K]);
+};
+
 export interface CardCreatorProvidedDependencies {
   logger: Logger;
   renderer: CardRenderer;
@@ -55,6 +59,9 @@ export interface CardCreatorRequiredDependencies {
 export type CardCreatorDependencies =
   CardCreatorProvidedDependencies &
     CardCreatorRequiredDependencies;
+
+export type LazyCardCreatorDependencies =
+  PotentiallyLazy<CardCreatorDependencies>;
 
 /**
  * Core card-creator library API.
@@ -152,10 +159,7 @@ export class CardCreatorLibrary {
           configService,
         },
         state,
-        () => {
-          // Trigger a render preview whenever the template changes.
-          renderService.triggerPreview();
-        },
+        () => renderService,
       );
 
     const renderService: RenderService =
@@ -198,7 +202,7 @@ export class CardCreatorLibrary {
     this.project = new ProjectService(this.dependencies);
     this.events = this.dependencies
       .eventService as EventBus;
-    this.render = new RenderService(this.dependencies);
+    this.render = renderService;
     this.config = configService;
     this.history = historyService;
     this.files = fileService;

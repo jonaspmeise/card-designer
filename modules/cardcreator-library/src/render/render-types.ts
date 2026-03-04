@@ -1,4 +1,7 @@
-import { CardCreatorDependencies } from '..';
+import {
+  CardCreatorDependencies,
+  LazyCardCreatorDependencies,
+} from '..';
 
 /**
  * The data associated with a render job.
@@ -24,7 +27,7 @@ export type Card = Record<string, unknown>;
  * The dependencies required by the render service.
  */
 export type RenderServiceDependencies = Pick<
-  CardCreatorDependencies,
+  LazyCardCreatorDependencies,
   | 'historyService'
   | 'eventService'
   | 'logger'

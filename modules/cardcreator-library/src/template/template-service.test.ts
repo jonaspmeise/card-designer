@@ -3,9 +3,7 @@ import {
   test,
   expect,
   beforeEach,
-  afterEach,
 } from 'bun:test';
-import { Command } from '../architecture/types';
 import { NO_OP_LOGGER } from '..';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
@@ -51,7 +49,7 @@ describe('TemplateService', () => {
       supports: (_) => true,
       parallelity: () => 1,
     },
-    templateService: {} as TemplateService, // TODO: circular dependency...
+    templateService: () => service,
   });
 
   beforeEach(() => {
@@ -68,9 +66,7 @@ describe('TemplateService', () => {
         configService: configService,
       },
       state,
-      () => {
-        renderService.triggerPreview();
-      },
+      () => renderService,
     );
 
     logger.info = async (_msg: string) => {};
@@ -117,14 +113,27 @@ describe('TemplateService', () => {
       timeout(done);
     });
 
-    test('issues a preview when a template is loaded.', (done) => {
-      // A card does not need to be selected. A template can exist without referencing a card!
+    test('issues no event when the template includes a function expecting a card, but no card is previewed currently.', () => {
       // GIVEN / THEN
       eventService.publish = async (event) => {
         if (event.type === 'previewRenderStarted') {
-          expect(event.data.card).toBeUndefined();
-          done();
+          throw new Error(
+            'should not issue because no card is previewed currently!',
+          );
         }
+      };
+
+      // WHEN
+      service.loadTemplate(
+        '<svg>{{ return $card.name; }}</svg>',
+      );
+    });
+
+    test('issues a preview when a template is loaded.', (done) => {
+      // A card does not need to be selected. A template can exist without referencing a card!
+      // GIVEN / THEN
+      renderService.triggerPreview = async () => {
+        done();
       };
 
       // WHEN

@@ -1,6 +1,9 @@
-import { CardCreatorDependencies } from '..';
+import {
+  CardCreatorDependencies,
+  LazyCardCreatorDependencies,
+} from '..';
 
 export type HistoryServiceDependencies = Pick<
-  CardCreatorDependencies,
+  LazyCardCreatorDependencies,
   'eventService' | 'logger'
 >;
