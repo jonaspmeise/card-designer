@@ -178,6 +178,8 @@ describe('ConfigService', () => {
       // WHEN
       service.reset();
       service.config()['my-key'] = 'my-new-value';
+
+      timeout(done);
     });
   });
 });

@@ -2,6 +2,12 @@
  * Card Creator Webapp - Main Entry Point
  */
 
+declare global {
+  interface Window {
+    cardcreator: CardCreatorLibrary;
+  }
+}
+
 import { CardCreatorLibrary } from 'cardcreator-library';
 import { BrowserFileProvider } from './lib/browser-file-provider';
 import { BrowserRenderer } from './lib/browser-renderer';
@@ -32,6 +38,8 @@ const library = new CardCreatorLibrary(
     logger: console,
   },
 );
+
+window.cardcreator = library;
 
 console.debug(
   `Triggering all components to request library...`,

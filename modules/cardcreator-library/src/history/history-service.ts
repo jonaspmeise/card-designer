@@ -43,6 +43,25 @@ export class HistoryService
       `Generated command ID: ${id}`,
     );
 
+    // Enrich command with side effects and events.
+    const additionalCalls = () => {
+      // Execute side effects.
+      prototyped.sideeffects();
+
+      // Execute additional events.
+      prototyped.events().forEach((event) => {
+        this._dependencies.logger.debug(
+          `Emitting event "${event.type}" from command ID "${id}"...`,
+        );
+
+        this._dependencies.eventService.publish(event);
+
+        this._dependencies.logger.debug(
+          `Emitted event "${event.type}" from command ID "${id}".`,
+        );
+      });
+    };
+
     const populated = {
       id,
       do: () => {
@@ -66,6 +85,8 @@ export class HistoryService
           type: 'commandExecuted',
           data: populated as PopulatedCommand<T>,
         });
+
+        additionalCalls();
       },
       undo: () => {
         this._dependencies.logger.info(
@@ -85,6 +106,8 @@ export class HistoryService
           type: 'commandUndone',
           data: populated as PopulatedCommand<T>,
         });
+
+        additionalCalls();
       },
       events: command.events,
       done: command.done,
@@ -96,22 +119,6 @@ export class HistoryService
     // Execute command.
     this._history.push(prototyped);
     prototyped.do();
-
-    // Execute side effects.
-    prototyped.sideeffects();
-
-    // Execute additional events.
-    prototyped.events().forEach((event) => {
-      this._dependencies.logger.debug(
-        `Emitting event "${event.type}" from command ID "${id}"...`,
-      );
-
-      this._dependencies.eventService.publish(event);
-
-      this._dependencies.logger.debug(
-        `Emitted event "${event.type}" from command ID "${id}".`,
-      );
-    });
 
     return prototyped;
   }
@@ -161,18 +168,21 @@ export class HistoryService
    * If the command does not exist, an error is logged.
    * @param command The ID of the command to undo.
    */
-  public undo(command: ID): void {
+  public undo(
+    command: ID | PopulatedCommand<Command>,
+  ): void {
     this._dependencies.logger.debug(
       `Explicitly undoing command by ID: ${command}...`,
     );
 
-    const target = this._history.find(
-      (c) => c.id === command,
-    );
+    const id =
+      typeof command === 'string' ? command : command.id;
+
+    const target = this._history.find((c) => c.id === id);
 
     if (target === undefined) {
       this._dependencies.logger.error(
-        `Command with ID "${command}" does not exist and can't be undone!`,
+        `Command with ID "${id}" does not exist and can't be undone!`,
       );
       return;
     }

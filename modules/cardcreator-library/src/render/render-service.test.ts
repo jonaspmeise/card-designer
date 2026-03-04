@@ -302,7 +302,27 @@ describe('RenderService', () => {
       timeout(done);
     });
 
-    // TODO: Handle error messages gracefully.
+    test('does not trigger a preview when automatic preview is disabled.', () => {
+      // GIVEN
+      service.enablePreview(false);
+
+      // THEN
+      eventService.publish = async (event) => {
+        if (
+          event.type === 'previewRenderStarted' ||
+          event.type === 'previewRenderFinished'
+        ) {
+          throw new Error(
+            'should not trigger a preview when automatic preview is disabled!',
+          );
+        }
+      };
+
+      // WHEN
+      service.triggerPreview(true);
+    });
+
+    // TODO: Handle error messages during rendering sensibly.
   });
 
   describe('previewed', () => {

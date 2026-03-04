@@ -6,7 +6,6 @@ import {
 } from 'bun:test';
 import { HistoryService } from './history-service';
 import { BaseCommand } from '../architecture/types';
-import { NO_OP_LOGGER } from '..';
 import { EventService } from '../events/event-service';
 import { InternalEventBus } from '../events/events';
 import { timeout } from '../test-utility';
@@ -182,6 +181,48 @@ describe('HistoryService', () => {
       timeout(done);
     });
 
+    test('side effects of commands are executed when a command is done.', (done) => {
+      // GIVEN
+      const command = new DummyCommand();
+
+      // THEN
+      command.sideeffects = () => {
+        done();
+      };
+
+      // WHEN
+      service.push(command);
+
+      timeout(done);
+    });
+
+    test('events of commands are emitted when a command is done.', (done) => {
+      // GIVEN
+      const command = new DummyCommand();
+      command.events = () => [
+        {
+          type: 'projectLoaded',
+          data: {
+            name: 'My Project',
+            template: '',
+            _functions: new Map(),
+          },
+        },
+      ];
+
+      // THEN
+      eventService.publish = async (event) => {
+        if (event.type === 'projectLoaded') {
+          done();
+        }
+      };
+
+      // WHEN
+      service.push(command);
+
+      timeout(done);
+    });
+
     test('if a valid command is done explicitly, it is executed again.', () => {
       // GIVEN
       const command = service.push(new DummyCommand());
@@ -260,11 +301,54 @@ describe('HistoryService', () => {
       const returned = service.push(command);
 
       // WHEN
-      service.undo(returned.id);
-      service.undo(returned.id);
+      service.undo(returned);
 
       // THEN
       expect(command.target.value).toBe(0);
+    });
+
+    test('side effects of commands are executed when a command is undone.', (done) => {
+      // GIVEN
+      const command = new DummyCommand();
+      const returned = service.push(command);
+
+      // THEN
+      command.sideeffects = () => {
+        done();
+      };
+
+      // WHEN
+      service.undo(returned);
+
+      timeout(done);
+    });
+
+    test('events of commands are emitted when a command is undone.', (done) => {
+      // GIVEN
+      const command = new DummyCommand();
+      command.events = () => [
+        {
+          type: 'projectLoaded',
+          data: {
+            name: 'My Project',
+            template: '',
+            _functions: new Map(),
+          },
+        },
+      ];
+      const returned = service.push(command);
+
+      // THEN
+      eventService.publish = async (event) => {
+        if (event.type === 'projectLoaded') {
+          done();
+        }
+      };
+
+      // WHEN
+      service.undo(returned);
+
+      timeout(done);
     });
   });
 });

@@ -4,7 +4,6 @@
 import { CardcreatorHTMLComponent } from '../cardcreator-component';
 
 export class PreviewElement extends CardcreatorHTMLComponent {
-  private autoPreview: boolean = true;
   private autoPreviewElement!: HTMLInputElement;
   private refreshButton!: HTMLButtonElement;
   private previewImage!: HTMLImageElement;
@@ -44,7 +43,7 @@ export class PreviewElement extends CardcreatorHTMLComponent {
       </div>
       <div class="container" id="container">
         <img id="preview-image"></img>
-        <div class="empty">Select a card to preview</div>
+        <div id="preview-help-text" class="empty">Select a card to preview</div>
       </div>
     `;
     return template;
@@ -59,14 +58,23 @@ export class PreviewElement extends CardcreatorHTMLComponent {
       () => {
         console.debug(`Auto-preview is toggled...`);
 
-        this.autoPreview = this.autoPreviewElement.checked;
-        this.refreshButton.disabled = this.autoPreview;
+        this.library.render.enablePreview(
+          this.autoPreviewElement.checked,
+        );
+
+        this.refreshButton.disabled =
+          this.autoPreviewElement.checked;
       },
     );
 
     this.refreshButton = this.shadow.getElementById(
       'refresh',
     ) as HTMLButtonElement;
+    this.refreshButton.addEventListener('click', () => {
+      console.debug('Refresh button clicked...');
+
+      this.library.render.triggerPreview(false);
+    });
 
     this.previewImage = this.shadow.getElementById(
       'preview-image',
@@ -79,6 +87,12 @@ export class PreviewElement extends CardcreatorHTMLComponent {
         console.debug(
           'Preview render issued event, updating preview...',
         );
+
+        (
+          this.shadow.getElementById(
+            'preview-help-text',
+          ) as HTMLDivElement
+        ).hidden = true;
 
         if (this.imageUrl != null) {
           console.debug(

@@ -21,6 +21,7 @@ export class RenderService
 {
   // This is transient data, which does not have to be persisted.
   private _previewedCard: Card | undefined = undefined;
+  private _automaticPreviewEnabled: boolean = true;
 
   constructor(dependencies: RenderServiceDependencies) {
     super(dependencies, dependencies.logger);
@@ -99,8 +100,21 @@ export class RenderService
    * Triggers a render preview.
    * If a card is selected, the preview will be triggered for this card.
    * Otherwise a generic preview will be triggered.
+   * @param automaticallyTriggered Whether this preview trigger was automatically triggered by e.g. clicking a card or changing the template.
    */
-  public async triggerPreview(): Promise<void> {
+  public async triggerPreview(
+    automaticallyTriggered: boolean = false,
+  ): Promise<void> {
+    if (
+      automaticallyTriggered &&
+      !this._automaticPreviewEnabled
+    ) {
+      this._dependencies.logger.debug(
+        'Skipping automatic preview trigger because it is currently disabled.',
+      );
+      return;
+    }
+
     this._dependencies.logger.info(
       'Triggering render preview...',
     );
@@ -137,7 +151,22 @@ export class RenderService
     );
 
     this._previewedCard = card;
-    this.triggerPreview();
+    this.triggerPreview(false);
+  }
+
+  /**
+   * Enables or disables automatic preview triggering.
+   * If enabled, a preview will automatically be triggered when a card is previewed or the template is changed.
+   * If disabled, previews will only be triggered when triggerPreview is called manually.
+   * By default, automatic preview triggering is enabled.
+   * @param enabled The state to set to for automatic preview triggering.
+   */
+  public enablePreview(enabled: boolean = true): void {
+    this._dependencies.logger.info(
+      `${enabled ? 'Enabling' : 'Disabling'} automatic preview triggering...`,
+    );
+
+    this._automaticPreviewEnabled = enabled;
   }
 
   /**

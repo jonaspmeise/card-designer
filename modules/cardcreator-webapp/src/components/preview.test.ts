@@ -97,6 +97,40 @@ describe('PreviewElement', () => {
     expect(refreshButton.disabled).toBe(false);
   });
 
+  test('if auto-preview is disabled, template change does not trigger a preview render.', () => {
+    // GIVEN
+    const checkbox = element.getElementById(
+      'auto-preview',
+    ) as HTMLInputElement;
+    checkbox.click();
+
+    // THEN
+    renderer.render = async (_: string) => {
+      throw new Error(
+        'should not render because auto-preview is disabled!',
+      );
+    };
+
+    // WHEN
+    library.template.loadTemplate('<svg>test</svg>');
+  });
+
+  test('the help text disappears if something is previewed', async () => {
+    // GIVEN
+    const container = element.getElementById(
+      'preview-help-text',
+    )!;
+    expect(container.hidden).toBe(false);
+
+    // WHEN
+    library.template.loadTemplate('<svg>test</svg>');
+
+    await idle();
+
+    // THEN
+    expect(container.hidden).toBe(true);
+  });
+
   test('when a card is previewed, it is loaded into the preview image.', async () => {
     // GIVEN
     // Initial image is empty.
@@ -118,6 +152,25 @@ describe('PreviewElement', () => {
 
     // THEN
     expect(previewImage.src).toContain('blob:');
+  });
+
+  test('when the refresh button is clicked, the preview is updated.', (done) => {
+    // GIVEN
+    const refreshButton = element.getElementById(
+      'refresh',
+    ) as HTMLButtonElement;
+    refreshButton.disabled = false;
+
+    // THEN
+    renderer.render = async (svg: string) => {
+      done();
+      return new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    };
+
+    // WHEN
+    refreshButton.click();
+
+    timeout(done);
   });
 
   test('a simple svg is correctly rendered.', async () => {

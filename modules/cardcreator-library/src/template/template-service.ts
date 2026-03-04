@@ -89,7 +89,7 @@ export class TemplateService extends DependableService<
             return;
           }
 
-          renderService.triggerPreview();
+          renderService.triggerPreview(true);
         },
       );
 
