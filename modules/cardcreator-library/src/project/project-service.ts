@@ -222,6 +222,26 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
   }
 
   /**
+   * Sets the project name.
+   * @param name The new project name.
+   */
+  public setName(name: string): void {
+    this._dependencies.logger.debug(
+      `Setting project name to "${name}"...`,
+    );
+
+    this._projectState.project.name = name;
+    this._projectState.isModified = true;
+
+    this._dependencies.eventService.publish({
+      type: 'projectNameChanged',
+      data: {
+        name,
+      },
+    });
+  }
+
+  /**
    * Executes a reset.
    */
   private _doReset() {

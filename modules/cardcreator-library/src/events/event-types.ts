@@ -44,6 +44,13 @@ export type ProjectSavedEvent = DomainEvent<
 
 export type ProjectResetEvent = DomainEvent<'projectReset'>;
 
+export type ProjectNameChangedEvent = DomainEvent<
+  'projectNameChanged',
+  {
+    name: string;
+  }
+>;
+
 export type FileOpenedEvent = DomainEvent<
   'fileOpened',
   {

@@ -24,8 +24,8 @@ export class PreviewElement extends CardcreatorHTMLComponent {
         .header { padding: 8px; background: var(--bg-tertiary, #353550); border-bottom: 1px solid var(--border, #404060); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .controls { display: flex; gap: 8px; align-items: center; font-size: 12px; }
         label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
-        .container { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 16px; background: repeating-conic-gradient(#252540 0% 25%, #1a1a2e 0% 50%) 50% / 20px 20px; }
-        .preview { max-width: 100%; max-height: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+        .container { flex: 1; display: flex; align-items: center; justify-content: center; background: repeating-conic-gradient(#252540 0% 25%, #1a1a2e 0% 50%) 50% / 20px 20px; }
+        #preview-image { max-width: 100%; max-height: 100%; }
         .empty { color: #888; text-align: center; user-select: none; }
         .rendering { color: #888; text-align: center; }
         button { background: var(--accent, #7c3aed); color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }

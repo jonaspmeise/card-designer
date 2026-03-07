@@ -317,4 +317,199 @@ describe('FileTreeElement', () => {
     // WHEN clicking the top-level folder node again to collapse it.
     topFolder.click();
   });
+
+  test('project name input displays the current project name', () => {
+    // GIVEN / THEN
+    const projectNameInput = element.getElementById(
+      'project-name',
+    ) as HTMLInputElement;
+
+    expect(projectNameInput).not.toBeNull();
+    expect(projectNameInput.value).toBe('New Project');
+  });
+
+  test('changing project name input triggers setName on library', (done) => {
+    // GIVEN
+    const projectNameInput = element.getElementById(
+      'project-name',
+    ) as HTMLInputElement;
+
+    // THEN
+    library.events.on('projectNameChanged', (event) => {
+      expect(event.data.name).toBe('My Custom Project');
+      done();
+    });
+
+    // WHEN
+    projectNameInput.value = 'My Custom Project';
+    projectNameInput.dispatchEvent(new Event('change'));
+
+    timeout(done);
+  });
+
+  test('project name input updates when a project is loaded', async () => {
+    // GIVEN
+    const projectNameInput = element.getElementById(
+      'project-name',
+    ) as HTMLInputElement;
+
+    expect(projectNameInput.value).toBe('New Project');
+
+    // WHEN
+    await library.project.load({
+      name: 'Loaded Project',
+      template: '<svg></svg>',
+      _functions: new Map(),
+    });
+
+    await idle();
+
+    // THEN
+    expect(projectNameInput.value).toBe('Loaded Project');
+  });
+
+  test('project name input updates when project is reset', async () => {
+    // GIVEN
+    const projectNameInput = element.getElementById(
+      'project-name',
+    ) as HTMLInputElement;
+
+    // Set a custom name first
+    projectNameInput.value = 'Custom Name';
+    projectNameInput.dispatchEvent(new Event('change'));
+
+    await idle();
+
+    // WHEN
+    library.project.reset(true);
+
+    await idle();
+
+    // THEN
+    expect(projectNameInput.value).toBe('New Project');
+  });
+
+  test('empty project name is not accepted', async () => {
+    // GIVEN
+    const projectNameInput = element.getElementById(
+      'project-name',
+    ) as HTMLInputElement;
+    let nameChanged = false;
+
+    library.events.on('projectNameChanged', () => {
+      nameChanged = true;
+    });
+
+    // WHEN
+    projectNameInput.value = '   ';
+    projectNameInput.dispatchEvent(new Event('change'));
+
+    await idle();
+
+    // THEN
+    expect(nameChanged).toBe(false);
+  });
+
+  test('export button exists', () => {
+    // GIVEN / THEN
+    const exportButton = element.getElementById(
+      'export-project',
+    ) as HTMLButtonElement;
+
+    expect(exportButton).not.toBeNull();
+    expect(exportButton.title).toBe('Export Project');
+  });
+
+  test('clicking export button triggers download', async () => {
+    // GIVEN
+    const exportButton = element.getElementById(
+      'export-project',
+    ) as HTMLButtonElement;
+
+    // Mock URL.createObjectURL and URL.revokeObjectURL
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    let createdUrl: string | undefined;
+
+    URL.createObjectURL = (blob: Blob) => {
+      expect(blob.type).toBe('application/json');
+      createdUrl = 'blob:test-url';
+      return createdUrl;
+    };
+    URL.revokeObjectURL = (url: string) => {
+      expect(url).toBe(createdUrl);
+    };
+
+    // Mock click on anchor
+    let downloadFileName: string | undefined;
+    const originalCreateElement = document.createElement.bind(document);
+    document.createElement = ((tagName: string) => {
+      const element = originalCreateElement(tagName);
+      if (tagName === 'a') {
+        Object.defineProperty(element, 'click', {
+          value: () => {
+            downloadFileName = (element as HTMLAnchorElement).download;
+          },
+        });
+      }
+      return element;
+    }) as typeof document.createElement;
+
+    // WHEN
+    exportButton.click();
+
+    await idle();
+
+    // THEN
+    expect(downloadFileName).toBe('New Project.cardcreator.json');
+
+    // Restore mocks
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    document.createElement = originalCreateElement;
+  });
+
+  test('export uses current project name in filename', async () => {
+    // GIVEN
+    const exportButton = element.getElementById(
+      'export-project',
+    ) as HTMLButtonElement;
+
+    // Set a custom project name
+    library.project.setName('My Awesome Cards');
+
+    // Mock URL.createObjectURL
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    URL.createObjectURL = () => 'blob:test-url';
+    URL.revokeObjectURL = () => {};
+
+    // Mock click on anchor
+    let downloadFileName: string | undefined;
+    const originalCreateElement = document.createElement.bind(document);
+    document.createElement = ((tagName: string) => {
+      const element = originalCreateElement(tagName);
+      if (tagName === 'a') {
+        Object.defineProperty(element, 'click', {
+          value: () => {
+            downloadFileName = (element as HTMLAnchorElement).download;
+          },
+        });
+      }
+      return element;
+    }) as typeof document.createElement;
+
+    // WHEN
+    exportButton.click();
+
+    await idle();
+
+    // THEN
+    expect(downloadFileName).toBe('My Awesome Cards.cardcreator.json');
+
+    // Restore mocks
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    document.createElement = originalCreateElement;
+  });
 });

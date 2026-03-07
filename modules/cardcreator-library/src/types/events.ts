@@ -23,6 +23,7 @@ import {
   PreviewRenderStartedEvent,
   ProjectClosedEvent,
   ProjectLoadedEvent,
+  ProjectNameChangedEvent,
   ProjectResetEvent,
   ProjectSavedEvent,
   RenderLogEvent,
@@ -54,6 +55,7 @@ export type CardCreatorEvent =
   | CommandExecutedEvent
   | CommandUndoneEvent
   | ProjectLoadedEvent
+  | ProjectNameChangedEvent
   | FileOpenedEvent // TODO: Needed?
   | DialogEvent
   | ProjectResetEvent
