@@ -324,8 +324,9 @@ export class Modal {
    * Handles a button choice being picked.
    * Closes the modal and calls pick().
    */
-  private _handlePick(choiceLabel: string): void ?.(choiceLabel);{
-    this._close();bel);
+  private _handlePick(choiceLabel: string): void {
+    this.pick?.(choiceLabel);
+    this._close();
   }
 
   /**

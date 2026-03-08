@@ -247,8 +247,16 @@ export class CardCreatorLibrary {
    *
    * @param options Dialog display options (title, message, level, choices, forced)
    */
-  public showDialog(options: DialogOptions): void {
-    this.dependencies.dialogService.show(options, {});
+  public _showDialog(options: DialogOptions): void {
+    this.dependencies.dialogService.show(options, {
+      ...options.choices.reduce(
+        (acc, choice) => {
+          acc[choice.label] = async () => {};
+          return acc;
+        },
+        {} as Record<string, () => Promise<void>>,
+      ),
+    });
   }
 
   public readonly project: Readonly<ProjectService>;

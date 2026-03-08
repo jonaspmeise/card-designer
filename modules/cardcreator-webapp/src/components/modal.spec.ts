@@ -46,7 +46,7 @@ describe('Modal', () => {
   let library: CardCreatorLibrary;
 
   /**
-   * Helper to show a modal via library.showDialog().
+   * Helper to show a modal via library._showDialog().
    * @returns Promise that resolves to the choice label or null if dismissed.
    */
   const showModal = (
@@ -56,7 +56,7 @@ describe('Modal', () => {
     choices: DialogChoice[],
     forced = false,
   ): void => {
-    library.showDialog({
+    library._showDialog({
       title,
       message,
       level,
@@ -199,7 +199,7 @@ describe('Modal', () => {
       { label: 'Close Me', style: 'primary' },
     ]);
 
-    await idle();
+    await idle(20);
 
     expect(
       shadow.querySelector('[data-modal-open="true"]'),
@@ -211,7 +211,7 @@ describe('Modal', () => {
     ) as HTMLButtonElement;
     button.click();
 
-    await idle();
+    await idle(20);
 
     // THEN
     expect(

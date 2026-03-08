@@ -3,7 +3,6 @@ import {
   test,
   expect,
   beforeEach,
-  mock,
 } from 'bun:test';
 import { FileService } from './file-service';
 import { EventService } from '../events/event-service';
@@ -31,8 +30,11 @@ describe('FileService', () => {
     logger: logger,
     eventService: eventService,
   });
+  const originalDialogShow =
+    dialogService.show.bind(dialogService);
 
   beforeEach(() => {
+    dialogService.show = originalDialogShow;
     projectService = {} as ProjectService;
 
     service = new FileService(
@@ -280,13 +282,13 @@ describe('FileService', () => {
   describe('*.cardcreator.json project file detection', () => {
     test('when a *.cardcreator.json file is loaded, a dialog is shown', () => {
       // GIVEN
-      const showMock = mock(
-        (
-          _options: DialogOptions,
-          _callbacks: Record<string, () => Promise<void>>,
-        ) => {},
-      );
-      dialogService.show = showMock;
+      let showCallCount = 0;
+      dialogService.show = (
+        _options: DialogOptions,
+        _callbacks: Record<string, () => Promise<void>>,
+      ) => {
+        showCallCount++;
+      };
 
       const projectContent = JSON.stringify({
         name: 'Test Project',
@@ -303,7 +305,7 @@ describe('FileService', () => {
       });
 
       // THEN
-      expect(showMock).toHaveBeenCalledTimes(1);
+      expect(showCallCount).toBe(1);
     });
 
     test('dialog has correct title, message, level, and choices', () => {
@@ -381,8 +383,10 @@ describe('FileService', () => {
         capturedCallbacks = callbacks;
       };
 
-      const loadMock = mock((_data: unknown) => {});
-      projectService.load = loadMock;
+      let loadCallCount = 0;
+      projectService.load = async (_data: unknown) => {
+        loadCallCount++;
+      };
 
       const projectContent = JSON.stringify({
         name: 'Test Project',
@@ -401,7 +405,7 @@ describe('FileService', () => {
       await capturedCallbacks!['Cancel']();
 
       // THEN
-      expect(loadMock).toHaveBeenCalledTimes(0);
+      expect(loadCallCount).toBe(0);
     });
 
     test.each([
@@ -414,13 +418,13 @@ describe('FileService', () => {
       'detection is case-insensitive: "%s" triggers dialog',
       (filePath) => {
         // GIVEN
-        const showMock = mock(
-          (
-            _options: DialogOptions,
-            _callbacks: Record<string, () => Promise<void>>,
-          ) => {},
-        );
-        dialogService.show = showMock;
+        let showCallCount = 0;
+        dialogService.show = (
+          _options: DialogOptions,
+          _callbacks: Record<string, () => Promise<void>>,
+        ) => {
+          showCallCount++;
+        };
 
         const projectContent = JSON.stringify({
           name: 'Test',
@@ -436,7 +440,7 @@ describe('FileService', () => {
         });
 
         // THEN
-        expect(showMock).toHaveBeenCalledTimes(1);
+        expect(showCallCount).toBe(1);
       },
     );
 
@@ -450,13 +454,13 @@ describe('FileService', () => {
       'non-matching file "%s" does not trigger dialog',
       (filePath) => {
         // GIVEN
-        const showMock = mock(
-          (
-            _options: DialogOptions,
-            _callbacks: Record<string, () => Promise<void>>,
-          ) => {},
-        );
-        dialogService.show = showMock;
+        let showCallCount = 0;
+        dialogService.show = (
+          _options: DialogOptions,
+          _callbacks: Record<string, () => Promise<void>>,
+        ) => {
+          showCallCount++;
+        };
 
         // WHEN
         service.loadFile({
@@ -467,7 +471,7 @@ describe('FileService', () => {
         });
 
         // THEN
-        expect(showMock).toHaveBeenCalledTimes(0);
+        expect(showCallCount).toBe(0);
       },
     );
 
