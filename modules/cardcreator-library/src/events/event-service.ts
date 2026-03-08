@@ -147,6 +147,10 @@ export class EventService
         },
       );
     } catch (error) {
+      this._dependencies.logger.error(
+        `Error during event publication of type "${eventType}"`,
+        error as Error,
+      );
       this._emitError(error as Error, event);
     }
   }

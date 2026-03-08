@@ -12,6 +12,7 @@ import {
   InternalResolvedFile,
   ResolvedFile,
 } from './file-types';
+import { ProjectService } from '../project/project-service';
 
 /**
  * Service to record and manage history (commands).
@@ -28,6 +29,7 @@ export class FileService
   constructor(
     private readonly _fileProvider: FileProvider,
     dependencies: FileServiceDependencies,
+    private readonly projectService: () => ProjectService,
   ) {
     super(dependencies, dependencies.logger);
   }
@@ -88,7 +90,7 @@ export class FileService
     }
 
     const extension =
-      file.extension ?? file.path.includes('.')
+      (file.extension ?? file.path.includes('.'))
         ? file.path.split('.').pop()?.toLowerCase()
         : '';
     this._dependencies.logger.debug(
@@ -142,7 +144,84 @@ export class FileService
       },
     });
 
+    if (FileService._isProjectFile(file.path)) {
+      this._dependencies.logger.info(
+        `Loaded project file detected: ${file.path}`,
+      );
+
+      this._dependencies.dialogService.show(
+        {
+          title: 'Load Project?',
+          message: `A project file "${file.path}" was detected. Do you want to load it?`,
+          level: 'question',
+          choices: [
+            { label: 'Cancel', style: 'secondary' },
+            { label: 'Load Project', style: 'primary' },
+          ],
+        },
+        {
+          'Load Project': async () => {
+            this._dependencies.logger.debug(
+              `User confirmed loading project from: ${file.path}`,
+            );
+
+            const content = await resolved.content();
+            const text = new TextDecoder().decode(content);
+
+            try {
+              const parsed = JSON.parse(text);
+
+              if (!parsed.name) {
+                this._dependencies.dialogService.show(
+                  {
+                    title: 'Error Loading Project',
+                    message: `The project file is missing "name" field.`,
+                    level: 'error',
+                    choices: [
+                      { label: 'OK', style: 'primary' },
+                    ],
+                    forced: true,
+                  },
+                  {
+                    OK: async () => {},
+                  },
+                );
+                return;
+              }
+
+              this.projectService().load(parsed);
+            } catch (error) {
+              this._dependencies.dialogService.show(
+                {
+                  title: 'Error Loading Project',
+                  message: `Failed to parse project file: ${error}`,
+                  level: 'error',
+                  choices: [
+                    { label: 'OK', style: 'primary' },
+                  ],
+                  forced: true,
+                },
+                {
+                  OK: async () => {},
+                },
+              );
+            }
+          },
+          Cancel: async () => {},
+        },
+      );
+    }
+
     return resolved;
+  }
+
+  /**
+   * Checks if the file path matches the *.cardcreator.json pattern.
+   * @param path The file path to check
+   * @returns True if the file is a cardcreator project file
+   */
+  private static _isProjectFile(path: string): boolean {
+    return path.toLowerCase().endsWith('.cardcreator.json');
   }
 
   /**

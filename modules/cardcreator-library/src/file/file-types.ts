@@ -2,7 +2,7 @@ import { CardCreatorDependencies } from '..';
 
 export type FileServiceDependencies = Pick<
   CardCreatorDependencies,
-  'eventService' | 'logger'
+  'eventService' | 'logger' | 'dialogService'
 >;
 
 /**

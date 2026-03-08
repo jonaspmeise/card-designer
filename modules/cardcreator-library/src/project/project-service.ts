@@ -115,26 +115,37 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
       );
     }
 
-    this._dependencies.eventService.publish({
-      type: 'dialog',
-      data: {
+    this._dependencies.dialogService.show(
+      {
+        title: 'Confirm Project Load',
+        message: `A project "${this._projectState.project.name}" was already loaded.\nOverwrite it with new project "${data.name}"?`,
         level: 'question',
-        text: `A project "${this._projectState.project.name}" was already loaded.\nOverwrite it with new project "${data.name}"?`,
-        callbacks: {
-          Confirm: async () => {
-            this._dependencies.logger.info(
-              `Overwriting current project "${this._projectState.project?.name}" with new project "${data.name}"...`,
-            );
-            this._dependencies.historyService.push(command);
+        choices: [
+          {
+            label: 'Confirm',
+            style: 'primary',
           },
-          Cancel: async () => {
-            this._dependencies.logger.info(
-              `Loading of project "${data.name} cancelled."`,
-            );
+          {
+            label: 'Cancel',
+            style: 'secondary',
           },
+        ],
+        forced: true,
+      },
+      {
+        Confirm: async () => {
+          this._dependencies.logger.info(
+            `Overwriting current project "${this._projectState.project?.name}" with new project "${data.name}"...`,
+          );
+          this._dependencies.historyService.push(command);
+        },
+        Cancel: async () => {
+          this._dependencies.logger.info(
+            `Loading of project "${data.name}" cancelled.`,
+          );
         },
       },
-    });
+    );
   }
 
   public async save(path?: string): Promise<void> {
@@ -190,23 +201,37 @@ export class ProjectService extends DependableService<ProjectServiceDependencies
       return;
     }
 
-    this._dependencies.eventService.publish({
-      type: 'dialog',
-      data: {
+    this._dependencies.dialogService.show(
+      {
+        title: 'Confirm Reset',
+        message: 'The project was modified. Still reset?',
         level: 'question',
-        text: 'The project was modified. Still reset?',
-        callbacks: {
-          Confirm: async () => {
-            this._doReset();
+        choices: [
+          {
+            label: 'Confirm',
+            style: 'primary',
           },
-          Cancel: async () => {
-            this._dependencies.logger.info(
-              `Project reset was cancelled.`,
-            );
+          {
+            label: 'Cancel',
+            style: 'secondary',
           },
+        ],
+        forced: true,
+      },
+      {
+        Confirm: async () => {
+          this._dependencies.logger.info(
+            `Project settings reset confirmed.`,
+          );
+          this._doReset();
+        },
+        Cancel: async () => {
+          this._dependencies.logger.info(
+            `Project settings reset cancelled.`,
+          );
         },
       },
-    });
+    );
   }
 
   /**

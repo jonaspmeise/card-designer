@@ -19,6 +19,7 @@ export type ProjectServiceDependencies = Pick<
   | 'logger'
   | 'historyService'
   | 'cardService'
+  | 'dialogService'
 >;
 
 /**

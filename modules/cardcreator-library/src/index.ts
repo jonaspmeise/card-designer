@@ -30,6 +30,8 @@ import {
   ProjectData,
   ProjectServiceState,
 } from './project/project-types';
+import { DialogService } from './dialog/dialog-service';
+import { DialogOptions } from './dialog/dialog-types';
 
 /**
  * External dependencies, which can be overwritten with platform-specific adapters.
@@ -49,6 +51,8 @@ export interface CardCreatorProvidedDependencies {
   configService: ConfigService;
   cardService: CardService;
   fileService: FileService;
+  dialogService: DialogService;
+  projectService: ProjectService;
 }
 
 export interface CardCreatorRequiredDependencies {
@@ -178,12 +182,33 @@ export class CardCreatorLibrary {
       historyService,
     });
 
+    const dialogService: DialogService =
+      config.dialogService ??
+      new DialogService({
+        logger,
+        eventService,
+      });
+
     const fileService: FileService = new FileService(
       dependencies.fileProvider,
       {
         logger,
         eventService,
+        dialogService,
       },
+      () => projectService,
+    );
+
+    const projectService = new ProjectService(
+      {
+        logger,
+        eventService,
+        historyService,
+        cardService,
+        dialogService,
+        fileProvider: dependencies.fileProvider,
+      },
+      state,
     );
 
     this.dependencies = {
@@ -195,11 +220,13 @@ export class CardCreatorLibrary {
       templateService: templateService,
       configService: configService,
       cardService: cardService,
+      dialogService: dialogService,
       fileService: fileService,
       renderService: renderService,
+      projectService: projectService,
     };
 
-    this.project = new ProjectService(this.dependencies);
+    this.project = projectService;
     this.events = this.dependencies
       .eventService as EventBus;
     this.render = renderService;
@@ -211,6 +238,17 @@ export class CardCreatorLibrary {
     this.dependencies.logger.info(
       'CardCreator library initialized',
     );
+  }
+
+  /**
+   * Shows a dialog to the user and returns a promise that resolves with the chosen option.
+   * If the user dismisses the dialog without choosing, the promise resolves with null.
+   * This is only necessary for debug / testing.
+   *
+   * @param options Dialog display options (title, message, level, choices, forced)
+   */
+  public showDialog(options: DialogOptions): void {
+    this.dependencies.dialogService.show(options, {});
   }
 
   public readonly project: Readonly<ProjectService>;

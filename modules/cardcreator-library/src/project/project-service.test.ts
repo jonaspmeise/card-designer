@@ -14,6 +14,7 @@ import { HistoryService } from '../history/history-service';
 import { ProjectData } from './project-types';
 import { CardService } from '../cards/card-service';
 import { FileProvider } from '../file/file-provider';
+import { DialogService } from '../dialog/dialog-service';
 
 /**
  * Tests for the logic of the project service.
@@ -47,6 +48,10 @@ describe('ProjectService', () => {
     eventService,
     historyService,
   });
+  const dialogService: DialogService = new DialogService({
+    logger,
+    eventService,
+  });
 
   // Service.
   const service: ProjectService = new ProjectService({
@@ -55,6 +60,7 @@ describe('ProjectService', () => {
     eventService: eventService,
     historyService: historyService,
     cardService: cardService,
+    dialogService: dialogService,
   });
 
   afterEach(() => {
@@ -152,8 +158,8 @@ describe('ProjectService', () => {
       // GIVEN
       // We accept all incoming project changes.
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
-          await event.data.callbacks.Confirm();
+        if (event.type === 'dialogOpened') {
+          event.data.pick('Confirm');
         }
       };
 
@@ -182,9 +188,9 @@ describe('ProjectService', () => {
 
     test('if a new project is loaded and the dialog is confirmed, that project is loaded.', (done) => {
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
+        if (event.type === 'dialogOpened') {
           // WHEN: This event should exist!
-          await event.data.callbacks.Confirm();
+          event.data.pick('Confirm');
 
           // THEN: The project should be overwritten with the second setting!
           expect(service.data().name).toEqual('test2');
@@ -208,9 +214,9 @@ describe('ProjectService', () => {
 
     test('if a new project is loaded and the dialog is cancelled, that project is not loaded.', (done) => {
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
+        if (event.type === 'dialogOpened') {
           // WHEN: This event should exist!
-          await event.data.callbacks.Cancel();
+          event.data.pick('Cancel');
 
           // THEN: The first loaded project (not the second one) should be loaded.
           expect(service.data().name).toEqual('test1');
@@ -235,7 +241,7 @@ describe('ProjectService', () => {
     test('issue no "(confirmation) dialog" event when the same project is loaded two times (without modifications.', () => {
       // THEN
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
+        if (event.type === 'dialogOpened') {
           throw new Error('No dialog should be issued!');
         }
       };
@@ -255,8 +261,8 @@ describe('ProjectService', () => {
     test('issues a "(confirmation) dialog" event when a new project is loaded, while another project is already loaded', (done) => {
       // THEN: a confirmation is sent.
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
-          expect(event.data.text).toMatch(/project/gi);
+        if (event.type === 'dialogOpened') {
+          expect(event.data.message).toMatch(/project/gi);
           expect(event.data.level);
           done();
         }
@@ -399,8 +405,8 @@ describe('ProjectService', () => {
     test('prompts a dialog if the project was already modified.', (done) => {
       // THEN
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
-          expect(event.data.text).toMatch(/reset/gi);
+        if (event.type === 'dialogOpened') {
+          expect(event.data.message).toMatch(/reset/gi);
 
           done();
         }
@@ -422,8 +428,8 @@ describe('ProjectService', () => {
     test('sends an event when the project reset is confirmed and resets the project.', (done) => {
       // GIVEN / WHEN
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
-          event.data.callbacks.Confirm();
+        if (event.type === 'dialogOpened') {
+          event.data.pick('Confirm');
         } else if (event.type === 'projectReset') {
           expect(service.data().name).toEqual(
             'New Project',
@@ -448,8 +454,8 @@ describe('ProjectService', () => {
     test('sends no event when the project reset is cancelled and does not reset the project.', (done) => {
       // GIVEN / WHEN
       eventService.publish = async (event) => {
-        if (event.type === 'dialog') {
-          await event.data.callbacks.Cancel();
+        if (event.type === 'dialogOpened') {
+          event.data.pick('Cancel');
 
           expect(service.data().name).toEqual('test');
           done();

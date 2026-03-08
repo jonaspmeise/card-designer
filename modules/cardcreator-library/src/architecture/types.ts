@@ -21,7 +21,7 @@ export abstract class DependableService<
     | Readonly<Record<string, unknown>>
     | undefined = undefined,
 > {
-  protected readonly _dependencies: CardCreatorDependencies;
+  protected readonly _dependencies: DEPENDENCIES;
 
   constructor(
     dependencies: PotentiallyLazy<DEPENDENCIES>,
@@ -46,7 +46,7 @@ export abstract class DependableService<
             )
           : value,
       ]),
-    ) as CardCreatorDependencies;
+    ) as DEPENDENCIES;
 
     const resolvedLogger =
       typeof logger === 'function' ? logger() : logger;

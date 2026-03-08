@@ -6,13 +6,13 @@
 
 import {
   CardCompiledEvent,
+  DialogOpenedEvent,
   CardRenderFinishedEvent,
   CardRenderStartedEvent,
   CardsLoadedEvent,
   CommandExecutedEvent,
   CommandUndoneEvent,
   ConfigChangedEvent,
-  DialogEvent,
   ErrorOccurredEvent,
   FileAddedEvent,
   FileOpenedEvent,
@@ -57,7 +57,7 @@ export type CardCreatorEvent =
   | ProjectLoadedEvent
   | ProjectNameChangedEvent
   | FileOpenedEvent // TODO: Needed?
-  | DialogEvent
+  | DialogOpenedEvent
   | ProjectResetEvent
   | ProjectSavedEvent
   | JobRenderStartedEvent

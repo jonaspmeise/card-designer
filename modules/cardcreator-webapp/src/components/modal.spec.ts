@@ -5,14 +5,16 @@ import {
   test,
   expect,
   beforeEach,
+  beforeAll,
 } from 'bun:test';
 import { CardCreatorLibrary } from 'cardcreator-library';
 import { CardcreatorHTMLComponent } from '../cardcreator-component';
 import { idle, timeout } from '../test-utils';
+import type { DialogChoice } from './modal';
 
 /**
  * Minimal test component to exercise the modal functionality.
- * Exposes protected modal methods for testing.
+ * The modal now responds to dialogOpened events from the library.
  */
 class ModalTestComponent extends CardcreatorHTMLComponent {
   constructor() {
@@ -28,36 +30,6 @@ class ModalTestComponent extends CardcreatorHTMLComponent {
     template.innerHTML = `<div id="test-content">Test Component</div>`;
     return template;
   }
-
-  /**
-   * Public wrapper to test showModal.
-   */
-  public testShowModal(
-    title: string,
-    message: string,
-    level: 'info' | 'warning' | 'error' | 'question',
-    buttons: Array<{
-      label: string;
-      callback: () => void;
-      style?: 'primary' | 'secondary' | 'danger';
-    }>,
-    forced = false,
-  ): void {
-    this.showModal({
-      title,
-      message,
-      level,
-      buttons,
-      forced,
-    });
-  }
-
-  /**
-   * Public wrapper to test closeModal.
-   */
-  public testCloseModal(): void {
-    this.closeModal();
-  }
 }
 
 // Register test component.
@@ -72,6 +44,26 @@ describe('Modal', () => {
   let component: ModalTestComponent;
   let shadow: ShadowRoot;
   let library: CardCreatorLibrary;
+
+  /**
+   * Helper to show a modal via library.showDialog().
+   * @returns Promise that resolves to the choice label or null if dismissed.
+   */
+  const showModal = (
+    title: string,
+    message: string,
+    level: 'info' | 'warning' | 'error' | 'question',
+    choices: DialogChoice[],
+    forced = false,
+  ): void => {
+    library.showDialog({
+      title,
+      message,
+      level,
+      choices,
+      forced,
+    });
+  };
 
   beforeEach(() => {
     library = new CardCreatorLibrary(
@@ -117,20 +109,13 @@ describe('Modal', () => {
     expect(backdrop).not.toBeNull();
   });
 
-  test('showModal opens the modal', () => {
+  test('showDialog opens the modal', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
-      'Test Title',
-      'Test Message',
-      'info',
-      [
-        {
-          label: 'OK',
-          callback: () => {},
-          style: 'primary',
-        },
-      ],
-    );
+    showModal('Test Title', 'Test Message', 'info', [
+      { label: 'OK', style: 'primary' },
+    ]);
+
+    await idle();
 
     // THEN
     const backdrop = shadow.querySelector(
@@ -139,28 +124,26 @@ describe('Modal', () => {
     expect(backdrop).not.toBeNull();
   });
 
-  test('showModal sets title correctly', () => {
+  test('showDialog sets title correctly', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
-      'Custom Title',
-      'Test Message',
-      'info',
-      [{ label: 'OK', callback: () => {} }],
-    );
+    showModal('Custom Title', 'Test Message', 'info', [
+      { label: 'OK', style: 'primary' },
+    ]);
+
+    await idle();
 
     // THEN
     const title = shadow.getElementById('modal-title');
     expect(title?.textContent).toBe('Custom Title');
   });
 
-  test('showModal sets message correctly', () => {
+  test('showDialog sets message correctly', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
-      'Title',
-      'Custom Message Content',
-      'info',
-      [{ label: 'OK', callback: () => {} }],
-    );
+    showModal('Title', 'Custom Message Content', 'info', [
+      { label: 'OK', style: 'primary' },
+    ]);
+
+    await idle();
 
     // THEN
     const body = shadow.getElementById('modal-body');
@@ -175,12 +158,14 @@ describe('Modal', () => {
     ['error', '❌'],
     ['question', '❓'],
   ] as const)(
-    'showModal with level "%s" shows icon "%s"',
-    (level, expectedIcon) => {
+    'showDialog with level "%s" shows icon "%s"',
+    async (level, expectedIcon) => {
       // GIVEN / WHEN
-      component.testShowModal('Title', 'Message', level, [
-        { label: 'OK', callback: () => {} },
+      showModal('Title', 'Message', level, [
+        { label: 'OK', style: 'primary' },
       ]);
+
+      await idle();
 
       // THEN
       const icon = shadow.getElementById('modal-icon');
@@ -188,25 +173,14 @@ describe('Modal', () => {
     },
   );
 
-  test('buttons are created properly', () => {
+  test('buttons are created properly', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
-      'Title',
-      'Message',
-      'question',
-      [
-        {
-          label: 'Cancel',
-          callback: () => {},
-          style: 'secondary',
-        },
-        {
-          label: 'Confirm',
-          callback: () => {},
-          style: 'primary',
-        },
-      ],
-    );
+    showModal('Title', 'Message', 'question', [
+      { label: 'Cancel', style: 'secondary' },
+      { label: 'Confirm', style: 'primary' },
+    ]);
+
+    await idle();
 
     // THEN
     const cancelBtn = shadow.querySelector(
@@ -219,31 +193,13 @@ describe('Modal', () => {
     expect(confirmBtn).not.toBeNull();
   });
 
-  test('clicking a button triggers its callback', (done) => {
-    // GIVEN / THEN
-    component.testShowModal('Title', 'Message', 'info', [
-      {
-        label: 'Action',
-        callback: () => {
-          done();
-        },
-      },
-    ]);
-
-    // WHEN
-    const button = shadow.querySelector(
-      '[data-modal-button="Action"]',
-    ) as HTMLButtonElement;
-    button.click();
-
-    timeout(done);
-  });
-
   test('clicking a button closes the modal', async () => {
     // GIVEN
-    component.testShowModal('Title', 'Message', 'info', [
-      { label: 'Close Me', callback: () => {} },
+    showModal('Title', 'Message', 'info', [
+      { label: 'Close Me', style: 'primary' },
     ]);
+
+    await idle();
 
     expect(
       shadow.querySelector('[data-modal-open="true"]'),
@@ -263,65 +219,17 @@ describe('Modal', () => {
     ).toBeNull();
   });
 
-  test('non-forced modal can be closed via closeModal()', async () => {
-    // GIVEN
-    component.testShowModal(
-      'Title',
-      'Message',
-      'info',
-      [{ label: 'OK', callback: () => {} }],
-      false, // not forced
-    );
-
-    expect(
-      shadow.querySelector('[data-modal-open="true"]'),
-    ).not.toBeNull();
-
-    // WHEN
-    component.testCloseModal();
-
-    await idle();
-
-    // THEN
-    expect(
-      shadow.querySelector('[data-modal-open="true"]'),
-    ).toBeNull();
-  });
-
-  test('forced modal cannot be closed via closeModal()', async () => {
-    // GIVEN
-    component.testShowModal(
-      'Title',
-      'Message',
-      'error',
-      [{ label: 'OK', callback: () => {} }],
-      true, // forced!
-    );
-
-    expect(
-      shadow.querySelector('[data-modal-open="true"]'),
-    ).not.toBeNull();
-
-    // WHEN
-    component.testCloseModal();
-
-    await idle();
-
-    // THEN - still open
-    expect(
-      shadow.querySelector('[data-modal-open="true"]'),
-    ).not.toBeNull();
-  });
-
-  test('forced modal hides the close button', () => {
+  test('forced modal hides the close button', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
+    showModal(
       'Title',
       'Message',
       'error',
-      [{ label: 'OK', callback: () => {} }],
+      [{ label: 'OK', style: 'primary' }],
       true, // forced
     );
+
+    await idle();
 
     // THEN
     const closeButton = shadow.getElementById(
@@ -330,15 +238,17 @@ describe('Modal', () => {
     expect(closeButton.style.display).toBe('none');
   });
 
-  test('non-forced modal shows the close button', () => {
+  test('non-forced modal shows the close button', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
+    showModal(
       'Title',
       'Message',
       'info',
-      [{ label: 'OK', callback: () => {} }],
+      [{ label: 'OK', style: 'primary' }],
       false,
     );
+
+    await idle();
 
     // THEN
     const closeButton = shadow.getElementById(
@@ -349,13 +259,15 @@ describe('Modal', () => {
 
   test('non-forced modal closes when clicking the close button', async () => {
     // GIVEN
-    component.testShowModal(
+    showModal(
       'Title',
       'Message',
       'info',
-      [{ label: 'OK', callback: () => {} }],
+      [{ label: 'OK', style: 'primary' }],
       false,
     );
+
+    await idle();
 
     expect(
       shadow.querySelector('[data-modal-open="true"]'),
@@ -377,13 +289,15 @@ describe('Modal', () => {
 
   test('forced modal does not close when clicking the close button', async () => {
     // GIVEN
-    component.testShowModal(
+    showModal(
       'Title',
       'Message',
       'error',
-      [{ label: 'OK', callback: () => {} }],
+      [{ label: 'OK', style: 'primary' }],
       true, // forced
     );
+
+    await idle();
 
     expect(
       shadow.querySelector('[data-modal-open="true"]'),
@@ -405,13 +319,15 @@ describe('Modal', () => {
 
   test('non-forced modal closes when clicking the backdrop', async () => {
     // GIVEN
-    component.testShowModal(
+    showModal(
       'Title',
       'Message',
       'info',
-      [{ label: 'OK', callback: () => {} }],
+      [{ label: 'OK', style: 'primary' }],
       false,
     );
+
+    await idle();
 
     expect(
       shadow.querySelector('[data-modal-open="true"]'),
@@ -433,13 +349,15 @@ describe('Modal', () => {
 
   test('forced modal does not close when clicking the backdrop', async () => {
     // GIVEN
-    component.testShowModal(
+    showModal(
       'Title',
       'Message',
       'error',
-      [{ label: 'OK', callback: () => {} }],
+      [{ label: 'OK', style: 'primary' }],
       true, // forced
     );
+
+    await idle();
 
     expect(
       shadow.querySelector('[data-modal-open="true"]'),
@@ -459,18 +377,15 @@ describe('Modal', () => {
     ).not.toBeNull();
   });
 
-  test('multiple buttons render in correct order', () => {
+  test('multiple buttons render in correct order', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
-      'Title',
-      'Message',
-      'question',
-      [
-        { label: 'First', callback: () => {} },
-        { label: 'Second', callback: () => {} },
-        { label: 'Third', callback: () => {} },
-      ],
-    );
+    showModal('Title', 'Message', 'question', [
+      { label: 'First', style: 'secondary' },
+      { label: 'Second', style: 'secondary' },
+      { label: 'Third', style: 'primary' },
+    ]);
+
+    await idle();
 
     // THEN
     const footer = shadow.getElementById('modal-footer');
@@ -481,30 +396,15 @@ describe('Modal', () => {
     expect(buttons?.[2].textContent).toBe('Third');
   });
 
-  test('button styles are applied correctly', () => {
+  test('button styles are applied correctly', async () => {
     // GIVEN / WHEN
-    component.testShowModal(
-      'Title',
-      'Message',
-      'question',
-      [
-        {
-          label: 'Primary',
-          callback: () => {},
-          style: 'primary',
-        },
-        {
-          label: 'Secondary',
-          callback: () => {},
-          style: 'secondary',
-        },
-        {
-          label: 'Danger',
-          callback: () => {},
-          style: 'danger',
-        },
-      ],
-    );
+    showModal('Title', 'Message', 'question', [
+      { label: 'Primary', style: 'primary' },
+      { label: 'Secondary', style: 'secondary' },
+      { label: 'Danger', style: 'danger' },
+    ]);
+
+    await idle();
 
     // THEN
     const primaryBtn = shadow.querySelector(
@@ -532,16 +432,13 @@ describe('Modal', () => {
 
   test('reopening modal clears previous buttons', async () => {
     // GIVEN - first modal with 3 buttons
-    component.testShowModal(
-      'First',
-      'First message',
-      'info',
-      [
-        { label: 'A', callback: () => {} },
-        { label: 'B', callback: () => {} },
-        { label: 'C', callback: () => {} },
-      ],
-    );
+    showModal('First', 'First message', 'info', [
+      { label: 'A', style: 'secondary' },
+      { label: 'B', style: 'secondary' },
+      { label: 'C', style: 'primary' },
+    ]);
+
+    await idle();
 
     let footer = shadow.getElementById('modal-footer');
     expect(footer?.querySelectorAll('button').length).toBe(
@@ -557,12 +454,11 @@ describe('Modal', () => {
     await idle();
 
     // WHEN - open second modal with 1 button
-    component.testShowModal(
-      'Second',
-      'Second message',
-      'info',
-      [{ label: 'Only', callback: () => {} }],
-    );
+    showModal('Second', 'Second message', 'info', [
+      { label: 'Only', style: 'primary' },
+    ]);
+
+    await idle();
 
     // THEN - only 1 button
     footer = shadow.getElementById('modal-footer');

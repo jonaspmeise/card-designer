@@ -8,7 +8,7 @@ export const timeout = (
 ) =>
   setTimeout(() => done(new Error('Test timed out')), ms);
 
-export const idle = () =>
+export const idle = (ms = 0) =>
   new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 0);
+    setTimeout(() => resolve(), ms);
   });

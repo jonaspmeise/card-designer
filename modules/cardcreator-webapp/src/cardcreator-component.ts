@@ -1,5 +1,5 @@
 import { CardCreatorLibrary } from 'cardcreator-library';
-import { Modal, ModalOptions } from './components/modal';
+import { Modal } from './components/modal';
 
 export const CARDCREATOR_ATTRIBUTE =
   'data-cardcreator-component';
@@ -7,7 +7,7 @@ export const CARDCREATOR_ATTRIBUTE =
 /**
  * Base class for Cardcreator Web Components.
  *
- * Modal state is completely private and cannot be accessed by subclasses.
+ * Dialog state is completely private and cannot be accessed by subclasses.
  */
 export abstract class CardcreatorHTMLComponent extends HTMLElement {
   public static readonly REQUEST_LIB =
@@ -17,12 +17,13 @@ export abstract class CardcreatorHTMLComponent extends HTMLElement {
 
   private readonly modal: Modal;
 
-  protected constructor() {
+  protected constructor(shadow?: ShadowRoot) {
     super();
 
     this.setAttribute(CARDCREATOR_ATTRIBUTE, 'true');
 
-    this.shadow = this.attachShadow({ mode: 'open' });
+    this.shadow =
+      shadow ?? this.attachShadow({ mode: 'open' });
     this.shadow.appendChild(
       this.template().content.cloneNode(true),
     );
@@ -37,6 +38,8 @@ export abstract class CardcreatorHTMLComponent extends HTMLElement {
    */
   public provide(library: CardCreatorLibrary) {
     console.debug(`Library provided.`);
+    // Inject library for our self-administrated modal.
+    this.modal.initLibrary(library);
 
     this.library = library;
     this.init();
@@ -51,20 +54,4 @@ export abstract class CardcreatorHTMLComponent extends HTMLElement {
    * Provides the initial HTML template for the component.
    */
   protected abstract template(): HTMLTemplateElement;
-
-  /**
-   * Shows a modal dialog with the given options.
-   *
-   * @param options Configuration for the modal (title, message, level, buttons, forced).
-   */
-  protected showModal(options: ModalOptions): void {
-    this.modal.show(options);
-  }
-
-  /**
-   * Programmatically closes the modal (respects forced mode).
-   */
-  protected closeModal(): void {
-    this.modal.close();
-  }
 }

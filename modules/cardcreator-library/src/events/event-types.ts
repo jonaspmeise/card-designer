@@ -5,6 +5,10 @@ import {
   Identifiable,
 } from '../cross-cutting-concerns';
 import {
+  DialogChoice,
+  DialogLevel,
+} from '../dialog/dialog-types';
+import {
   FileInformation,
   FileTypes,
   ResolvedFile,
@@ -55,15 +59,6 @@ export type FileOpenedEvent = DomainEvent<
   'fileOpened',
   {
     path: string;
-  }
->;
-
-export type DialogEvent = DomainEvent<
-  'dialog',
-  {
-    text: string;
-    level: 'question' | 'info' | 'warning' | 'error';
-    callbacks: Record<string, () => Promise<void>>;
   }
 >;
 
@@ -181,5 +176,21 @@ export type ErrorOccurredEvent = DomainEvent<
   'errorOccurred',
   {
     message: string;
+  }
+>;
+
+export type DialogOpenedEvent = DomainEvent<
+  'dialogOpened',
+  {
+    title: string;
+    message: string;
+    level: DialogLevel;
+    choices: DialogChoice[];
+    forced: boolean;
+    /**
+     * Call this function when the user picks a choice.
+     * This will trigger the dialogAnswered event followed by dialogClosed.
+     */
+    pick: (choiceLabel: string) => void;
   }
 >;

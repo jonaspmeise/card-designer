@@ -150,9 +150,7 @@ describe('ProjectLoaderElement', () => {
     await idle();
 
     // THEN
-    const title = element.getElementById(
-      'modal-title',
-    );
+    const title = element.getElementById('modal-title');
     const body = element.getElementById('modal-body');
 
     expect(title?.textContent).toBe('Load Project?');
@@ -164,7 +162,7 @@ describe('ProjectLoaderElement', () => {
     );
   });
 
-  test('when user confirms, the project is loaded', (done) => {
+  test('when user confirms, the project is loaded', async (done) => {
     // GIVEN
     const projectData: ProjectData = {
       name: 'Confirmed Project',
@@ -190,13 +188,12 @@ describe('ProjectLoaderElement', () => {
       size: projectContent.length,
     });
 
-    // Wait for modal to appear, then click confirm
-    setTimeout(async () => {
-      const loadButton = element.querySelector(
-        '[data-modal-button="Load Project"]',
-      ) as HTMLButtonElement;
-      loadButton?.click();
-    }, 10);
+    await idle();
+
+    const loadButton = element.querySelector(
+      '[data-modal-button="Load Project"]',
+    ) as HTMLButtonElement;
+    loadButton.click();
 
     timeout(done, 200);
   });
@@ -325,15 +322,13 @@ describe('ProjectLoaderElement', () => {
     ) as HTMLButtonElement;
     loadButton?.click();
 
-    await idle();
+    await idle(20);
 
     // THEN - error modal should be shown
     expect(
       element.querySelector('[data-modal-open="true"]'),
     ).not.toBeNull();
-    const title = element.getElementById(
-      'modal-title',
-    );
+    const title = element.getElementById('modal-title');
     expect(title?.textContent).toBe(
       'Error Loading Project',
     );
@@ -363,15 +358,13 @@ describe('ProjectLoaderElement', () => {
     ) as HTMLButtonElement;
     loadButton?.click();
 
-    await idle();
+    await idle(20);
 
     // THEN
     expect(
       element.querySelector('[data-modal-open="true"]'),
     ).not.toBeNull();
-    const title = element.getElementById(
-      'modal-title',
-    );
+    const title = element.getElementById('modal-title');
     const body = element.getElementById('modal-body');
     expect(title?.textContent).toBe(
       'Error Loading Project',
@@ -435,7 +428,7 @@ describe('ProjectLoaderElement', () => {
     ) as HTMLButtonElement;
     loadButton?.click();
 
-    await idle();
+    await idle(20);
     expect(
       element.querySelector('[data-modal-open="true"]'),
     ).not.toBeNull();
@@ -484,7 +477,7 @@ describe('ProjectLoaderElement', () => {
     ) as HTMLButtonElement;
     loadButton?.click();
 
-    await idle();
+    await idle(20);
 
     // THEN - close button should be hidden
     const closeButton = element.getElementById(
