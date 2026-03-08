@@ -9,10 +9,8 @@ import {
 import { CardCreatorLibrary } from 'cardcreator-library';
 import { idle, timeout } from '../test-utils';
 
-import './modal';
 import './project-loader';
 import { ProjectLoaderElement } from './project-loader';
-import { ModalElement } from './modal';
 import { ProjectData } from 'cardcreator-library/src/project/project-types';
 
 /**
@@ -27,7 +25,6 @@ describe('ProjectLoaderElement', () => {
   let raw: ProjectLoaderElement;
   let element: ShadowRoot;
   let library: CardCreatorLibrary;
-  let modal: ModalElement;
 
   beforeEach(() => {
     library = new CardCreatorLibrary(
@@ -60,20 +57,22 @@ describe('ProjectLoaderElement', () => {
 
     raw.provide(library);
     element = raw.shadowRoot!;
-    modal = element.querySelector(
-      'cc-modal',
-    ) as ModalElement;
   });
 
-  test('component initializes with a modal element', () => {
+  test('component initializes with a modal backdrop element', () => {
     // GIVEN / THEN
-    expect(modal).not.toBeNull();
-    expect(modal).toBeInstanceOf(ModalElement);
+    const backdrop = element.getElementById(
+      'modal-backdrop',
+    );
+    expect(backdrop).not.toBeNull();
   });
 
   test('modal is initially hidden', () => {
     // GIVEN / THEN
-    expect(modal.isOpen()).toBe(false);
+    const backdrop = element.querySelector(
+      '[data-modal-open="true"]',
+    );
+    expect(backdrop).toBeNull();
   });
 
   test('when a regular file is loaded, no modal is shown', async () => {
@@ -91,7 +90,10 @@ describe('ProjectLoaderElement', () => {
     await idle();
 
     // THEN
-    expect(modal.isOpen()).toBe(false);
+    const backdrop = element.querySelector(
+      '[data-modal-open="true"]',
+    );
+    expect(backdrop).toBeNull();
   });
 
   test.each([
@@ -121,7 +123,10 @@ describe('ProjectLoaderElement', () => {
       await idle();
 
       // THEN
-      expect(modal.isOpen()).toBe(true);
+      const backdrop = element.querySelector(
+        '[data-modal-open="true"]',
+      );
+      expect(backdrop).not.toBeNull();
     },
   );
 
@@ -145,9 +150,10 @@ describe('ProjectLoaderElement', () => {
     await idle();
 
     // THEN
-    const modalShadow = modal.shadowRoot!;
-    const title = modalShadow.getElementById('modal-title');
-    const body = modalShadow.getElementById('modal-body');
+    const title = element.getElementById(
+      'modal-title',
+    );
+    const body = element.getElementById('modal-body');
 
     expect(title?.textContent).toBe('Load Project?');
     expect(body?.textContent).toContain(
@@ -186,11 +192,10 @@ describe('ProjectLoaderElement', () => {
 
     // Wait for modal to appear, then click confirm
     setTimeout(async () => {
-      const modalShadow = modal.shadowRoot!;
-      const confirmButton = modalShadow.getElementById(
-        'confirm-button',
+      const loadButton = element.querySelector(
+        '[data-modal-button="Load Project"]',
       ) as HTMLButtonElement;
-      confirmButton.click();
+      loadButton?.click();
     }, 10);
 
     timeout(done, 200);
@@ -221,20 +226,22 @@ describe('ProjectLoaderElement', () => {
     await idle();
 
     // Click cancel
-    const modalShadow = modal.shadowRoot!;
-    const cancelButton = modalShadow.getElementById(
-      'cancel-button',
+    const cancelButton = element.querySelector(
+      '[data-modal-button="Cancel"]',
     ) as HTMLButtonElement;
-    cancelButton.click();
+    cancelButton?.click();
 
     await idle();
 
     // THEN
-    expect(modal.isOpen()).toBe(false);
+    const backdrop = element.querySelector(
+      '[data-modal-open="true"]',
+    );
+    expect(backdrop).toBeNull();
     expect(projectLoaded).toBe(false);
   });
 
-  test('modal closes when clicking the X button', async () => {
+  test('modal closes when clicking the close button (non-forced modal)', async () => {
     // GIVEN
     const projectData: ProjectData = {
       name: 'Test Project',
@@ -251,19 +258,22 @@ describe('ProjectLoaderElement', () => {
     });
 
     await idle();
-    expect(modal.isOpen()).toBe(true);
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).not.toBeNull();
 
     // WHEN
-    const modalShadow = modal.shadowRoot!;
-    const closeButton = modalShadow.getElementById(
-      'close-button',
+    const closeButton = element.getElementById(
+      'modal-close-button',
     ) as HTMLButtonElement;
     closeButton.click();
 
     await idle();
 
     // THEN
-    expect(modal.isOpen()).toBe(false);
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).toBeNull();
   });
 
   test('project file in nested folder is detected', async () => {
@@ -286,9 +296,10 @@ describe('ProjectLoaderElement', () => {
     await idle();
 
     // THEN
-    expect(modal.isOpen()).toBe(true);
-    const modalShadow = modal.shadowRoot!;
-    const body = modalShadow.getElementById('modal-body');
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).not.toBeNull();
+    const body = element.getElementById('modal-body');
     expect(body?.textContent).toContain(
       'project.cardcreator.json',
     );
@@ -308,18 +319,21 @@ describe('ProjectLoaderElement', () => {
 
     await idle();
 
-    // Click confirm to try loading
-    const modalShadow = modal.shadowRoot!;
-    const confirmButton = modalShadow.getElementById(
-      'confirm-button',
+    // Click Load Project to try loading
+    const loadButton = element.querySelector(
+      '[data-modal-button="Load Project"]',
     ) as HTMLButtonElement;
-    confirmButton.click();
+    loadButton?.click();
 
     await idle();
 
     // THEN - error modal should be shown
-    expect(modal.isOpen()).toBe(true);
-    const title = modalShadow.getElementById('modal-title');
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).not.toBeNull();
+    const title = element.getElementById(
+      'modal-title',
+    );
     expect(title?.textContent).toBe(
       'Error Loading Project',
     );
@@ -343,19 +357,22 @@ describe('ProjectLoaderElement', () => {
 
     await idle();
 
-    // Click confirm
-    const modalShadow = modal.shadowRoot!;
-    const confirmButton = modalShadow.getElementById(
-      'confirm-button',
+    // Click Load Project
+    const loadButton = element.querySelector(
+      '[data-modal-button="Load Project"]',
     ) as HTMLButtonElement;
-    confirmButton.click();
+    loadButton?.click();
 
     await idle();
 
     // THEN
-    expect(modal.isOpen()).toBe(true);
-    const title = modalShadow.getElementById('modal-title');
-    const body = modalShadow.getElementById('modal-body');
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).not.toBeNull();
+    const title = element.getElementById(
+      'modal-title',
+    );
+    const body = element.getElementById('modal-body');
     expect(title?.textContent).toBe(
       'Error Loading Project',
     );
@@ -364,7 +381,7 @@ describe('ProjectLoaderElement', () => {
     );
   });
 
-  test('when clicking backdrop, modal closes', async () => {
+  test('when clicking backdrop, non-forced modal closes', async () => {
     // GIVEN
     const projectData: ProjectData = {
       name: 'Test Project',
@@ -381,140 +398,134 @@ describe('ProjectLoaderElement', () => {
     });
 
     await idle();
-    expect(modal.isOpen()).toBe(true);
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).not.toBeNull();
 
     // WHEN
-    const modalShadow = modal.shadowRoot!;
-    const backdrop = modalShadow.getElementById(
-      'backdrop',
+    const backdrop = element.getElementById(
+      'modal-backdrop',
     ) as HTMLDivElement;
     backdrop.click();
 
     await idle();
 
     // THEN
-    expect(modal.isOpen()).toBe(false);
-  });
-});
-
-describe('ModalElement', () => {
-  let modal: ModalElement;
-
-  beforeEach(() => {
-    document.body.innerHTML = '<cc-modal></cc-modal>';
-    modal = document.querySelector(
-      'cc-modal',
-    ) as ModalElement;
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).toBeNull();
   });
 
-  test('modal initializes closed', () => {
-    // GIVEN / THEN
-    expect(modal.isOpen()).toBe(false);
+  test('forced error modal cannot be closed via backdrop click', async () => {
+    // GIVEN - trigger an error modal (which is forced)
+    const invalidContent = 'not valid JSON';
+
+    library.files.loadFile({
+      type: 'direct',
+      path: 'bad.cardcreator.json',
+      content: toBuffer(invalidContent),
+      size: invalidContent.length,
+    });
+
+    await idle();
+
+    // Click Load Project to trigger the error
+    const loadButton = element.querySelector(
+      '[data-modal-button="Load Project"]',
+    ) as HTMLButtonElement;
+    loadButton?.click();
+
+    await idle();
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).not.toBeNull();
+
+    // WHEN - try to close via backdrop
+    const backdrop = element.getElementById(
+      'modal-backdrop',
+    ) as HTMLDivElement;
+    backdrop.click();
+
+    await idle();
+
+    // THEN - modal should still be open
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).not.toBeNull();
+
+    // Clean up - close via the OK button
+    const okButton = element.querySelector(
+      '[data-modal-button="OK"]',
+    ) as HTMLButtonElement;
+    okButton?.click();
+
+    await idle();
+    expect(
+      element.querySelector('[data-modal-open="true"]'),
+    ).toBeNull();
   });
 
-  test('confirm opens modal and returns promise', async () => {
-    // GIVEN / WHEN
-    const promise = modal.confirm(
-      'Test Title',
-      'Test Message',
-      'OK',
-      'Cancel',
-    );
+  test('forced error modal hides the close button', async () => {
+    // GIVEN - trigger an error modal (which is forced)
+    const invalidContent = 'not valid JSON';
 
-    // THEN
-    expect(modal.isOpen()).toBe(true);
-    expect(promise).toBeInstanceOf(Promise);
+    library.files.loadFile({
+      type: 'direct',
+      path: 'bad2.cardcreator.json',
+      content: toBuffer(invalidContent),
+      size: invalidContent.length,
+    });
+
+    await idle();
+
+    // Click Load Project to trigger the error
+    const loadButton = element.querySelector(
+      '[data-modal-button="Load Project"]',
+    ) as HTMLButtonElement;
+    loadButton?.click();
+
+    await idle();
+
+    // THEN - close button should be hidden
+    const closeButton = element.getElementById(
+      'modal-close-button',
+    ) as HTMLButtonElement;
+    expect(closeButton.style.display).toBe('none');
 
     // Clean up
-    modal.close(false);
+    const okButton = element.querySelector(
+      '[data-modal-button="OK"]',
+    ) as HTMLButtonElement;
+    okButton?.click();
   });
 
-  test('confirm sets title and message correctly', async () => {
-    // GIVEN / WHEN
-    modal.confirm(
-      'Custom Title',
-      'Custom Message',
-      'Yes',
-      'No',
-    );
+  test('modal displays the correct level icon', async () => {
+    // GIVEN
+    const projectData: ProjectData = {
+      name: 'Test Project',
+      template: '<svg></svg>',
+      _functions: new Map(),
+    };
+    const projectContent = JSON.stringify(projectData);
 
-    // THEN
-    const shadow = modal.shadowRoot!;
-    const title = shadow.getElementById('modal-title');
-    const body = shadow.getElementById('modal-body');
+    // WHEN
+    library.files.loadFile({
+      type: 'direct',
+      path: 'icon-test.cardcreator.json',
+      content: toBuffer(projectContent),
+      size: projectContent.length,
+    });
 
-    expect(title?.textContent).toBe('Custom Title');
-    expect(body?.textContent).toBe('Custom Message');
+    await idle();
+
+    // THEN - question modal should show question icon
+    const icon = element.getElementById('modal-icon');
+    expect(icon?.textContent).toBe('❓');
 
     // Clean up
-    modal.close(false);
-  });
-
-  test('clicking confirm button resolves promise with true', async () => {
-    // GIVEN
-    const promise = modal.confirm('Title', 'Message');
-
-    // WHEN
-    const shadow = modal.shadowRoot!;
-    const confirmButton = shadow.getElementById(
-      'confirm-button',
+    const cancelButton = element.querySelector(
+      '[data-modal-button="Cancel"]',
     ) as HTMLButtonElement;
-    confirmButton.click();
-
-    // THEN
-    const result = await promise;
-    expect(result).toBe(true);
-    expect(modal.isOpen()).toBe(false);
-  });
-
-  test('clicking cancel button resolves promise with false', async () => {
-    // GIVEN
-    const promise = modal.confirm('Title', 'Message');
-
-    // WHEN
-    const shadow = modal.shadowRoot!;
-    const cancelButton = shadow.getElementById(
-      'cancel-button',
-    ) as HTMLButtonElement;
-    cancelButton.click();
-
-    // THEN
-    const result = await promise;
-    expect(result).toBe(false);
-    expect(modal.isOpen()).toBe(false);
-  });
-
-  test('close method hides modal and resolves promise', async () => {
-    // GIVEN
-    const promise = modal.confirm('Title', 'Message');
-    expect(modal.isOpen()).toBe(true);
-
-    // WHEN
-    modal.close(true);
-
-    // THEN
-    expect(modal.isOpen()).toBe(false);
-    const result = await promise;
-    expect(result).toBe(true);
-  });
-
-  test('custom button labels are displayed', async () => {
-    // GIVEN / WHEN
-    modal.confirm('Title', 'Message', 'Proceed', 'Go Back');
-
-    // THEN
-    const shadow = modal.shadowRoot!;
-    const confirmButton = shadow.getElementById(
-      'confirm-button',
-    ) as HTMLButtonElement;
-    const cancelButton = shadow.getElementById(
-      'cancel-button',
-    ) as HTMLButtonElement;
-
-    expect(confirmButton.textContent).toBe('Proceed');
-    expect(cancelButton.textContent).toBe('Go Back');
-
-    // Clean up
-    modal.close(false);
+    cancelButton?.click();
   });
 });

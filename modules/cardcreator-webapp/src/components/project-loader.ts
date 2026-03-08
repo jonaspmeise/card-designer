@@ -7,20 +7,13 @@ import {
   FileInformation,
   ResolvedFile,
 } from '../../../cardcreator-library/src/file/file-types';
-import { ModalElement } from './modal';
 
 export class ProjectLoaderElement extends CardcreatorHTMLComponent {
-  private _modal!: ModalElement;
-
   constructor() {
     super();
   }
 
   protected init(): void {
-    this._modal = this.shadow.querySelector(
-      'cc-modal',
-    ) as ModalElement;
-
     // Listen for file added events
     this.library.events.on('fileAdded', async (event) => {
       const file = event.data.file;
@@ -54,11 +47,26 @@ export class ProjectLoaderElement extends CardcreatorHTMLComponent {
     const fileName =
       file.path.split('/').pop() ?? file.path;
 
-    const confirmed = await this._modal.confirm(
-      'Load Project?',
-      `A project file "${fileName}" was detected. Do you want to load it?`,
-      'Load Project',
-      'Cancel',
+    const confirmed = await new Promise<boolean>(
+      (resolve) => {
+        this.showModal({
+          title: 'Load Project?',
+          message: `A project file "${fileName}" was detected. Do you want to load it?`,
+          level: 'question',
+          buttons: [
+            {
+              label: 'Cancel',
+              callback: () => resolve(false),
+              style: 'secondary',
+            },
+            {
+              label: 'Load Project',
+              callback: () => resolve(true),
+              style: 'primary',
+            },
+          ],
+        });
+      },
     );
 
     if (confirmed) {
@@ -110,13 +118,20 @@ export class ProjectLoaderElement extends CardcreatorHTMLComponent {
         error,
       );
 
-      // Show error modal
-      this._modal.confirm(
-        'Error Loading Project',
-        `Failed to load project: ${error instanceof Error ? error.message : String(error)}`,
-        'OK',
-        'Close',
-      );
+      // Show error modal (forced – user must acknowledge)
+      this.showModal({
+        title: 'Error Loading Project',
+        message: `Failed to load project: ${error instanceof Error ? error.message : String(error)}`,
+        level: 'error',
+        buttons: [
+          {
+            label: 'OK',
+            callback: () => {},
+            style: 'primary',
+          },
+        ],
+        forced: true,
+      });
     }
   }
 
@@ -128,7 +143,6 @@ export class ProjectLoaderElement extends CardcreatorHTMLComponent {
           display: contents;
         }
       </style>
-      <cc-modal></cc-modal>
     `;
 
     return template;

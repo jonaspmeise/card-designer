@@ -24,7 +24,6 @@ import './components/render-queue';
 import './components/editor';
 import './components/preview';
 import './components/card-table';
-import './components/modal';
 import './components/project-loader';
 import {
   CARDCREATOR_ATTRIBUTE,
