@@ -19,12 +19,10 @@ jobs:
           bun-version: 'latest'
 
       - name: Install dependencies
-        working-directory: ./modules/cardcreator-webapp
         run: |
           bun install
 
       - name: Build webapp
-        working-directory: ./modules/cardcreator-webapp
         run: |
           bun run build
 
@@ -32,12 +30,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: webapp-dist
-          path: modules/cardcreator-webapp/dist
+          path: ./dist
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: modules/cardcreator-webapp/dist
+          path: ./dist
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
