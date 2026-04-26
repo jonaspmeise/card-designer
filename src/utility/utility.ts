@@ -191,7 +191,11 @@ export const convertToNestedObject = (flatObject: Record<string, unknown>): Reco
   return nestedObject;
 };
 
-export const extractTemplates = (source: string): TemplateFunction[] => {
+export const extractTemplates = (source: string | null): TemplateFunction[] => {
+  if (!source) {
+    return [];
+  }
+
   const templates = Array.from(source.matchAll(templatePattern));
 
   return templates.map(match => {
