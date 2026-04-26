@@ -195,11 +195,11 @@ export const renderJob = async (
     await Promise.all(
       [...allCanvases.values()]
         .flatMap((value) => {
-          return value.map(async v => {
+          return value.map(async (v, index) => {
             v.canvas.getContext('2d');
 
             const blob = await v.canvas.convertToBlob();
-            const name = v.name + '.png';
+            const name = `${v.name}_${index}.png`;
             console.debug(`Zipping to "${name}"...`)
             zip.file(name, blob);
           });
