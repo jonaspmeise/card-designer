@@ -1,4 +1,4 @@
-import { AppState, CsvSettings, ProjectSettings, RenderJob, TemplateFunction } from '../types/types.js';
+import { AppState, CsvSettings, FileType, ProjectSettings, RenderJob, TemplateFunction } from '../types/types.js';
 import * as yaml from 'js-yaml';
 
 export const debounce = (func: (...args: any[]) => any, delay: number = 500) => {
@@ -39,38 +39,61 @@ export const isValidUrl = (urlString: string): boolean => {
 
 export const byteDecoder = new TextDecoder('utf-8');
 
+/**
+ * Loads data from a remote (either file / URL) and saves it.
+ * @param url a string that points to either a file or URL.
+ * @param app Context.
+ */
 export const loadRemoteData: (
-  url: URL,
+  url: string,
   app: AppState
 ) => Promise<void> = async (
-  url: URL,
+  url: string,
   app: AppState
 ) => {
     try {
-      const response = await fetch(url);
-      const contentType = response.headers.get('Content-Type');
+      // Is this a file or an URL?
 
-      if (!contentType) {
-        throw new Error('Content-Type header not found.');
-      }
+      let content: ArrayBuffer;
+      let contentType: FileType;
 
-      console.log(`Found Content-Type on remote data: ${contentType}`);
-      app.cache.files.remoteRawData = await response.arrayBuffer();
+      if(isValidUrl(url)) {
+        console.debug(`Loading remote data from URL "${url}"...`);
+        const response = await fetch(url);
 
-      if (contentType.includes('application/json')) {
-        app.cache.data.filetype = 'JSON';
-        app.actions.reloadDataTable();
+        switch(response.headers.get('Content-Type')) {
+          case 'application/json': {
+            contentType = 'JSON';
+            break;
+          };
+          case 'text/csv': {
+            contentType = 'CSV';
+            break;
+          };
+          case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+            contentType = 'XLSX';
+            break;
+          };
+          default: {
+            throw new Error('Content-Type header not found.');
+          }
+        }
 
-      } else if (contentType.includes('text/csv')) {
-        app.cache.data.filetype = 'CSV';
-        app.actions.reloadDataTable();
-
-      } else if (contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
-        app.cache.data.filetype = 'XLSX';
-        app.actions.reloadDataTable();
+        content = await response.arrayBuffer();
       } else {
-        throw new Error(`Unsupported file type: ${contentType}.`);
+        // has to be a file.
+        console.debug(`Loading file data from "${url}"...`, app.cache.files.fileMap);
+        
+        content = await app.cache.files.fileMap.get(url)!.arrayBuffer();
+        contentType = url.split('\.').reverse()[0].toUpperCase() as (typeof contentType);
       }
+
+      console.debug(`Loaded a total of ${content.byteLength} bytes from remote "${url}" (${contentType}).`);
+
+      app.cache.data.filetype = contentType;
+      app.cache.files.remoteRawData = content;
+      app.actions.reloadDataTable();
+
     } catch (error) {
       app.actions.showToast({
         body: `Data could not be loaded! ${error}`,
@@ -81,17 +104,21 @@ export const loadRemoteData: (
   };
 
 export const csvToJson = (csv: string, settings: CsvSettings): unknown[] => {
+  console.debug(`Parsing CSV data...`);
   const separator = new RegExp(settings.separator, 'g');
 
   const lines = csv.split('\n');
+  console.debug(`Read a total of ${lines.length} lines.`);
+
   separator.lastIndex = 0;
   const headers = lines[0].split(separator).map(header => header.trim());
+  console.debug(`Read headers: ${headers.map(h => `"${h}"`).join(' ')}`);
 
   const regex = (settings.ignoreRegex !== undefined && settings.ignoreRegex.trim().length > 0)
     ? new RegExp(settings.ignoreRegex, 'g')
     : undefined;
 
-  return lines.slice(1)
+  const objects = lines.slice(1)
     .filter(line => {
       if(!!regex) {
         return !regex.test(line);
@@ -108,6 +135,10 @@ export const csvToJson = (csv: string, settings: CsvSettings): unknown[] => {
         return obj;
       }, {});
     });
+
+  console.debug(`Read a total of ${objects.length} cards.`, objects);
+  
+  return objects;
 };
 
 export const kebapify: (value: string) => string = (value: string) => value.split(' ').map(part => part.toLowerCase()).join('-');
@@ -200,12 +231,20 @@ export const divideArray = (array: unknown[], numberOfChunks: number): number[][
   return targets;
 };
 
-export const applyCardToSvg = async (
+/**
+ * Applies a single card object to a template, with extracted template functions.
+ * @param source The source of the template.
+ * @param templates The extracted template functions from the template.
+ * @param card The card information to apply to the template functions.
+ * @param app Context.
+ * @returns "string", if an actual card was rendered (SVG source code created) and "undefined" if the card was skipped.
+ */
+export const applyCardToSvg = (
   source: string,
   templates: TemplateFunction[],
   card: Record<string, unknown>,
   app: AppState
-): Promise<string> => {
+): (string | undefined) => {
   // Provide a copy of the Card, because this might be modified for a single render step!
   let code: string = source;
 
@@ -213,8 +252,8 @@ export const applyCardToSvg = async (
     ...card
   };
 
-  templates.forEach((func, i) => {
-    console.debug(`Translating template function #${i} with parameters ${func.parameters}...`);
+  for (let func of templates) {
+    console.debug(`Translating template function with parameters ${func.parameters}...`);
     const parameters: unknown[] = func.parameters.map(parameter => {
       if (parameter === 'project') {
         return app.project;
@@ -223,7 +262,7 @@ export const applyCardToSvg = async (
       } else if (parameter === 'job') {
         return app.cache.jobs.currentJob;
       } else if (parameter === 'files') {
-        return app.cache.files.fileMap
+        return app.cache.files.fileMap;
       } else if (parameter === 'config') {
         return app.cache.config.populated;
       } else {
@@ -236,12 +275,16 @@ export const applyCardToSvg = async (
 
     try {
       code = code.replaceAll(func.source, func.func(...parameters));
-    } catch (e) {
+    } catch (e: any) {
+      if(e.message === 'skip') {
+        console.info(`Rendering of the following card was skipped...`, card);
+        return undefined;
+      }
       console.error(`Error on function "${func.source}": ${e}`);
 
-      throw(e);
+      throw e;
     }
-  });
+  }
 
   return code;
 };

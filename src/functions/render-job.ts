@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { AppState, Card, RenderJob, TemplateFunction } from "../types/types.js";
-import { applyCardToSvg, download, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
+import { applyCardToSvg, download, extractTemplates, openDb, saveToSessionDb, simpleHash } from "../utility/utility.js";
 import { render, RenderResult } from "../utility/render.js";
 
 type CardsGroup = {
@@ -26,20 +26,30 @@ export const renderJob = async (
     severity: "primary"
   });
   app.cache.jobs.rendering.job = job;
+  app.cache.jobs.currentJob = job;
 
   const sourceHash = simpleHash(source);
   const db: IDBDatabase = await openDb();
   // A mapping between the identifying element per card and the name of the rendered blob object in the session db.
   const hashes: Map<Card, string> = new Map();
 
+  const renderedCards: Card[] = [];
   for(let card of cards) {
-    const svg = await applyCardToSvg(
+    let svg: string;
+
+    const applied = applyCardToSvg(
       source,
       templates,
       card,
       app
     );
 
+    if(applied === undefined) {
+      console.info(`Skipping rendering of card`, card);
+      continue;
+    }
+
+    svg = applied;
     const renderResult: RenderResult = await render(svg, app.cache.data.images);
 
     if(renderResult.image === undefined) {
@@ -66,6 +76,8 @@ export const renderJob = async (
     card.CARD_KEY = card[idColumn];
     hashes.set(card, name);
 
+    renderedCards.push(card);
+
     app.cache.jobs.rendering.elements.push({
       card: card,
       errors: renderResult.errors,
@@ -85,7 +97,7 @@ export const renderJob = async (
     // Only group if there is an actual grouping factor given.
     const possibleGroups: string[] = job.group?.by === undefined
     ? []
-    : cards.reduce((prev, curr) => {
+    : renderedCards.reduce((prev, curr) => {
       const currentGroup = curr[job.group!.by] as string;
 
       if(!prev.includes(currentGroup)) {
@@ -98,7 +110,7 @@ export const renderJob = async (
     console.debug(`Grouping all cards by "${job.group?.by}": ${possibleGroups.join(', ')}`);
 
     const groups: CardsGroup[] = possibleGroups.map(groupBy => ({
-      cards: cards.filter(card => card[job.group!.by] === groupBy),
+      cards: renderedCards.filter(card => card[job.group!.by] === groupBy),
       name: groupBy
     }));
 
@@ -132,8 +144,11 @@ export const renderJob = async (
             ctx.fillStyle = "#000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            const name = applyCardToSvg(job.filename, extractTemplates(job.filename), card, app);
+            console.debug(`Canvas name will be "${name}"...`, job.filename, extractTemplates(job.filename));
+
             canvases.push({
-              name: `${job.name}-${group.name}-${targetCanvasIndex}`,
+              name: name,
               canvas: canvas
             });
           }
@@ -184,7 +199,9 @@ export const renderJob = async (
             v.canvas.getContext('2d');
 
             const blob = await v.canvas.convertToBlob();
-            zip.file(v.name + '.png', blob);
+            const name = v.name + '.png';
+            console.debug(`Zipping to "${name}"...`)
+            zip.file(name, blob);
           });
         })
     );
@@ -207,7 +224,7 @@ export const renderJob = async (
           request.onerror = () => reject(request.error);
         });
         
-        const name = await applyCardToSvg(job.filename, templates, card, app);
+        const name = applyCardToSvg(job.filename, templates, card, app);
         console.debug(`Filename of card will be "${name}".`);
 
         zip.file(name, imageBlob);
